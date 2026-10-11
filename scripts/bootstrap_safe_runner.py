@@ -127,6 +127,8 @@ def main():
         "grant_id":grant_id,
         "grant_minutes":120,
         "smoke_test":result.get("state"),
+        "smoke_reason":result.get("reason"),
+        "smoke_output":result.get("output","")[-2500:],
         "live_files_changed":result.get("live_files_changed",False),
         "auto_apply":False,
         "merge_allowed":False,
