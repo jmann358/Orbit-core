@@ -2,10 +2,13 @@
 from datetime import datetime, timezone
 
 STAGES = (
-    ("runner", "Restricted test runner", "blocked", "Container isolation must be independently verified"),
-    ("repairs", "Bounded repairs and rollback", "partial", "Two-attempt state machine implemented; execution and restoration are not enabled"),
+    ("runner", "Restricted test runner", "activation_pending",
+     "Executor implemented; local container runtime, immutable image ID, and temporary run-tests grant are still required"),
+    ("repairs", "Bounded repairs and rollback", "validation_ready",
+     "Two-attempt isolated validation and rollback metadata are implemented; live code application remains disabled"),
     ("github", "Draft GitHub pull requests", "ready_for_review", "Never merge without owner approval"),
-    ("memory", "Searchable technical and conversation memory", "partial", "Technical decision search implemented; conversation summaries still require approval"),
+    ("memory", "Searchable technical and conversation memory", "partial",
+     "Technical decision search implemented; conversation summaries still require approval"),
     ("planning", "Independent safe task planning", "available", "Only predefined local checks"),
     ("dashboard", "Development command center", "available", "Recorded activity and approval inbox"),
 )
