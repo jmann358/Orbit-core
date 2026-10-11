@@ -904,6 +904,49 @@ def cancel_queued_job(job_id:int):
         raise HTTPException(409,"Job is not queued or does not exist")
     return {"id":job_id,"state":"cancelled"}
 
+@app.get("/agent/worker")
+def agent_worker_status():
+    from luna.jobs import worker_status
+    return worker_status()
+
+
+class WorkerChoice(BaseModel):
+    enabled: bool
+
+
+@app.post("/agent/worker")
+def agent_worker_choice(choice: WorkerChoice):
+    from luna.jobs import configure_worker
+    status=configure_worker(choice.enabled)
+    record_agent_run(
+        "supervised_worker", "enabled" if choice.enabled else "paused",
+        "Existing allowlisted job worker "+("resumed" if choice.enabled else "paused")
+    )
+    return status
+
+
+@app.get("/agent/jobs/{job_id}/events")
+def agent_job_events(job_id:int):
+    from luna.jobs import get_job, list_events
+    if get_job(job_id) is None:
+        raise HTTPException(404, "Job not found")
+    return {"id":job_id,"events":list_events(job_id),"read_only":True}
+
+
+@app.post("/agent/jobs/{job_id}/retry")
+def agent_retry_job(job_id:int):
+    from luna.jobs import retry_job
+    try:
+        result=retry_job(job_id)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    if not result:
+        raise HTTPException(
+            409, "Only attention-state low-risk jobs can be retried manually"
+        )
+    return {"id":job_id,"state":"queued","owner_requested":True}
+
+
 _job_stop=_threading.Event()
 _job_thread=None
 
@@ -958,22 +1001,19 @@ def _process_job(job):
     return False,"Unsupported job"
 
 def _job_worker():
-    from luna import autopilot
+    from luna import autopilot, jobs
+    from luna.job_operations import run_once
     while not _job_stop.wait(5):
         try:
+            # The persisted pause switch covers both automatic scheduling
+            # and execution of queued work. It never stops a running handler.
+            if not jobs.worker_status()["enabled"]:
+                continue
             advance_goals()
             autopilot.tick()
             backlog.reconcile()
             backlog.tick()
-            job=claim_next()
-            if job is None:
-                continue
-            try:
-                success,result=_process_job(job)
-            except Exception:
-                success,result=False,"Task failed; see server logs"
-            finish_job(job["id"],success,result)
-            record_agent_run("job:"+str(job["id"]),"passed" if success else "attention",result)
+            run_once(_process_job)
         except Exception:
             # Worker remains alive; no remote instructions are ever executed.
             continue
