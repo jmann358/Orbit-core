@@ -34,6 +34,17 @@ def _copy_file(source, target):
     target.parent.mkdir(parents=True,exist_ok=True)
     shutil.copyfile(source,target)
 
+def _seal_workspace(workspace):
+    workspace=Path(workspace).resolve(strict=True)
+    for path in sorted(workspace.rglob("*"), key=lambda p: len(p.parts), reverse=True):
+        if path.is_symlink():
+            raise ValueError("Symlinks are not allowed in runner workspace")
+        if path.is_file():
+            path.chmod(0o444)
+        elif path.is_dir():
+            path.chmod(0o555)
+    workspace.chmod(0o555)
+
 def _prepare_workspace(root, workspace, relative_path, replacement):
     root=Path(root).resolve(strict=True)
     workspace=Path(workspace).resolve(strict=True)
@@ -73,6 +84,7 @@ def run_fixed(root, relative_path, expected_sha256, replacement, image_ref=None,
         digest=_prepare_workspace(root,workspace,relative_path,replacement)
         if digest!=review["replacement_sha256"]:
             raise ValueError("Workspace digest mismatch")
+        _seal_workspace(workspace)
         argv=build(runtime_path,workspace,relative_path,resolved_image)
         try:
             completed=subprocess.run(
