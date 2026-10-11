@@ -212,3 +212,71 @@ def status():
         "sensitive_search_results_hidden":True,
         "cross_session_model_context":"approved_summaries_only",
     }
+
+
+_STOPWORDS=frozenset({
+    "the","and","that","this","with","from","have","want","your","about","into","just",
+    "like","what","when","where","which","would","could","should","there","their","they",
+    "them","then","than","been","were","will","make","need","does","doing","some","more",
+    "very","much","only","also","because","while","after","before","over","under","user",
+    "luna","chat","conversation","please","help"
+})
+
+def _checkpoint_tags(messages):
+    counts={}
+    for message in messages:
+        for match in WORD.finditer(message.lower()):
+            word=match.group(0)
+            if word in _STOPWORDS or len(word)>28:
+                continue
+            counts[word]=counts.get(word,0)+1
+    ranked=sorted(counts,key=lambda word:(counts[word],len(word),word),reverse=True)
+    return [word for word in ranked[:6] if TAG.fullmatch(word)]
+
+def maybe_checkpoint(session,min_new_user_messages=8):
+    """Create one pending local checkpoint when enough new safe user messages exist.
+
+    No model call occurs. The checkpoint is not eligible for Luna context until the
+    owner explicitly approves it.
+    """
+    if not isinstance(session,str) or not 1<=len(session)<=100:
+        raise ValueError("Invalid session")
+    if type(min_new_user_messages) is not int or not 4<=min_new_user_messages<=30:
+        raise ValueError("Invalid checkpoint threshold")
+    with core.connect() as db:
+        _setup(db)
+        open_candidate=db.execute(
+            """SELECT id FROM conversation_summaries
+               WHERE session=? AND status='pending' ORDER BY id DESC LIMIT 1""",
+            (session,)).fetchone()
+        if open_candidate:
+            return {"created":False,"reason":"pending_review","id":open_candidate[0]}
+        prior=db.execute(
+            """SELECT COALESCE(MAX(source_max_message_id),0)
+               FROM conversation_summaries
+               WHERE session=? AND status IN ('approved','rejected')""",
+            (session,)).fetchone()
+        after_id=prior[0] if prior else 0
+        rows=db.execute(
+            """SELECT id,content FROM messages
+               WHERE session=? AND role='user' AND id>?
+               ORDER BY id ASC""",(session,after_id)).fetchall()
+    if len(rows)<min_new_user_messages:
+        return {"created":False,"reason":"threshold"}
+    safe=[]
+    for _message_id,message in rows[-12:]:
+        compact=" ".join(message.split()).strip()
+        if not compact or classify(compact)["sensitive"]:
+            continue
+        safe.append(compact[:260])
+    if len(safe)<3:
+        return {"created":False,"reason":"insufficient_safe_content"}
+    selected=safe[-6:]
+    summary=("Conversation checkpoint pending owner review. The user recently discussed: " +
+             " | ".join(selected))
+    summary=summary[:2450]
+    tags=_checkpoint_tags(selected)
+    created=propose(session,summary,tags)
+    return {"created":created["created"],"id":created["id"],
+            "reason":"created" if created["created"] else "duplicate",
+            "model_called":False,"approved":False}
