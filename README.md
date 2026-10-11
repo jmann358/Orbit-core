@@ -24,7 +24,7 @@ read-only. A specialist role is not an independent AI runtime.
 
 See [Priority 5 completion and safety guide](docs/PRIORITY5_COMPLETION.md).
 **Until authenticated device access exists, the service must remain on
-\`127.0.0.1\` and must not be accessible over a network.**
+`127.0.0.1` and must not be accessible over a network.**
 
 ## Luna’s Design Studio (first self-directed creative assignment)
 
