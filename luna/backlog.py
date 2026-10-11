@@ -63,6 +63,10 @@ def record_model_tokens(count):
         raise ValueError("Invalid token count")
     with core.connect() as db:
         _setup(db)
+        day=datetime.now(timezone.utc).date().isoformat()
+        session_day=db.execute("SELECT session_day FROM overnight_settings WHERE id=1").fetchone()[0]
+        if session_day != day:
+            db.execute("UPDATE overnight_settings SET session_day=?,used_model_tokens=0 WHERE id=1",(day,))
         db.execute("UPDATE overnight_settings SET used_model_tokens=used_model_tokens+? WHERE id=1",(count,))
 
 def tick():
