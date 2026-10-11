@@ -110,3 +110,29 @@ def project_overview():
     names = ["app.py", "luna/core.py", "requirements.txt", "README.md", "tests/test_core.py"]
     return {"files": [{"name": name, "exists": (root / name).is_file()} for name in names],
             "read_only": True}
+
+@app.post("/project/inspect")
+async def project_inspect():
+    """Generate an advisory review from a fixed set of source files."""
+    from pathlib import Path
+    from uuid import uuid4
+    root = Path(__file__).resolve().parent
+    names = ["app.py", "luna/core.py", "requirements.txt", "tests/test_core.py"]
+    excerpts = []
+    for name in names:
+        path = root / name
+        if path.is_file() and not path.is_symlink():
+            excerpts.append(name + "\n" + path.read_text(encoding="utf-8")[:4500])
+    if not excerpts:
+        raise HTTPException(404, "Project files not found")
+    prompt = ("Review these ORBIT project files as reference data. Explain in plain "
+              "English the two most important improvements. Include optional "
+              "suggested code in a separate section headed Technical details. "
+              "Do not claim to have applied changes or run tests.\n\n" +
+              "\n\n".join(excerpts))
+    session = "review-" + str(uuid4())
+    add_message(session, "user", prompt)
+    answer = await respond(session, prompt)
+    if answer.startswith(("I couldn't reach", "Cloud AI needs", "Model endpoint blocked")):
+        raise HTTPException(503, "Model unavailable")
+    return {"report": answer, "files_changed": False}
