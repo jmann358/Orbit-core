@@ -33,6 +33,14 @@ class TaskDecision(BaseModel):
 class Candidate(BaseModel):
     content: str = Field(min_length=1,max_length=3000)
 
+class ContinuityProposal(BaseModel):
+    session: str = Field(min_length=1,max_length=100)
+    summary: str = Field(min_length=30,max_length=2500)
+    tags: list[str] = Field(default_factory=list,max_length=8)
+
+class ApprovalChoice(BaseModel):
+    approve: bool
+
 @app.get("/",response_class=HTMLResponse)
 def home():
     return r"""<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Luna v1.1.2.3.5 · ORBIT</title>
@@ -352,6 +360,42 @@ async def chat(request:Chat):
 @app.get("/memory/candidates")
 def list_candidates():
     return candidates()
+
+@app.get("/continuity/status")
+def continuity_status():
+    from luna.continuity import status
+    return status()
+
+@app.get("/continuity/summaries")
+def continuity_summaries(status: str | None = None):
+    from luna.continuity import list_summaries
+    try:
+        return list_summaries(status=status)
+    except ValueError as exc:
+        raise HTTPException(400,str(exc)) from exc
+
+@app.post("/continuity/summaries")
+def continuity_propose(request: ContinuityProposal):
+    from luna.continuity import propose
+    try:
+        return propose(request.session,request.summary,request.tags)
+    except ValueError as exc:
+        raise HTTPException(400,str(exc)) from exc
+
+@app.post("/continuity/summaries/{summary_id}/decision")
+def continuity_decision(summary_id: int, request: ApprovalChoice):
+    from luna.continuity import decide
+    if not decide(summary_id,request.approve):
+        raise HTTPException(409,"Pending continuity summary not found")
+    return {"status":"approved" if request.approve else "rejected"}
+
+@app.get("/continuity/search")
+def continuity_search(q: str, limit: int = 20):
+    from luna.continuity import search_history
+    try:
+        return search_history(q,limit)
+    except ValueError as exc:
+        raise HTTPException(400,str(exc)) from exc
 
 @app.post("/memory/candidates")
 def create_candidate(candidate:Candidate):
