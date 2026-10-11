@@ -165,6 +165,9 @@ def connect():
     db.execute("CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY, session TEXT NOT NULL, role TEXT NOT NULL, content TEXT NOT NULL, created_at TEXT NOT NULL)")
     db.execute("CREATE TABLE IF NOT EXISTS memory_candidates (id INTEGER PRIMARY KEY, content TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', created_at TEXT NOT NULL)")
     db.execute("CREATE TABLE IF NOT EXISTS improvement_journal (id INTEGER PRIMARY KEY, description TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'proposed', created_at TEXT NOT NULL)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_messages_session_id ON messages(session,id DESC)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_memory_candidates_status_id ON memory_candidates(status,id DESC)")
     db.commit()
     return db
 
