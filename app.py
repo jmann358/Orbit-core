@@ -638,9 +638,11 @@ def _process_job(job):
     return False,"Unsupported job"
 
 def _job_worker():
+    from luna import autopilot
     while not _job_stop.wait(5):
         try:
             advance_goals()
+            autopilot.tick()
             backlog.reconcile()
             backlog.tick()
             job=claim_next()
@@ -669,6 +671,22 @@ def _start_job_worker():
 @app.on_event("shutdown")
 def _stop_job_worker():
     _job_stop.set()
+
+@app.get("/control/autopilot")
+def control_autopilot_status():
+    from luna import autopilot
+    return autopilot.status()
+
+class AutopilotChoice(BaseModel):
+    enabled: bool
+
+@app.post("/control/autopilot")
+def control_autopilot_choice(choice: AutopilotChoice):
+    from luna import autopilot
+    result=autopilot.configure(choice.enabled)
+    record_agent_run("tier1_autopilot","enabled" if choice.enabled else "paused",
+                     "Tier 1 bounded routine jobs; no code deployment or model calls")
+    return result
 
 @app.get("/control/overview")
 def control_overview():
