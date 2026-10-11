@@ -1278,6 +1278,37 @@ def control_now():
     from luna.activity_timeline import current
     return current()
 
+@app.get("/control/backups")
+def control_backups():
+    from luna.backup import list_backups
+    return {
+        "backups":list_backups(),
+        "restore_available":False,
+        "restore_mode":"owner_plan_only",
+        "automatic_delete":False,
+    }
+
+@app.post("/control/backups")
+def control_create_backup():
+    from luna.backup import create
+    result=create()
+    return {
+        "filename":result["filename"],
+        "bytes":result["bytes"],
+        "tables":result["tables"],
+        "integrity":result["integrity"],
+        "live_database_modified":False,
+        "restore_performed":False,
+    }
+
+@app.get("/control/backups/{filename}/restore-plan")
+def control_restore_plan(filename: str):
+    from luna.backup import restore_plan
+    try:
+        return restore_plan(filename)
+    except (ValueError,OSError) as exc:
+        raise HTTPException(400,str(exc)) from exc
+
 @app.get("/control/autopilot")
 def control_autopilot_status():
     from luna import autopilot
