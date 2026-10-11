@@ -55,6 +55,24 @@ def finish_job(job_id, success, result):
                        ("completed" if success else "attention",str(result)[:1500],_now(),job_id))
         return cur.rowcount==1
 
+def queue_once(kind, title, detail=""):
+    """Atomically avoid duplicate queued/running routine work."""
+    if kind not in KINDS:
+        raise ValueError("Unsupported job kind")
+    with core.connect() as db:
+        _setup(db)
+        existing = db.execute(
+            "SELECT id FROM work_items WHERE kind=? AND state IN ('queued','running') LIMIT 1",
+            (kind,)).fetchone()
+        if existing:
+            return {"id": existing[0], "created": False}
+        if not isinstance(title, str) or not 1 <= len(title.strip()) <= 120:
+            raise ValueError("Invalid title")
+        cur = db.execute(
+            "INSERT INTO work_items(kind,title,detail,state,created_at,updated_at) VALUES(?,?,?,'queued',?,?)",
+            (kind,title.strip(),detail[:1200],_now(),_now()))
+        return {"id":cur.lastrowid, "created": True}
+
 def cancel_job(job_id):
     with core.connect() as db:
         _setup(db)
