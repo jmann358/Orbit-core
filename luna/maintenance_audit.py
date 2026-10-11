@@ -100,9 +100,14 @@ def audit(now=None, stale_job_seconds=900):
 
     severity_rank={"high":0,"medium":1,"low":2}
     issues.sort(key=lambda item:(severity_rank[item["severity"]],item["code"],item["subject"]))
+    severity_counts={name:sum(item["severity"]==name for item in issues)
+                     for name in ("high","medium","low")}
+    status=("attention" if severity_counts["high"] or severity_counts["medium"] else
+            "advisory" if severity_counts["low"] else "clear")
     return {
-        "status":"attention" if issues else "clear",
+        "status":status,
         "counts":counts,
+        "severity_counts":severity_counts,
         "issues":issues,
         "changes_made":False,
         "payloads_included":False,
