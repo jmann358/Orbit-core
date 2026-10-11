@@ -1160,3 +1160,36 @@ def set_overnight(choice:OvernightChoice):
         return backlog.configure(choice.enabled,choice.max_jobs,choice.max_model_tokens)
     except ValueError as exc:
         raise HTTPException(400,str(exc)) from exc
+
+
+# Priority 2: review-only proposal assembly. This endpoint is intentionally
+# NOT connected to a candidate-code execution endpoint or deployment mechanism.
+class WorkshopChange(BaseModel):
+    path: str = Field(min_length=1, max_length=150)
+    base_sha256: str = Field(min_length=64, max_length=64)
+    replacement: str = Field(min_length=1, max_length=30000)
+
+
+class WorkshopProposalRequest(BaseModel):
+    changes: list[WorkshopChange] = Field(min_length=1, max_length=5)
+    tests: list[str] = Field(default_factory=list, max_length=10)
+
+
+@app.post("/development/workshop/proposal")
+def development_workshop_proposal(request: WorkshopProposalRequest):
+    from pathlib import Path
+    from luna.workshop import stage_proposal
+    try:
+        return stage_proposal(
+            Path(__file__).resolve().parent,
+            [item.model_dump() for item in request.changes],
+            request.tests,
+        )
+    except (ValueError, UnicodeError, OSError) as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
+@app.get("/development/runner/preflight")
+def development_runner_preflight():
+    from luna.runner_preflight import inspect_runner
+    return inspect_runner()
