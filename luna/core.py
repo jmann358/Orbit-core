@@ -270,7 +270,9 @@ async def respond(session, message):
     # unless the owner separately opted in to that transfer.
     if continuity["enabled"] and (local or continuity["cloud_enabled"]):
         from luna.continuity import recall, render_context
-        candidates = recall(DB_PATH, session, message, limit=10)
+        # Bound the search query separately from the full, retained user message.
+        search_query = message.strip()[:240]
+        candidates = recall(DB_PATH, session, search_query, limit=10) if search_query else []
         older = []
         for item in candidates:
             # The current turn is already in the short-term context.
