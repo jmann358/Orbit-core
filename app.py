@@ -408,6 +408,38 @@ def continuity_project_notes(session: str = "default"):
         raise HTTPException(400, str(exc)) from exc
 
 
+@app.get("/history/page")
+def get_history_page(session: str = "default", before_id: int | None = None,
+                     limit: int = 100):
+    """Page backward through the existing persisted conversation without deleting it."""
+    from luna import core
+    if not isinstance(session, str) or not 1 <= len(session) <= 100:
+        raise HTTPException(400, "Invalid session")
+    if not 1 <= limit <= 100:
+        raise HTTPException(400, "Invalid page size")
+    if before_id is not None and before_id <= 0:
+        raise HTTPException(400, "Invalid page marker")
+    with core.connect() as db:
+        if before_id is None:
+            rows = db.execute(
+                "SELECT id,role,content FROM messages WHERE session=? "
+                "ORDER BY id DESC LIMIT ?", (session, limit)
+            ).fetchall()
+        else:
+            rows = db.execute(
+                "SELECT id,role,content FROM messages "
+                "WHERE session=? AND id<? ORDER BY id DESC LIMIT ?",
+                (session, before_id, limit)
+            ).fetchall()
+    oldest = rows[-1][0] if len(rows) == limit else None
+    return {
+        "messages": [{"id": i, "role": role, "content": content}
+                     for i, role, content in reversed(rows)],
+        "next_before": oldest,
+        "read_only": True,
+    }
+
+
 @app.get("/history")
 def get_history(session: str="default"):
     if len(session)>100: raise HTTPException(400,"Session too long")
