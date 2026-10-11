@@ -74,3 +74,17 @@ def test_gemini_native_endpoint_and_history():
             assert captured["headers"] == {"x-goog-api-key": "test-secret"}
             assert captured["body"]["contents"][0]["parts"][0]["text"] == "Hello Luna"
             assert captured["body"]["systemInstruction"]["parts"][0]["text"].startswith("You are Luna")
+
+
+def test_orbit_charter_is_always_in_system_context():
+    charter = core.SYSTEM
+    for required in (
+        "PERMANENT ORBIT PROJECT CHARTER",
+        "Mac mini M4",
+        "iPhone",
+        "approval",
+        "provider",
+        "VERIFIED WORKING",
+        "jmann358/Orbit-core",
+    ):
+        assert required in charter
