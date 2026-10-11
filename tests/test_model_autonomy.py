@@ -38,3 +38,17 @@ def test_non_owner_cannot_enable_auto_drafting(monkeypatch):
                 assert False,"non-owner configuration must fail"
             except ValueError:
                 pass
+
+def test_two_call_reservation_is_atomic(monkeypatch):
+    with tempfile.TemporaryDirectory() as folder:
+        with patch.object(core,"DB_PATH",Path(folder)/"model.db"):
+            monkeypatch.setenv("LUNA_MODEL_URL","http://127.0.0.1:11434/v1")
+            model_autonomy.configure_local(True,3,"owner")
+            first=model_autonomy.reserve_calls(2)
+            assert first["allowed"] is True
+            assert first["reserved"]==2
+            denied=model_autonomy.reserve_calls(2)
+            assert denied=={"allowed":False,"reason":"daily_limit"}
+            status=model_autonomy.status()
+            assert status["calls_today"]==2
+            assert status["remaining_today"]==1
