@@ -279,6 +279,18 @@ async function loadTasks(){try{const r=await fetch('/autonomy/tasks');const task
 def get_sessions():
     return sessions(30)
 
+@app.get("/continuity/search")
+def continuity_search(q: str, session: str = "default", limit: int = 5):
+    """Search earlier local conversations. Nothing is sent to a model."""
+    from luna import core
+    from luna.continuity import recall
+    try:
+        return {"results": recall(core.DB_PATH, session, q, limit),
+                "read_only": True, "provider_called": False}
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
 @app.get("/history")
 def get_history(session: str="default"):
     if len(session)>100: raise HTTPException(400,"Session too long")
