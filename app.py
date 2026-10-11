@@ -149,7 +149,7 @@ async function loadControl(){
   try{
     const r=await fetch('/control/overview');if(!r.ok)throw Error('Overview unavailable');
     const data=await r.json();metrics.replaceChildren();review.replaceChildren();inventory.replaceChildren();
-    for(const [key,label] of [['requests','Luna requests'],['improvements','Improvements'],['tasks','Task approvals'],['drafts','Code drafts'],['memories','Memories'],['notes','Project notes'],['queued_jobs','Queued jobs'],['attention_jobs','Needs attention']]){
+    for(const [key,label] of [['bridge','Bridge'],['requests','Luna requests'],['improvements','Improvements'],['tasks','Task approvals'],['drafts','Code drafts'],['memories','Memories'],['notes','Project notes'],['queued_jobs','Queued jobs'],['attention_jobs','Needs attention']]){
       const card=document.createElement('div');card.className='control-metric';
       const number=document.createElement('strong');number.textContent=String(data.counts[key]||0);
       const caption=document.createElement('span');caption.textContent=label;card.append(number,caption);metrics.append(card);
@@ -172,7 +172,7 @@ async function loadControl(){
     }
     if(!pending){const p=document.createElement('p');p.textContent='All caught up. Ask Luna for the next improvement when you are ready.';review.append(p)}
     const files=data.inventory.files||[];inventory.textContent=data.inventory.present_count+' of '+files.length+' known project files present (metadata only; tests not run).';
-    const alerts={home:[pending+(data.counts.attention_jobs||0),'high'],memory:[data.counts.memories||0,'medium'],development:[(data.counts.improvements||0)+(data.counts.drafts||0),'medium'],testing:[data.counts.attention_jobs||0,'high'],approvals:[(data.counts.requests||0)+(data.counts.tasks||0)+(data.counts.notes||0)+(data.counts.memories||0),'high']};
+    const alerts={bridge:[data.counts.bridge||0,'medium'],home:[pending+(data.counts.attention_jobs||0),'high'],memory:[data.counts.memories||0,'medium'],development:[(data.counts.improvements||0)+(data.counts.drafts||0),'medium'],testing:[data.counts.attention_jobs||0,'high'],approvals:[(data.counts.requests||0)+(data.counts.tasks||0)+(data.counts.notes||0)+(data.counts.memories||0),'high']};
     for(const [key,[count,priority]] of Object.entries(alerts)){const el=document.querySelector('[data-alert="'+key+'"]');if(!el)continue;el.hidden=!count;el.className='nav-attention priority-'+priority;el.textContent=count+' · '+(priority==='high'?'High':'Review');el.setAttribute('aria-label',count+' items needing '+priority+' priority attention')}
     status.textContent=pending+' item(s) awaiting review · no changes applied automatically';
   }catch(e){status.textContent='Could not load overview: '+e.message}
@@ -841,7 +841,11 @@ def control_autopilot_choice(choice: AutopilotChoice):
 @app.get("/control/overview")
 def control_overview():
     """One read-only snapshot. Proposal approvals never execute work."""
-    from luna.requests import list_requests\n    requests = list_requests(open_only=True)\n    proposed = [x for x in list_improvements() if x["status"] == "proposed"]
+    from luna.requests import list_requests
+    from luna.bridge import list_threads
+    requests = list_requests(open_only=True)
+    bridge_pending = [t for t in list_threads() if t["status"] in ("awaiting_relay","awaiting_reply")]
+    proposed = [x for x in list_improvements() if x["status"] == "proposed"]
     tasks = [x for x in list_tasks() if x["status"] == "pending"]
     memories = [x for x in candidates() if x["status"] == "pending"]
     notes = [x for x in list_project_notes() if x["status"] == "pending"]
@@ -851,7 +855,7 @@ def control_overview():
     from luna.development import project_inventory
     inventory = project_inventory(Path(__file__).resolve().parent)
     return {
-        "counts": {"requests": len(requests), "improvements": len(proposed), "tasks": len(tasks),
+        "counts": {"bridge": len(bridge_pending), "requests": len(requests), "improvements": len(proposed), "tasks": len(tasks),
                    "memories": len(memories), "notes": len(notes),
                    "drafts": len(drafts),
                    "queued_jobs": sum(x["state"] == "queued" for x in work),
