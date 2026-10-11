@@ -32,3 +32,31 @@ This document defines requirements, not an implemented or certified security bou
 4. Independent watchdog with private storage and owner-only alerts.
 5. Adversarial tests for indirect access and log tampering.
 6. Only then consider increased autonomous code permissions.
+
+## Sensitive-information intake and quarantine (owner requirement)
+The vault is both an owner-only credential manager and a review destination for
+potentially sensitive material encountered during authorized Luna work.
+
+- Intake and classification must run in a separate trusted broker **before**
+  content reaches Luna's model context whenever technically possible.
+- Classifications include credentials, authentication tokens, personal identifiers,
+  financial/medical records, private documents, and owner-defined custom rules.
+- Default for uncertain matches: quarantine, not discard or automatically publish.
+- Quarantined payloads are encrypted for the owner and are never returned to Luna.
+  Luna receives only an opaque receipt and a minimal generic handling status.
+- Owner-only review actions: preserve in vault, permanently delete according to a
+  defined retention policy, release a sanitized version, or create/update a future
+  classification rule. Rule edits require owner authentication.
+- Never store raw secret payloads, previews, excerpts, or credential fingerprints in
+  Luna's database, GitHub, standard logs, model prompts, telemetry, or watchdog reports.
+- For passwords, use a vetted password-manager/cryptographic storage design rather
+  than implementing custom encryption. The owner-only interface must enforce
+  authentication, lockout/rate limits, and secure recovery.
+- Vault key management must be separate from Luna and the intake worker. The intake
+  service may encrypt using a public key without receiving decryption capability.
+- Classification is fallible. Provide a private review queue, expiration/retention
+  controls, and a clear distinction between deletion from the vault and copies
+  previously disclosed to models or third-party services.
+- The private watchdog records only intake events and policy outcomes, not payloads.
+- **Not implemented yet.** Do not use this repository as a password manager or
+  deposit real secrets until independent storage and isolation are verified.
