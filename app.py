@@ -481,6 +481,13 @@ def continuity_decision(summary_id: int, request: ApprovalChoice):
         raise HTTPException(409,"Pending continuity summary not found")
     return {"status":"approved" if request.approve else "rejected"}
 
+@app.post("/continuity/summaries/{summary_id}/revoke")
+def continuity_revoke(summary_id: int):
+    from luna.continuity import revoke
+    if not revoke(summary_id):
+        raise HTTPException(409,"Approved continuity summary not found")
+    return {"status":"revoked"}
+
 @app.get("/continuity/search")
 def continuity_search(q: str, limit: int = 20):
     from luna.continuity import search_history
