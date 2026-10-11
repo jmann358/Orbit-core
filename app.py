@@ -211,6 +211,24 @@ async def draft_change(request:ChangeDraft):
     if len(summary)>650:
         summary=summary[:647]+"..."
     review=quality_gate(request.goal,draft)
+    # One bounded revision attempt. Never execute or install model-produced text.
+    if review["status"]=="needs_revision":
+        issues=(review["blockers"]+review["warnings"])[:8]
+        revision_prompt=("Revise this UNAPPLIED ORBIT code proposal. Address every issue, "
+                         "show a specific target file and reviewable patch. "
+                         "Do not claim tests passed or code was installed. "
+                         "Keep explicit user approval for permanent memories. "
+                         "Issues: "+repr(issues)+"\\nOriginal goal: "+request.goal+
+                         "\\nOriginal draft:\\n"+draft[:16000])
+        revision_session="revision-"+str(uuid4())
+        add_message(revision_session,"user",revision_prompt)
+        candidate=await respond(revision_session,revision_prompt)
+        if candidate and not candidate.startswith(("I couldn't reach","Cloud AI needs","Model endpoint blocked")):
+            revised_review=quality_gate(request.goal,candidate)
+            if (len(revised_review["blockers"]),len(revised_review["warnings"])) < (len(review["blockers"]),len(review["warnings"])):
+                draft=candidate
+                review=revised_review
+                summary=draft.split("**Patch",1)[0].split("Patch (",1)[0].strip()[:650]
     draft_id=save_code_draft(request.goal,summary,draft)
     return {"draft":draft,"summary":summary,"task_id":task_id,"draft_id":draft_id,"quality_gate":review,"applied":False}
 
