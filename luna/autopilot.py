@@ -4,6 +4,8 @@ from luna import core, jobs, model_autonomy
 
 ROUTINES = {
     "project_health": {"interval_minutes": 30, "priority": "high"},
+    "readiness_check": {"interval_minutes": 60, "priority": "high"},
+    "maintenance_audit": {"interval_minutes": 60, "priority": "high"},
     "development_plan": {"interval_minutes": 360, "priority": "normal"},
     "self_improvement": {"interval_minutes": 720, "priority": "normal"},
     "autonomous_draft": {"interval_minutes": 360, "priority": "normal"},
