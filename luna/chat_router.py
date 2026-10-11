@@ -6,7 +6,9 @@ import re
 
 def route_chat_job(message):
     if not isinstance(message, str):
-        return None
+        if re.fullmatch(prefix + r"(?:your\\s+|the\\s+)?(?:next\\s+)?(?:self-improvement\\s+|self improvement\\s+)(?:proposal|plan|task)[.!]?",text):
+        return {"kind":"self_improvement","title":"Luna self-improvement proposal"}
+    return None
     text = " ".join(message.lower().strip().split())
     if len(text) > 300 or not text:
         return None
