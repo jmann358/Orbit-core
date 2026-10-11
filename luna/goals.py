@@ -1,7 +1,7 @@
 """Durable bounded goals and approval-gated execution plans."""
 import json
 from luna import core
-from luna import jobs
+from luna import jobs, agent_registry
 
 ALLOWED_STEPS={"project_health":"Read-only local project health","github_status":"Read-only GitHub status","development_plan":"Prepare a development plan"}
 MAX_STEPS=5
@@ -15,6 +15,7 @@ def propose_goal(objective, steps):
         raise ValueError("Invalid objective")
     if not isinstance(steps,list) or not 1<=len(steps)<=MAX_STEPS or any(s not in ALLOWED_STEPS for s in steps):
         raise ValueError("Steps must be bounded allowlisted actions")
+    agent_registry.validate_plan(steps)
     with core.connect() as db:
         _setup(db)
         now=core.timestamp()
@@ -82,6 +83,7 @@ def goal_report(goal_id):
                         ("id","state","result","attempt_count","max_attempts"), row
                     ))
             details.append({**step, "label": ALLOWED_STEPS[step["kind"]],
+                            "specialist": agent_registry.specialist_for(step["kind"]),
                             "job": record})
     done = sum(x["state"] == "completed" for x in details)
     return {
