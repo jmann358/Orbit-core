@@ -867,6 +867,21 @@ def control_overview():
         "inventory": inventory, "read_only": True, "auto_apply": False
     }
 
+class PatchReviewRequest(BaseModel):
+    path: str = Field(min_length=1,max_length=150)
+    base_sha256: str = Field(min_length=64,max_length=64)
+    replacement: str = Field(min_length=1,max_length=30000)
+
+@app.post("/development/patch-review")
+def development_patch_review(request:PatchReviewRequest):
+    from pathlib import Path
+    from luna.patches import review_patch
+    try:
+        return review_patch(Path(__file__).resolve().parent,request.path,
+                            request.base_sha256,request.replacement)
+    except (ValueError,UnicodeError,OSError) as exc:
+        raise HTTPException(400,str(exc)) from exc
+
 @app.get("/development/permissions")
 def development_permissions():
     from luna.permissions import policy
