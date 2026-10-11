@@ -806,7 +806,10 @@ def _process_job(job):
     return False,"Unsupported job"
 
 def _job_worker():
+    from pathlib import Path
     from luna import autopilot
+    from luna.development_worker import run_one as run_development_candidate
+    root=Path(__file__).resolve().parent
     while not _job_stop.wait(5):
         try:
             advance_goals()
@@ -814,14 +817,20 @@ def _job_worker():
             backlog.reconcile()
             backlog.tick()
             job=claim_next()
-            if job is None:
-                continue
-            try:
-                success,result=_process_job(job)
-            except Exception:
-                success,result=False,"Task failed; see server logs"
-            finish_job(job["id"],success,result)
-            record_agent_run("job:"+str(job["id"]),"passed" if success else "attention",result)
+            if job is not None:
+                try:
+                    success,result=_process_job(job)
+                except Exception:
+                    success,result=False,"Task failed; see server logs"
+                finish_job(job["id"],success,result)
+                record_agent_run("job:"+str(job["id"]),"passed" if success else "attention",result)
+            candidate=run_development_candidate(root)
+            if candidate["state"]!="idle":
+                summary=("Candidate #"+str(candidate["candidate_id"])+" validation: "+
+                         candidate["state"]+"; live source unchanged")
+                record_agent_run("development_candidate",
+                                 "passed" if candidate["state"]=="passed" else "attention",
+                                 summary)
         except Exception:
             # Worker remains alive; no remote instructions are ever executed.
             continue
@@ -830,6 +839,8 @@ def _job_worker():
 def _start_job_worker():
     global _job_thread
     recover_interrupted()
+    from luna.development_candidates import recover_interrupted as recover_development_candidates
+    recover_development_candidates()
     backlog.reconcile()
     if _job_thread is None or not _job_thread.is_alive():
         _job_stop.clear()
