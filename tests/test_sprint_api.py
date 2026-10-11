@@ -7,6 +7,8 @@ def test_sprint_status_is_read_only_and_disabled():
     data=response.json()
     assert not data["runner"]["isolated_tests_enabled"]
     assert not data["sprint"]["autonomous_code_apply_enabled"]
+    assert data["isolation"]["fail_closed"] is True
+    assert data["isolation"]["execution_enabled"] is False
     assert len(data["sprint"]["stages"])==6
 
 def test_sprint_tab_renders():
