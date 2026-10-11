@@ -208,6 +208,7 @@ def status():
         "pending":counts.get("pending",0),
         "approved":counts.get("approved",0),
         "rejected":counts.get("rejected",0),
+        "revoked":counts.get("revoked",0),
         "raw_history_searchable_locally":True,
         "sensitive_search_results_hidden":True,
         "cross_session_model_context":"approved_summaries_only",
