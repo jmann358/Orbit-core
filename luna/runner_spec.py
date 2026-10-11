@@ -29,8 +29,9 @@ def build(runtime_path, workspace, relative_path, image_ref):
         str(runtime),"run","--rm","--pull=never","--network=none","--read-only",
         "--memory=256m","--pids-limit=64","--cap-drop=ALL",
         "--security-opt=no-new-privileges","--user=65534:65534",
+        "--env=PYTHONDONTWRITEBYTECODE=1","--env=PYTEST_DISABLE_PLUGIN_AUTOLOAD=1",
         "--mount",f"type=bind,src={root},dst=/workspace,ro",
         "--tmpfs","/tmp:rw,noexec,nosuid,size=64m",
         "-w","/workspace",image_ref,
-        "python","-m","pytest","-q",test_target,
+        "python","-m","pytest","-q","-p","no:cacheprovider",test_target,
     ]
