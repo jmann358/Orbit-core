@@ -18,4 +18,6 @@ The feed is informational only. Entries cannot authorize code execution, merges,
 
 ## Current state
 
-Luna autonomous code application remains disabled. ChatGPT is currently advancing the sprint while GitHub Actions independently verifies checkpoints. The current autonomy milestone includes bounded task selection, reviewable structured candidates, and isolated validation. Automatic model drafting, live code application, merges, spending, and security-boundary expansion remain approval-gated.
+Luna now has a verified isolated test runner, approval-gated conversation continuity, a privacy-safe live activity timeline and terminal watcher, validated local SQLite backups, and a read-only readiness doctor. The owner-visible feed records these milestones without including private payloads.
+
+Automatic model drafting is intentionally pinned. Live code application, merges, spending, credential access, external exposure, destructive restore, and security-boundary expansion remain approval-gated or disabled.
