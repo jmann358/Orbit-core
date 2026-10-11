@@ -696,6 +696,69 @@ def _start_job_worker():
 def _stop_job_worker():
     _job_stop.set()
 
+class BridgeThreadPayload(BaseModel):
+    title: str = Field(min_length=3,max_length=120)
+    priority: str = "medium"
+    message: str = Field(min_length=5,max_length=6000)
+
+class BridgeMessagePayload(BaseModel):
+    sender: str
+    content: str = Field(min_length=1,max_length=12000)
+
+@app.get("/bridge/threads")
+def bridge_threads():
+    from luna.bridge import list_threads
+    return list_threads()
+
+@app.post("/bridge/threads")
+def bridge_new_thread(payload: BridgeThreadPayload):
+    from luna.bridge import create_thread
+    try:
+        return {"id":create_thread(payload.title,payload.priority,payload.message),
+                "delivered":False,"requires_user_relay":True}
+    except ValueError as exc:
+        raise HTTPException(400,str(exc)) from exc
+
+@app.get("/bridge/threads/{thread_id}")
+def bridge_thread(thread_id:int):
+    from luna.bridge import get_thread
+    thread=get_thread(thread_id)
+    if thread is None:
+        raise HTTPException(404,"Thread not found")
+    return thread
+
+@app.get("/bridge/threads/{thread_id}/relay")
+def bridge_relay(thread_id:int):
+    from luna.bridge import get_thread,relay_message
+    thread=get_thread(thread_id)
+    if thread is None:
+        raise HTTPException(404,"Thread not found")
+    return {"text":relay_message(thread),"sent":False}
+
+@app.post("/bridge/threads/{thread_id}/messages")
+def bridge_add_message(thread_id:int,payload:BridgeMessagePayload):
+    from luna.bridge import add_message
+    try:
+        if not add_message(thread_id,payload.sender,payload.content):
+            raise HTTPException(409,"Thread closed or missing")
+    except ValueError as exc:
+        raise HTTPException(400,str(exc)) from exc
+    return {"saved":True,"sent_externally":False}
+
+@app.post("/bridge/threads/{thread_id}/relayed")
+def bridge_mark_relayed(thread_id:int):
+    from luna.bridge import mark_relayed
+    if not mark_relayed(thread_id):
+        raise HTTPException(409,"Thread is not awaiting relay")
+    return {"status":"awaiting_reply","delivered_unverified":True}
+
+@app.post("/bridge/threads/{thread_id}/close")
+def bridge_close(thread_id:int):
+    from luna.bridge import close_thread
+    if not close_thread(thread_id):
+        raise HTTPException(409,"Thread already closed or missing")
+    return {"status":"closed"}
+
 class LunaRequestPayload(BaseModel):
     kind: str
     priority: str
