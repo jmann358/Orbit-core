@@ -99,6 +99,41 @@ def journal(description):
     with connect() as db:
         db.execute("INSERT INTO improvement_journal(description,created_at) VALUES(?,?)",(description,timestamp()))
 
+
+def propose_task(title, description):
+    """Create an approval-gated task. No commands are executed."""
+    with connect() as db:
+        db.execute("""CREATE TABLE IF NOT EXISTS autonomy_tasks
+            (id INTEGER PRIMARY KEY, title TEXT NOT NULL, description TEXT NOT NULL,
+             status TEXT NOT NULL DEFAULT 'pending', created_at TEXT NOT NULL)""")
+        cur = db.execute(
+            "INSERT INTO autonomy_tasks(title,description,created_at) VALUES(?,?,?)",
+            (title, description, timestamp()))
+        return cur.lastrowid
+
+def list_tasks(limit=30):
+    with connect() as db:
+        db.execute("""CREATE TABLE IF NOT EXISTS autonomy_tasks
+            (id INTEGER PRIMARY KEY, title TEXT NOT NULL, description TEXT NOT NULL,
+             status TEXT NOT NULL DEFAULT 'pending', created_at TEXT NOT NULL)""")
+        rows = db.execute(
+            "SELECT id,title,description,status FROM autonomy_tasks ORDER BY id DESC LIMIT ?",
+            (limit,)).fetchall()
+    return [{"id": i, "title": t, "description": d, "status": s} for i,t,d,s in rows]
+
+def decide_task(task_id, decision):
+    """Record a decision; approval is NOT authorization to execute arbitrary code."""
+    if decision not in ("approved", "rejected", "revision_requested"):
+        return False
+    with connect() as db:
+        db.execute("""CREATE TABLE IF NOT EXISTS autonomy_tasks
+            (id INTEGER PRIMARY KEY, title TEXT NOT NULL, description TEXT NOT NULL,
+             status TEXT NOT NULL DEFAULT 'pending', created_at TEXT NOT NULL)""")
+        cur = db.execute(
+            "UPDATE autonomy_tasks SET status=? WHERE id=? AND status='pending'",
+            (decision, task_id))
+        return cur.rowcount > 0
+
 async def respond(session, message):
     """Use an explicitly configured local model or a supported HTTPS cloud endpoint."""
     from urllib.parse import urlparse
