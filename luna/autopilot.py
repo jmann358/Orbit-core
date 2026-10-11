@@ -64,4 +64,4 @@ def tick(now=None):
                 db.execute("INSERT INTO autopilot_runs(kind,last_queued_at) VALUES(?,?) ON CONFLICT(kind) DO UPDATE SET last_queued_at=excluded.last_queued_at",
                            (kind,now.isoformat()))
                 queued.append({"kind":kind,"job_id":result["id"]})
-    return {"queued":queued,"reason":"ok"}
+    return {"queued":queued,"reason":"ok","dispatch_policy":"allowlisted_only","auto_apply":False}
