@@ -6,7 +6,7 @@ It is NOT a secure intake broker; screening must eventually run before Luna.
 import re
 
 RULES = (
-    ("private_key", re.compile(r"-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----")),
+    ("private_key", re.compile(r"-----BEGIN (?:(?:RSA|EC|DSA|OPENSSH|ENCRYPTED) )?PRIVATE KEY-----")),
     ("credential_assignment", re.compile(r"(?i)\b(?:password|passwd|api[_-]?key|secret[_-]?key|access[_-]?token)\s*[:=]\s*\S+")),
     ("bearer_token", re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/-]{12,}")),
     ("social_security_number", re.compile(r"(?<!\d)\d{3}-\d{2}-\d{4}(?!\d)")),
