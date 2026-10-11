@@ -51,3 +51,18 @@ def test_reject_unknown_tools_and_unapproved_goal():
             assert goals.decide_goal(id,False)
             goals.advance_goals()
             assert jobs.list_jobs()==[]
+
+def test_goal_api_requires_approval():
+    from fastapi.testclient import TestClient
+    from app import app
+    with tempfile.TemporaryDirectory() as folder:
+        with patch.object(core,"DB_PATH",Path(folder)/"goals.db"):
+            client=TestClient(app)
+            response=client.post("/agent/goals",json={"objective":"Review project health","steps":["project_health"]})
+            assert response.status_code==200
+            goal_id=response.json()["id"]
+            assert response.json()["requires_approval"] is True
+            assert client.get("/agent/goals").json()[0]["state"]=="proposed"
+            assert client.post("/agent/goals/"+str(goal_id)+"/decision",json={"approve":True}).status_code==200
+            assert client.get("/agent/goals").json()[0]["state"]=="approved"
+            assert client.post("/agent/goals",json={"objective":"Run forbidden action","steps":["run_shell"]}).status_code==400
