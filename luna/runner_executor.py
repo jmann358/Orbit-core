@@ -49,11 +49,15 @@ def _prepare_workspace(root, workspace, relative_path, replacement):
     target.write_text(replacement,encoding="utf-8")
     return hashlib.sha256(target.read_bytes()).hexdigest()
 
-def run_fixed(root, relative_path, expected_sha256, replacement, image_ref, *, owner_approved=True):
+def run_fixed(root, relative_path, expected_sha256, replacement, image_ref=None, *, owner_approved=True):
     review=review_patch(root,relative_path,expected_sha256,replacement)
     activation=activation_status(image_ref=image_ref,owner_approved=owner_approved)
     if not activation["enabled"]:
         return {"state":"blocked","reason":"activation_gate","gates":activation["gates"],
+                "tests_executed":False,"live_files_changed":False}
+    resolved_image=activation.get("image_ref")
+    if not resolved_image:
+        return {"state":"blocked","reason":"approved_image_unavailable",
                 "tests_executed":False,"live_files_changed":False}
     preflight=inspect_runner()
     runtime_path=preflight.get("runtime_path")
@@ -69,7 +73,7 @@ def run_fixed(root, relative_path, expected_sha256, replacement, image_ref, *, o
         digest=_prepare_workspace(root,workspace,relative_path,replacement)
         if digest!=review["replacement_sha256"]:
             raise ValueError("Workspace digest mismatch")
-        argv=build(runtime_path,workspace,relative_path,image_ref)
+        argv=build(runtime_path,workspace,relative_path,resolved_image)
         try:
             completed=subprocess.run(
                 argv,shell=False,capture_output=True,text=True,timeout=30,check=False,
