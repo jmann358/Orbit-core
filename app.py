@@ -217,7 +217,7 @@ def project_health():
 
 @app.get("/version")
 def get_version():
-    return {"version":VERSION,"stage":"Development Tools","features":["project notebook","code drafting","project health checks"],"build":"0.3.1-alpha.1"}
+    return {"version":VERSION,"stage":"Safe Test Workspace","features":["project notebook","code drafting","project health checks","isolated baseline tests"],"build":VERSION}
 
 @app.get("/project/drafts")
 def project_drafts():
