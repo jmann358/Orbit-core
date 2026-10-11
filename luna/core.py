@@ -148,7 +148,7 @@ async def respond(session, message):
     parsed = urlparse(endpoint)
     local = parsed.scheme == "http" and parsed.hostname in ("localhost", "127.0.0.1") and not parsed.username and not parsed.password
     # Fixed trusted host list prevents sending private chat history to arbitrary servers.
-    cloud_hosts = {"api.groq.com", "api.openai.com", "api.together.xyz", "openrouter.ai"}
+    cloud_hosts = {"api.groq.com", "api.openai.com", "api.together.xyz", "openrouter.ai", "generativelanguage.googleapis.com"}
     cloud = (parsed.scheme == "https" and parsed.hostname in cloud_hosts
              and parsed.port in (None, 443) and not parsed.username and not parsed.password)
     if not (local or cloud):
