@@ -81,6 +81,41 @@ a{color:#394db1!important}details{border:1px solid var(--line);border-radius:12p
 <p><small>Local-only demo. Messages are saved on the host device. Conversations are saved locally. Cloud AI is optional; cloud memory is not configured.</small></p>
 <script>
 
+async function bridgeFetch(url,options){const r=await fetch(url,options);if(!r.ok){let d={};try{d=await r.json()}catch(e){}throw Error(d.detail||'Request failed')}return r.json()}
+function bridgeButton(label,fn){const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=async()=>{b.disabled=true;try{await fn()}catch(e){document.querySelector('#bridge-status').textContent=e.message}finally{b.disabled=false}};return b}
+async function loadBridge(){
+ const target=document.querySelector('#bridge-list'),status=document.querySelector('#bridge-status');target.replaceChildren();status.textContent='Loading bridge…';
+ try{
+  const threads=await bridgeFetch('/bridge/threads');
+  status.textContent=threads.length+' conversation(s) saved · relay is manual';
+  if(!threads.length){target.textContent='No bridge conversations yet.';return}
+  for(const item of threads){
+   const card=document.createElement('article');card.className='control-card';
+   const h=document.createElement('h4');h.textContent=item.title+' · '+item.priority.toUpperCase();
+   const state=document.createElement('small');state.textContent='Status: '+item.status;
+   const messages=document.createElement('div');card.append(h,state,messages);
+   const thread=await bridgeFetch('/bridge/threads/'+item.id);
+   for(const m of thread.messages){const p=document.createElement('p');const who=document.createElement('strong');who.textContent=m.sender==='chatgpt'?'ChatGPT (pasted by user): ':m.sender==='luna'?'Luna: ':'You: ';p.append(who,document.createTextNode(m.content));messages.append(p)}
+   if(item.status!=='closed'){
+    card.append(bridgeButton('Copy Luna message',async()=>{
+     const data=await bridgeFetch('/bridge/threads/'+item.id+'/relay');
+     if(!data.text)throw Error('No Luna message to relay');
+     try{await navigator.clipboard.writeText(data.text);status.textContent='Copied thread #'+item.id+' — paste into ChatGPT.'}
+     catch(e){const box=document.createElement('textarea');box.value=data.text;box.readOnly=true;box.rows=5;card.append(box);box.select();status.textContent='Select and copy the message below.'}
+    }));
+    if(item.status==='awaiting_relay')card.append(bridgeButton('Mark as relayed',async()=>{await bridgeFetch('/bridge/threads/'+item.id+'/relayed',{method:'POST'});loadBridge()}));
+    const reply=document.createElement('textarea');reply.rows=3;reply.placeholder='Paste ChatGPT reply here';reply.maxLength=12000;card.append(reply);
+    card.append(bridgeButton('Save ChatGPT reply',async()=>{if(!reply.value.trim())throw Error('Paste a reply first');await bridgeFetch('/bridge/threads/'+item.id+'/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sender:'chatgpt',content:reply.value})});loadBridge()}));
+    card.append(bridgeButton('Close thread',async()=>{if(!confirm('Close this bridge conversation?'))return;await bridgeFetch('/bridge/threads/'+item.id+'/close',{method:'POST'});loadBridge()}));
+   }
+   target.append(card);
+  }
+ }catch(e){status.textContent='Bridge unavailable: '+e.message}
+}
+document.querySelector('#bridge-refresh').onclick=loadBridge;
+document.querySelector('#bridge-new').onsubmit=async e=>{e.preventDefault();try{await bridgeFetch('/bridge/threads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:document.querySelector('#bridge-title').value,priority:document.querySelector('#bridge-priority').value,message:document.querySelector('#bridge-question').value})});e.target.reset();loadBridge()}catch(err){document.querySelector('#bridge-status').textContent=err.message}};
+loadBridge();
+
 const controlGroups=[
   {key:'requests',label:'Luna request',title:x=>x.title,body:x=>x.message+(x.context?'\\nContext: '+x.context:''),actions:[['Acknowledge','acknowledged'],['Dismiss','dismissed']],url:x=>'/control/requests/'+x.id+'/decision'},
 
