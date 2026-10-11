@@ -660,11 +660,16 @@ _job_thread=None
 def _process_job(job):
     kind=job["kind"]
     if kind=="project_health":
+        from pathlib import Path
+        from luna.development import inspect_source
+        inspection=inspect_source(Path(__file__).resolve().parent)
         result=project_health()
-        ok=result["passed"]==result["total"]
+        critical=[x for x in inspection["findings"] if x["severity"]=="high"]
+        ok=result["passed"]==result["total"] and not critical
         if not ok:
             from luna.requests import create_request
             failed=[x["name"]+": "+x["detail"] for x in result["checks"] if not x["ok"]]
+            failed += [x["path"]+": "+x["detail"] for x in critical]
             issue=create_request("issue","high","Local project health needs attention",
                            "Please relay the following failing checks to ChatGPT for investigation.",
                            "; ".join(failed)[:3000])
