@@ -65,3 +65,27 @@ def test_continuity_sessions_and_memory_ui():
     assert 'id="continuity-search-form"' in html
     assert "refreshContinuity()" in html
     assert "v1.1.2.3.5.8" in html
+
+
+def test_continuity_revoke_api_keeps_record_but_removes_approval():
+    with tempfile.TemporaryDirectory() as folder:
+        with patch.object(core,"DB_PATH",Path(folder)/"continuity-revoke.db"):
+            _seed()
+            client=TestClient(app)
+            created=client.post("/continuity/summaries",json={
+                "session":"session-a",
+                "summary":"This approved ORBIT continuity summary should be revocable without deletion.",
+                "tags":["orbit","continuity"],
+            }).json()
+            summary_id=created["id"]
+            assert client.post(
+                f"/continuity/summaries/{summary_id}/decision",
+                json={"approve":True}).status_code==200
+            revoked=client.post(f"/continuity/summaries/{summary_id}/revoke")
+            assert revoked.status_code==200
+            assert revoked.json()["status"]=="revoked"
+            status=client.get("/continuity/status").json()
+            assert status["approved"]==0
+            assert status["revoked"]==1
+            records=client.get("/continuity/summaries",params={"status":"revoked"}).json()
+            assert records[0]["id"]==summary_id
