@@ -10,6 +10,7 @@ def _now():
     return datetime.now(timezone.utc).isoformat()
 
 def _setup(db):
+    jobs._setup(db)
     db.execute("""CREATE TABLE IF NOT EXISTS development_backlog (
       id INTEGER PRIMARY KEY, title TEXT NOT NULL, priority INTEGER NOT NULL,
       owner TEXT NOT NULL, kind TEXT NOT NULL DEFAULT '', state TEXT NOT NULL DEFAULT 'open',
