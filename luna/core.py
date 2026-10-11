@@ -52,23 +52,38 @@ def journal(description):
         db.execute("INSERT INTO improvement_journal(description,created_at) VALUES(?,?)",(description,timestamp()))
 
 async def respond(session, message):
-    # Zero-cost default: requires an explicitly configured local OpenAI-compatible endpoint.
-    endpoint=os.environ.get("LUNA_MODEL_URL", "").rstrip("/")
-    model=os.environ.get("LUNA_MODEL_NAME", "")
+    """Use an explicitly configured local model or a supported HTTPS cloud endpoint."""
+    from urllib.parse import urlparse
+
+    endpoint = os.environ.get("LUNA_MODEL_URL", "").rstrip("/")
+    model = os.environ.get("LUNA_MODEL_NAME", "")
+    api_key = os.environ.get("LUNA_API_KEY", "")
     if not endpoint or not model:
         return ("Luna's memory is working, but no AI model is connected yet. "
                 "Configure LUNA_MODEL_URL and LUNA_MODEL_NAME to enable responses.")
-    # Restrict initial prototype to loopback endpoints: no cloud tokens or unapproved remote services.
-    from urllib.parse import urlparse
-    parsed=urlparse(endpoint)
-    if parsed.scheme!="http" or parsed.hostname not in ("localhost","127.0.0.1"):
-        return "For safety, this prototype only permits a local AI endpoint."
-    messages=[{"role":"system","content":SYSTEM}]+history(session,20)
+
+    parsed = urlparse(endpoint)
+    local = parsed.scheme == "http" and parsed.hostname in ("localhost", "127.0.0.1") and not parsed.username and not parsed.password
+    # Fixed trusted host list prevents sending private chat history to arbitrary servers.
+    cloud_hosts = {"api.groq.com", "api.openai.com", "api.together.xyz", "openrouter.ai"}
+    cloud = (parsed.scheme == "https" and parsed.hostname in cloud_hosts
+             and parsed.port in (None, 443) and not parsed.username and not parsed.password)
+    if not (local or cloud):
+        return "Model endpoint blocked. Use localhost or a supported HTTPS AI provider."
+    if cloud and not api_key:
+        return "Cloud AI needs a local LUNA_API_KEY. Do not put API keys in GitHub."
+
+    messages = [{"role": "system", "content": SYSTEM}] + history(session, 20)
+    headers = {"Authorization": "Bearer " + api_key} if cloud else {}
     try:
-        async with httpx.AsyncClient(timeout=60) as client:
-            response=await client.post(endpoint+"/chat/completions",json={"model":model,"messages":messages,"stream":False})
+        async with httpx.AsyncClient(timeout=60, follow_redirects=False) as client:
+            response = await client.post(
+                endpoint + "/chat/completions",
+                headers=headers,
+                json={"model": model, "messages": messages, "stream": False},
+            )
             response.raise_for_status()
             return response.json()["choices"][0]["message"]["content"]
-    except (httpx.HTTPError,KeyError,IndexError,TypeError,ValueError) as exc:
-        journal("Model request failed: "+type(exc).__name__)
-        return "I couldn't reach my local model. Check that it is running and configured correctly."
+    except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as exc:
+        journal("Model request failed: " + type(exc).__name__)
+        return "I couldn't reach my configured AI model. Check the provider, model, key, and free-tier limits."
