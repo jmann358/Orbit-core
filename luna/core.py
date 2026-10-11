@@ -197,3 +197,32 @@ def decide_project_note(note_id,decision):
     with connect() as db:
         cur=db.execute("UPDATE project_notes SET status=? WHERE id=? AND status='pending'",(decision,note_id))
         return cur.rowcount>0
+
+def save_code_draft(goal, summary, content):
+    """Save an unapplied draft in SQLite, never in project source files."""
+    with connect() as db:
+        db.execute("""CREATE TABLE IF NOT EXISTS code_drafts
+            (id INTEGER PRIMARY KEY, goal TEXT NOT NULL, summary TEXT NOT NULL,
+             content TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'draft',
+             created_at TEXT NOT NULL)""")
+        cur=db.execute("INSERT INTO code_drafts(goal,summary,content,created_at) VALUES(?,?,?,?)",
+                       (goal,summary,content,timestamp()))
+        return cur.lastrowid
+
+def list_code_drafts(limit=30):
+    with connect() as db:
+        db.execute("""CREATE TABLE IF NOT EXISTS code_drafts
+            (id INTEGER PRIMARY KEY, goal TEXT NOT NULL, summary TEXT NOT NULL,
+             content TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'draft',
+             created_at TEXT NOT NULL)""")
+        rows=db.execute("SELECT id,goal,summary,content,status,created_at FROM code_drafts ORDER BY id DESC LIMIT ?",(limit,)).fetchall()
+    return [{"id":i,"goal":g,"summary":s,"content":c,"status":st,"created_at":at}
+            for i,g,s,c,st,at in rows]
+
+def decide_code_draft(draft_id, decision):
+    """Review-only status: never executes a draft."""
+    if decision not in ("shortlisted","dismissed"): return False
+    with connect() as db:
+        cur=db.execute("UPDATE code_drafts SET status=? WHERE id=? AND status='draft'",
+                       (decision,draft_id))
+        return cur.rowcount>0
