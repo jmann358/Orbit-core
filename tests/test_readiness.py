@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
-from app import app
+from app import app,VERSION
 from luna import core,readiness
 
 IMAGE="sha256:"+"a"*64
@@ -19,6 +19,10 @@ def _safe_dependencies(monkeypatch):
         "pending":1,"approved":2})
     monkeypatch.setattr(readiness,"autopilot_status",lambda:{
         "enabled":True,"scope":"predefined low-risk local jobs only"})
+    monkeypatch.setattr(readiness,"worker_status",lambda:{
+        "worker":"jobs","state":"idle","current_kind":"",
+        "updated_at":"2026-10-11T20:00:00+00:00","age_seconds":0.0,
+        "alive":True,"stale":False})
 
 def test_readiness_reports_capabilities_without_secrets(monkeypatch):
     _safe_dependencies(monkeypatch)
@@ -50,4 +54,4 @@ def test_readiness_api_and_dashboard(monkeypatch):
     assert 'id="readiness-list"' in html
     assert 'id="readiness-refresh"' in html
     assert "loadReadiness()" in html
-    assert "v1.1.2.3.5.8.13.21.34" in html
+    assert "v"+VERSION in html
