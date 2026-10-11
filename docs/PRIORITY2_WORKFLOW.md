@@ -79,7 +79,7 @@ packages, adds permissions, or degrades to unsandboxed execution when a
 prerequisite fails.
 
 The intended sandbox uses `--unshare-all` (including network namespace),
-a nobody UID/GID, a read-only allowlisted source snapshot and host system
+a namespace-mapped UID/GID (no elevated host identity), a read-only allowlisted source snapshot and host system
 libraries, a private writable `/tmp`, cleared environment variables, a
 30-second timeout, limits on virtual memory and test output. It executes
 only listed pre-existing trusted test paths. It makes no modifications to
