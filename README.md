@@ -6,6 +6,10 @@ ORBIT is a local-first, provider-independent assistant ecosystem. Luna is its co
 
 The **Goals** tab supports persisted objectives, owner-reviewed action plans, sequential execution of three allowlisted low-risk tools (local health, GitHub status, development plan), and progress recovery after a restart. Failed/interrupted steps stop the goal for attention; they are never automatically retried. This is a limited agent executor, not general-purpose autonomous computer control.
 
+## Luna’s Design Studio (first self-directed creative assignment)
+
+Open **Development → Luna’s Design Studio** and select **Let Luna redesign ORBIT**. With a configured model connection, Luna receives her current dashboard source and independently produces a saved, reviewable interface redesign proposal, including targeted code suggestions. The proposal is **not** installed or previewed, and no generated code executes. Review the draft before implementing anything. If the model is unavailable, the mission reports an error instead of pretending to finish.
+
 ## Current capabilities
 
 - Private localhost FastAPI dashboard and persistent SQLite chat sessions.
