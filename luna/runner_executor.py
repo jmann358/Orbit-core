@@ -4,6 +4,7 @@ Only a verified local container runtime may be launched. The container receives 
 sanitized source workspace, no host secrets, no network, and no writable host mount.
 """
 import hashlib
+import os
 import shutil
 import subprocess
 import tempfile
@@ -17,6 +18,13 @@ from luna.runner_preflight import inspect_runner
 from luna.runner_spec import build, FIXED_TESTS
 
 MAX_SOURCE_BYTES=2_000_000
+_REMOTE_ENV=("DOCKER_HOST","DOCKER_CONTEXT","CONTAINER_HOST","CONTAINER_CONNECTION")
+
+def _runtime_env():
+    env=os.environ.copy()
+    for key in _REMOTE_ENV:
+        env.pop(key,None)
+    return env
 
 def _copy_file(source, target):
     if not source.is_file() or source.is_symlink():
@@ -64,7 +72,8 @@ def run_fixed(root, relative_path, expected_sha256, replacement, image_ref, *, o
         argv=build(runtime_path,workspace,relative_path,image_ref)
         try:
             completed=subprocess.run(
-                argv,shell=False,capture_output=True,text=True,timeout=30,check=False)
+                argv,shell=False,capture_output=True,text=True,timeout=30,check=False,
+                env=_runtime_env())
         except subprocess.TimeoutExpired:
             return {"state":"failed","reason":"timeout","checkpoint":checkpoint,
                     "tests_executed":True,"live_files_changed":False,
