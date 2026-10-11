@@ -31,7 +31,10 @@ def run_one(root):
         development_candidates.finish(item["id"],"blocked",safe)
         return {"state":"blocked","candidate_id":item["id"],
                 "reason":"validator_exception","exception_type":type(exc).__name__}
-    state=result["state"].status
+    repair_status=result["state"].status
+    state={"ready_for_review":"passed",
+           "retry_allowed":"retry_allowed",
+           "needs_attention":"attention"}.get(repair_status,"blocked")
     runner=result["runner"]
     safe_runner={
         "tests_executed":runner.get("tests_executed",False),
@@ -41,6 +44,7 @@ def run_one(root):
     development_candidates.finish(item["id"],state,safe_runner)
     return {
         "state":state,
+        "repair_status":repair_status,
         "candidate_id":item["id"],
         "attempt_number":item["attempt_number"],
         "tests_executed":runner.get("tests_executed",False),
