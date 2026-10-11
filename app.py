@@ -10,6 +10,9 @@ class Chat(BaseModel):
     session: str = Field(default="default",max_length=100)
     message: str = Field(min_length=1,max_length=12000)
 
+class PlanningGoal(BaseModel):
+    goal: str = Field(min_length=5,max_length=1500)
+
 class TaskProposal(BaseModel):
     title: str = Field(min_length=3,max_length=120)
     description: str = Field(min_length=5,max_length=3000)
@@ -24,7 +27,7 @@ class Candidate(BaseModel):
 def home():
     return r"""<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Luna 0.2 · ORBIT</title>
 <style>body{font:16px system-ui;background:#101321;color:#f4f1ff;max-width:760px;margin:30px auto;padding:18px}h1{color:#d9b9ff}#log{height:58vh;overflow:auto;border:1px solid #45415b;padding:15px;border-radius:14px;white-space:pre-wrap}.msg{margin:12px 0}small{color:#b6a3d3}input,button{font:inherit;padding:12px;border-radius:9px}input{width:65%;background:#26283c;color:white;border:1px solid #777}button{background:#bfa0f5;border:0;cursor:pointer}</style>
-<h1>☾ Luna <small>0.2 · local prototype</small></h1><label for="sessions">Conversation:</label> <select id="sessions"></select> <button type="button" id="new-session">New chat</button><div id="log"></div><section id="task-panel"><h2>Autonomy · approval queue</h2><p><small>Tasks are proposals only. Approval records your choice; nothing runs automatically yet.</small></p><div id="task-list"></div></section><form id="form"><input id="msg" placeholder="Talk to Luna…" maxlength="12000" required autocomplete="off"><button>Send</button></form>
+<h1>☾ Luna <small>0.2 · local prototype</small></h1><label for="sessions">Conversation:</label> <select id="sessions"></select> <button type="button" id="new-session">New chat</button><div id="log"></div><section id="task-panel"><h2>Autonomy · approval queue</h2><p><small>Tasks are proposals only. Approval records your choice; nothing runs automatically yet.</small></p><form id="plan-form"><input id="plan-goal" maxlength="1500" placeholder="What should Luna plan?" required><button type="submit">Create proposal</button></form><p id="plan-status"></p><div id="task-list"></div></section><form id="form"><input id="msg" placeholder="Talk to Luna…" maxlength="12000" required autocomplete="off"><button>Send</button></form>
 <p><small>Local-only demo. Messages are saved on the host device. Conversations are saved locally. Cloud AI is optional; cloud memory is not configured.</small></p>
 <script>
 const log=document.querySelector('#log'),form=document.querySelector('#form'),input=document.querySelector('#msg'),selector=document.querySelector('#sessions');
@@ -36,6 +39,7 @@ async function loadSessions(){try{const r=await fetch('/sessions');if(!r.ok)thro
 selector.onchange=()=>{session=selector.value;localStorage.setItem('luna-session',session);loadHistory()};
 document.querySelector('#new-session').onclick=()=>{session=crypto.randomUUID();localStorage.setItem('luna-session',session);loadHistory();loadSessions()};
 form.onsubmit=async e=>{e.preventDefault();const message=input.value.trim();if(!message)return;input.value='';show('you',message);try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session,message})});if(!r.ok)throw Error('chat');const data=await r.json();show('Luna',data.reply||'No response received');loadSessions()}catch(e){show('system','Connection failed; check Luna server')}};loadHistory();loadSessions();loadTasks();
+document.querySelector("#plan-form").onsubmit=async e=>{e.preventDefault();const goal=document.querySelector("#plan-goal").value.trim();if(!goal)return;const status=document.querySelector("#plan-status");status.textContent="Preparing proposal…";try{const r=await fetch("/autonomy/plan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({goal})});if(!r.ok)throw Error("Planning unavailable");status.textContent="Proposal ready for review. No actions executed.";loadTasks()}catch(e){status.textContent=e.message}};
 async function loadTasks(){try{const r=await fetch('/autonomy/tasks');const tasks=await r.json();const panel=document.querySelector('#task-list');panel.textContent='';if(!tasks.length){panel.textContent='No proposed tasks yet.';return}tasks.forEach(t=>{const div=document.createElement('div');div.className='msg';const heading=document.createElement('strong');heading.textContent=t.title+' ('+t.status+')';const description=document.createElement('p');description.textContent=t.description;div.append(heading,description);if(t.status==='pending'){[['Approve','approved'],['Revise','revision_requested'],['Reject','rejected']].forEach(([label,decision])=>{const btn=document.createElement('button');btn.type='button';btn.textContent=label;btn.onclick=async()=>{await fetch('/autonomy/tasks/'+t.id+'/decision',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision})});loadTasks()};div.append(btn,document.createTextNode(' '))})}panel.append(div)})}catch(e){document.querySelector('#task-list').textContent='Could not load tasks'}}
 </script></html>"""
 
@@ -83,3 +87,17 @@ def autonomy_decision(task_id:int, request:TaskDecision):
     if not decide_task(task_id,request.decision):
         raise HTTPException(404,"Pending task not found")
     return {"status":request.decision,"executed":False}
+
+@app.post("/autonomy/plan")
+async def autonomy_plan(request:PlanningGoal):
+    from uuid import uuid4
+    goal = request.goal.strip()
+    planning_session = "plan-" + str(uuid4())
+    instruction = ("Draft a concise, practical plan with steps, risks, and decisions "
+                   "requiring approval. Do not claim any work is complete. Goal: " + goal)
+    add_message(planning_session, "user", instruction)
+    draft = await respond(planning_session, instruction)
+    if not draft or draft.startswith(("I couldn't reach", "Cloud AI needs", "Model endpoint blocked", "Luna's memory is working")):
+        raise HTTPException(503, "Planning unavailable")
+    task_id = propose_task(goal[:100], draft[:3000])
+    return {"id": task_id, "status": "pending", "executed": False}
