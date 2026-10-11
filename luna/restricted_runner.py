@@ -77,11 +77,11 @@ def _python_mount():
         binary = prefix / "bin" / "python"
         if not binary.is_file():
             raise RuntimeError("Missing virtualenv Python")
-        return "/orbit-venv/bin/python", ["venv"]
+        return "/orbit-venv/bin/python", True
     resolved = Path(sys.executable).resolve()
     if not resolved.is_relative_to(Path("/usr")) and not resolved.is_relative_to(Path("/bin")):
         raise RuntimeError("System Python must be under /usr or /bin")
-    return str(resolved), []
+    return str(resolved), False
 
 
 def _command(bwrap, workspace, tests):
