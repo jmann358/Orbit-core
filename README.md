@@ -6,6 +6,26 @@ ORBIT is a local-first, provider-independent assistant ecosystem. Luna is its co
 
 The **Goals** tab supports persisted objectives, owner-reviewed action plans, sequential execution of three allowlisted low-risk tools (local health, GitHub status, development plan), and progress recovery after a restart. Failed/interrupted steps stop the goal for attention; they are never automatically retried. This is a limited agent executor, not general-purpose autonomous computer control.
 
+## Priority 5 — supervised autonomy and specialist delegation
+
+The **Goals** tab now provides preview-only fixed recipes and limited
+keyword-based safe plan suggestions, followed by explicit owner approval.
+Each step is delegated to an allowlisted specialist role and reconciled
+with persisted work results. The worker enforces goal approval and specialist
+capabilities again at claim time. A goal can be paused, resumed, cancelled
+or escalated locally if blocked; already-running tasks finish first.
+The dashboard shows daily dispatch limits, step results and audit history.
+
+Limits: five approved steps per goal, eight concurrent active goals, twelve
+goal-dispatched tasks per UTC day. These are operational limits, not actual
+model-token or monetary accounting. No new paid or model calls are used
+for these plans. The existing trusted GitHub status checker may contact GitHub
+read-only. A specialist role is not an independent AI runtime.
+
+See [Priority 5 completion and safety guide](docs/PRIORITY5_COMPLETION.md).
+**Until authenticated device access exists, the service must remain on
+`127.0.0.1` and must not be accessible over a network.**
+
 ## Luna’s Design Studio (first self-directed creative assignment)
 
 Open **Development → Luna’s Design Studio** and select **Let Luna redesign ORBIT**. With a configured model connection, Luna receives her current dashboard source and independently produces a saved, reviewable interface redesign proposal, including targeted code suggestions. The proposal is **not** installed or previewed, and no generated code executes. Review the draft before implementing anything. If the model is unavailable, the mission reports an error instead of pretending to finish.

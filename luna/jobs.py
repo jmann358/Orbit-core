@@ -162,31 +162,74 @@ def configure_worker(enabled):
 
 
 def claim_next(now=None):
-    """Atomically claim the first ready task across concurrent SQLite users."""
+    """Atomically claim only authorized ready jobs, skipping paused goals.
+
+    Existing standalone trusted jobs keep their previous behavior. Linked
+    goal jobs are also checked against owner approval and specialist policy
+    immediately before execution, in the same SQLite transaction.
+    """
+    from luna.delegation_guard import authorize_claim
+
     stamp = _timestamp(now)
     with core.connect() as db:
         db.execute("BEGIN IMMEDIATE")
         _setup(db)
         if not db.execute("SELECT enabled FROM worker_config WHERE id=1").fetchone()[0]:
             return None
-        record = db.execute(
+        ready = db.execute(
             "SELECT id,kind,detail FROM work_items WHERE state='queued' "
             "OR (state='retry_wait' AND next_attempt_at<=?) "
-            "ORDER BY CASE WHEN state='queued' THEN 0 ELSE 1 END,id LIMIT 1",
-            (stamp,),
-        ).fetchone()
-        if record is None:
-            return None
-        ident,kind,detail = record
-        updated = db.execute(
-            "UPDATE work_items SET state='running',attempt_count=attempt_count+1,"
-            "next_attempt_at='',updated_at=? WHERE id=? AND state IN "
-            "('queued','retry_wait')", (stamp, ident),
-        )
-        if updated.rowcount != 1:
-            return None
-        _event(db, ident, "claimed", "Worker started attempt", stamp)
-        return {"id": ident, "kind": kind, "detail": detail}
+            "ORDER BY CASE WHEN state='queued' THEN 0 ELSE 1 END,id "
+            "LIMIT ?", (stamp, MAX_ACTIVE),
+        ).fetchall()
+        for ident, kind, detail in ready:
+            verdict, reason, goal_id, step_id = authorize_claim(db, ident, kind)
+            if verdict == "defer":
+                continue
+            if verdict == "deny":
+                changed = db.execute(
+                    "UPDATE work_items SET state='attention',result=?,"
+                    "next_attempt_at='',updated_at=? "
+                    "WHERE id=? AND state IN ('queued','retry_wait')",
+                    ("Goal authorization denied: " + reason, stamp, ident),
+                )
+                if changed.rowcount:
+                    _event(db, ident, "authorization_denied", reason, stamp)
+                    if step_id is not None:
+                        db.execute(
+                            "UPDATE agent_goal_steps SET state='attention' "
+                            "WHERE id=? AND state='running'", (step_id,),
+                        )
+                    if goal_id is not None:
+                        current = db.execute(
+                            "SELECT state FROM agent_goals WHERE id=?",
+                            (goal_id,),
+                        ).fetchone()
+                        if current and current[0] not in (
+                            "cancelled", "completed", "rejected"
+                        ):
+                            db.execute(
+                                "UPDATE agent_goals SET state='attention',"
+                                "updated_at=? WHERE id=?", (stamp, goal_id),
+                            )
+                            db.execute(
+                                "INSERT INTO agent_goal_events"
+                                "(goal_id,event,details,created_at) "
+                                "VALUES(?,?,?,?)",
+                                (goal_id, "authorization_denied", reason, stamp),
+                            )
+                continue
+            updated = db.execute(
+                "UPDATE work_items SET state='running',"
+                "attempt_count=attempt_count+1,next_attempt_at='',updated_at=? "
+                "WHERE id=? AND state IN ('queued','retry_wait')",
+                (stamp, ident),
+            )
+            if updated.rowcount != 1:
+                continue
+            _event(db, ident, "claimed", "Worker started attempt", stamp)
+            return {"id": ident, "kind": kind, "detail": detail}
+        return None
 
 
 def finish_job(job_id, success, result, *, retryable=False, now=None):
@@ -278,6 +321,16 @@ def retry_job(job_id):
             (job_id,),
         ).fetchone()
         if not row or row[0] not in MANUAL_RETRY_KINDS:
+            return False
+        # A failed goal cannot be revived by manually replaying a child job.
+        # The owner must inspect the failure and propose a new approved plan.
+        if db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' "
+            "AND name='agent_goal_steps'"
+        ).fetchone() and db.execute(
+            "SELECT 1 FROM agent_goal_steps WHERE job_id=? LIMIT 1",
+            (job_id,),
+        ).fetchone():
             return False
         if _active_count(db) >= MAX_ACTIVE:
             raise ValueError("Task queue is full; review existing work")

@@ -45,9 +45,11 @@ def test_owner_pause_resume_blocks_future_steps():
                                    ["project_health", "development_plan"])
         goals.decide_goal(ident, True)
         goals.advance_goals()
+        # A claimed operation may finish, but a paused goal cannot start
+        # another queued task or dispatch the next step.
+        first = jobs.claim_next()
         assert goals.control_goal(ident, "pause")
         assert not goals.control_goal(ident, "pause")
-        first = jobs.claim_next()
         jobs.finish_job(first["id"], True, "Completed")
         goals.advance_goals()
         assert len(jobs.list_jobs()) == 1
