@@ -156,3 +156,31 @@ def review_project_note(note_id:int,request:TaskDecision):
     if not decide_project_note(note_id,request.decision):
         raise HTTPException(404,"Pending note not found or invalid decision")
     return {"status":request.decision}
+
+class ChangeDraft(BaseModel):
+    goal: str = Field(min_length=5,max_length=1000)
+
+@app.post("/project/draft-change")
+async def draft_change(request:ChangeDraft):
+    """Create a text-only proposed change. No source files are written."""
+    from pathlib import Path
+    from uuid import uuid4
+    root=Path(__file__).resolve().parent
+    names=("app.py","luna/core.py","requirements.txt")
+    source=[]
+    for name in names:
+        path=root/name
+        if path.is_file() and not path.is_symlink():
+            source.append(name+"\n"+path.read_text(encoding="utf-8")[-12000:])
+    prompt=("Draft a small, precise, UNAPPLIED code change for ORBIT. "
+            "Use the actual source provided. Name the file and show the exact "
+            "replacement or patch. Explain the benefit in two simple sentences. "
+            "Do not claim it has been tested, committed, or applied. Goal: "
+            +request.goal+"\n\n"+"\n\n".join(source))
+    session="draft-"+str(uuid4())
+    add_message(session,"user",prompt)
+    draft=await respond(session,prompt)
+    if draft.startswith(("I couldn't reach","Cloud AI needs","Model endpoint blocked")):
+        raise HTTPException(503,"Drafting unavailable")
+    task_id=propose_task("Draft change: "+request.goal[:80],draft[:3000])
+    return {"draft":draft,"task_id":task_id,"applied":False}
