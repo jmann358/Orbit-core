@@ -10,7 +10,7 @@ def test_search_finds_recorded_decisions(monkeypatch, tmp_path):
     found=technical_memory.search_decisions("sandbox")
     assert len(found)==1
     assert found[0]["topic"]=="Runner isolation"
-    assert technical_memory.search_decisions("%")==[]
+    assert technical_memory.search_decisions("%%")==[]
 
 def test_search_rejects_unbounded_inputs():
     for query in ("", "a", "x"*121):
