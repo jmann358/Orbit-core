@@ -79,8 +79,8 @@ def tick():
         if token_cap and used >= token_cap:
             return {"queued":False,"reason":"token_budget"}
         rows=db.execute("SELECT id,title,kind FROM development_backlog WHERE owner='luna' AND state='open' AND kind!='' ORDER BY priority,id").fetchall()
-        queued_today=db.execute("""SELECT COUNT(*) FROM development_backlog WHERE state IN ('queued','completed','attention')
-                                   AND substr(created_at,1,10)<=? AND job_id IS NOT NULL""",(day,)).fetchone()[0]
+        queued_today=db.execute("""SELECT COUNT(*) FROM development_backlog b JOIN work_items w ON w.id=b.job_id
+                                   WHERE substr(w.created_at,1,10)=?""",(day,)).fetchone()[0]
         if queued_today >= cap:
             return {"queued":False,"reason":"job_budget"}
         if not rows:
