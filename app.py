@@ -221,16 +221,25 @@ async function loadReadiness(){
   const r=await fetch('/control/readiness',{cache:'no-store'});if(!r.ok)throw Error('Readiness unavailable');
   const data=await r.json();
   const lines=[
-   ['Local chat storage',data.ready_for_local_chat],
+   ['Dashboard core',data.ready_for_dashboard],
+   ['Model chat',data.ready_for_model_chat],
+   ['Background work',data.ready_for_background_work],
    ['Isolated tests',data.ready_for_isolated_tests],
+   ['Database integrity',data.checks.database_integrity],
+   ['Trusted model endpoint',data.model.trusted_endpoint],
+   ['Background worker',data.checks.background_worker],
    ['Container runtime',data.checks.container_runtime],
    ['Approved test image',data.checks.approved_test_image],
    ['Temporary test grant',data.checks.temporary_test_grant],
-   ['Background worker',data.checks.background_worker],
-   ['Model configured',data.checks.model_configured],
+   ['Validated local backup',data.checks.valid_local_backup],
   ];
   for(const [label,ok] of lines){const p=document.createElement('p');p.textContent=(ok?'✓ ':'○ ')+label;target.append(p)}
-  status.textContent=data.blockers.length?('Blocked by: '+data.blockers.join(', ')):'All checked readiness gates are clear.';
+  if(data.recommendations.length){
+   const h=document.createElement('strong');h.textContent='Recommended next actions';target.append(h);
+   for(const advice of data.recommendations){const p=document.createElement('p');p.textContent='• '+advice;target.append(p)}
+  }
+  const blocked=Object.entries(data.blocking).filter(([,items])=>items.length).map(([name,items])=>name+': '+items.join(', '));
+  status.textContent=blocked.length?('Readiness gaps · '+blocked.join(' | ')):'All readiness groups are clear.';
  }catch(e){status.textContent=e.message}
 }
 async function loadMaintenanceAudit(){
