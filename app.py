@@ -444,51 +444,103 @@ class ChangeDraft(BaseModel):
 
 @app.post("/project/draft-change")
 async def draft_change(request:ChangeDraft):
-    """Create a text-only proposed change. No source files are written."""
+    """Create an unapplied proposal and optionally queue one bounded candidate for isolated validation."""
+    import hashlib
     from pathlib import Path
     from uuid import uuid4
+    from luna.patches import ALLOWED_PATHS,MAX_BYTES
+    from luna.candidate_format import parse as parse_candidate
+    from luna import development_candidates
+
     root=Path(__file__).resolve().parent
-    names=("app.py","luna/core.py","requirements.txt")
     source=[]
-    for name in names:
+    for name in sorted(ALLOWED_PATHS):
         path=root/name
-        if path.is_file() and not path.is_symlink():
-            source.append(name+"\n"+path.read_text(encoding="utf-8")[-12000:])
-    prompt=("Draft a small, precise, UNAPPLIED code change for ORBIT. "
-            "Use the actual source provided. Name the file and show the exact "
-            "replacement or patch. Explain the benefit in two simple sentences. "
-            "Do not claim it has been tested, committed, or applied. Goal: "
-            +request.goal+"\n\n"+"\n\n".join(source))
+        if path.is_file() and not path.is_symlink() and path.stat().st_size<=MAX_BYTES:
+            raw=path.read_bytes()
+            source.append(
+                "ALLOWED FILE: "+name+"\nBASE SHA256: "+hashlib.sha256(raw).hexdigest()+
+                "\nSOURCE:\n"+raw.decode("utf-8"))
+    if not source:
+        raise HTTPException(503,"No editable source is available")
+
+    prompt=(
+        "Draft a small, precise, UNAPPLIED code improvement for ORBIT using only the "
+        "allowlisted source files below. Do not edit app.py, policy, permissions, secrets, "
+        "security boundaries, deployment, networking, or dependencies. Explain the benefit "
+        "briefly. If a concrete source change is appropriate, end your response with exactly "
+        "one machine-readable candidate in this format:\n"
+        "ORBIT_CANDIDATE_START\n"
+        "path: <one ALLOWED FILE path>\n"
+        "base_sha256: <the exact provided BASE SHA256>\n"
+        "```python\n<the COMPLETE replacement file, not a diff>\n```\n"
+        "ORBIT_CANDIDATE_END\n"
+        "Use no other ORBIT_CANDIDATE markers. If you cannot safely produce a complete "
+        "replacement, omit the candidate block. Never claim tests passed, code was applied, "
+        "or a deployment occurred. Goal: "+request.goal+"\n\n" + "\n\n".join(source)
+    )
     session="draft-"+str(uuid4())
     add_message(session,"user",prompt)
     draft=await respond(session,prompt)
     if draft.startswith(("I couldn't reach","Cloud AI needs","Model endpoint blocked")):
         raise HTTPException(503,"Drafting unavailable")
-    summary=draft.split("**Patch",1)[0].split("Patch (",1)[0].strip()
+
+    summary=draft.split("ORBIT_CANDIDATE_START",1)[0].strip()
     if len(summary)>650:
         summary=summary[:647]+"..."
     review=quality_gate(request.goal,draft)
-    # One bounded revision attempt. Never execute or install model-produced text.
+
+    # One bounded revision attempt. Candidate text is still never executed directly.
     if review["status"]=="needs_revision":
         issues=(review["blockers"]+review["warnings"])[:8]
-        revision_prompt=("Revise this UNAPPLIED ORBIT code proposal. Address every issue, "
-                         "show a specific target file and reviewable patch. "
-                         "Do not claim tests passed or code was installed. "
-                         "Keep explicit user approval for permanent memories. "
-                         "Issues: "+repr(issues)+"\\nOriginal goal: "+request.goal+
-                         "\\nOriginal draft:\\n"+draft[:16000])
+        revision_prompt=(
+            "Revise this UNAPPLIED ORBIT code proposal. Address the listed review issues. "
+            "Preserve the exact ORBIT_CANDIDATE envelope format if you provide a candidate, "
+            "use only an allowed file and its supplied base SHA, and provide the complete "
+            "replacement file. Never claim tests passed or code was installed. "
+            "Issues: "+repr(issues)+"\nOriginal goal: "+request.goal+
+            "\nOriginal draft:\n"+draft[:24000])
         revision_session="revision-"+str(uuid4())
         add_message(revision_session,"user",revision_prompt)
-        candidate=await respond(revision_session,revision_prompt)
-        if candidate and not candidate.startswith(("I couldn't reach","Cloud AI needs","Model endpoint blocked")):
-            revised_review=quality_gate(request.goal,candidate)
-            if (len(revised_review["blockers"]),len(revised_review["warnings"])) < (len(review["blockers"]),len(review["warnings"])):
-                draft=candidate
+        revised=await respond(revision_session,revision_prompt)
+        if revised and not revised.startswith(("I couldn't reach","Cloud AI needs","Model endpoint blocked")):
+            revised_review=quality_gate(request.goal,revised)
+            if (len(revised_review["blockers"]),len(revised_review["warnings"])) < (
+                    len(review["blockers"]),len(review["warnings"])):
+                draft=revised
                 review=revised_review
-                summary=draft.split("**Patch",1)[0].split("Patch (",1)[0].strip()[:650]
+                summary=draft.split("ORBIT_CANDIDATE_START",1)[0].strip()[:650]
+
+    queued_candidate=None
+    candidate_rejected=False
+    if not review["blockers"]:
+        try:
+            parsed=parse_candidate(draft)
+            if parsed:
+                queued=development_candidates.create(
+                    root,parsed["path"],parsed["base_sha256"],parsed["replacement"])
+                queued_candidate={
+                    "id":queued["id"],
+                    "created":queued["created"],
+                    "path":parsed["path"],
+                    "validation_only":True,
+                }
+        except (ValueError,UnicodeError,OSError):
+            candidate_rejected=True
+
     task_id=propose_task("Draft change: "+request.goal[:80],draft[:3000])
     draft_id=save_code_draft(request.goal,summary,draft)
-    return {"draft":draft,"summary":summary,"task_id":task_id,"draft_id":draft_id,"quality_gate":review,"applied":False}
+    return {
+        "draft":draft,
+        "summary":summary,
+        "task_id":task_id,
+        "draft_id":draft_id,
+        "quality_gate":review,
+        "candidate":queued_candidate,
+        "candidate_rejected":candidate_rejected,
+        "applied":False,
+        "live_files_changed":False,
+    }
 
 @app.get("/project/health")
 def project_health():
