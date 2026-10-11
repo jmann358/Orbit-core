@@ -1088,8 +1088,9 @@ def _process_job(job):
         counts=data["counts"]
         summary=(
             "Maintenance "+data["status"]+
-            "; stale jobs "+str(counts["stale_running_jobs"])+
-            "; expired grants "+str(counts["expired_active_grants"])+
+            "; stale running "+str(counts.get("stale_running_jobs",0))+
+            "; stale queued "+str(counts.get("stale_queued_jobs",0))+
+            "; expired grants "+str(counts.get("expired_active_grants",0))+
             "; stuck dispatches "+str(counts["stuck_dispatches"])+
             "; high-priority requests "+str(counts["high_priority_requests"])+
             "; worker stale "+str(counts["worker_stale"])+"."
