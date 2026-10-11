@@ -3,7 +3,7 @@ from pathlib import Path
 
 from luna import runner_executor
 
-IMAGE="orbit-luna-test@sha256:"+"a"*64
+IMAGE="sha256:"+"a"*64
 
 def _project(tmp_path):
     root=tmp_path/"project"
