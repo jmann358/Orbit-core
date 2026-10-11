@@ -18,3 +18,8 @@ Test identifiers are restricted to test file paths under tests/ and are never ex
 its declared SHA-256 digest and that no extra or missing files are present. It
 never writes files or grants approval. SHA-256 matching is integrity checking,
 not proof that candidate code is safe.
+
+Priority 2 wires the existing manifest validation into `luna.workshop.stage_proposal`
+and `POST /development/workshop/proposal`. The review-only API never executes or
+installs code. See `docs/PRIORITY2_WORKFLOW.md` for the separately approved,
+Linux-only candidate test runner and its environment limitations.
