@@ -2,6 +2,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
+from luna import backlog
 from luna.goals import propose_goal, list_goals, decide_goal, advance_goals, ALLOWED_STEPS
 from luna.memory_suggestions import enabled as memory_suggestions_enabled, set_enabled as set_memory_suggestions_enabled, suggest_from_user_message
 from luna.quality_gate import quality_gate
@@ -547,6 +548,8 @@ def _job_worker():
     while not _job_stop.wait(5):
         try:
             advance_goals()
+            backlog.reconcile()
+            backlog.tick()
             job=claim_next()
             if job is None:
                 continue
@@ -564,6 +567,7 @@ def _job_worker():
 def _start_job_worker():
     global _job_thread
     recover_interrupted()
+    backlog.reconcile()
     if _job_thread is None or not _job_thread.is_alive():
         _job_stop.clear()
         _job_thread=_threading.Thread(target=_job_worker,daemon=True,name="orbit-jobs")
@@ -669,3 +673,39 @@ async def luna_design_mission():
     summary=draft[:650]
     draft_id=save_code_draft(goal,summary,draft)
     return {"draft":draft,"summary":summary,"draft_id":draft_id,"applied":False,"requires_approval":True}
+
+# Development backlog: opt-in, allowlisted, bounded; never applies generated code.
+class BacklogTask(BaseModel):
+    title: str = Field(min_length=3,max_length=120)
+    priority: int = Field(default=1,ge=1,le=3)
+    owner: str = "human"
+    kind: str = ""
+
+class OvernightChoice(BaseModel):
+    enabled: bool
+    max_jobs: int = Field(default=3,ge=1,le=10)
+    max_model_tokens: int = Field(default=0,ge=0,le=100000)
+
+@app.get("/agent/backlog")
+def get_backlog():
+    backlog.reconcile()
+    return {"tasks":backlog.tasks(),"overnight":backlog.settings()}
+
+@app.post("/agent/backlog")
+def create_backlog_task(request:BacklogTask):
+    try:
+        task_id=backlog.add_task(request.title,request.priority,request.owner,request.kind)
+    except ValueError as exc:
+        raise HTTPException(400,str(exc)) from exc
+    return {"id":task_id,"state":"open"}
+
+@app.get("/agent/overnight")
+def get_overnight():
+    return backlog.settings()
+
+@app.post("/agent/overnight")
+def set_overnight(choice:OvernightChoice):
+    try:
+        return backlog.configure(choice.enabled,choice.max_jobs,choice.max_model_tokens)
+    except ValueError as exc:
+        raise HTTPException(400,str(exc)) from exc
