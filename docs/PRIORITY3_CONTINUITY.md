@@ -4,9 +4,9 @@ Luna already stores chats in SQLite. Priority 3 makes earlier messages discovera
 
 ## Available behaviors
 
-- **Existing chat persistence:** the SQLite `messages` table remains the source of truth. Closing a browser window does not delete it. Previously saved session IDs can be reopened in Chat.
+- **Existing chat persistence:** the SQLite `messages` table remains the source of truth. Closing a browser window does not delete it. Previously saved session IDs can be reopened in Chat. Chat loads the latest 100 messages first and offers **Load earlier messages** to page backward through older history.
 - **Read-only local search:** the Memory tab can search older conversations by keywords. `GET /continuity/search?q=...&session=...` provides the same source-attributed search API. It does not call a model.
-- **Bounded cross-session context:** when explicitly enabled, Luna retrieves up to five excerpts relevant to the new message (scanning at most 2,000 recent saved turns), excluding duplicates already in the current 30-message context. The prompt is capped and excerpts are labeled as historical, untrusted conversation data.
+- **Bounded cross-session context:** when explicitly enabled, Luna retrieves up to five excerpts relevant to the new message (scanning at most 2,000 recent saved turns), excluding duplicates already in the current 30-message context and excluding internal planning/draft sessions. The prompt is capped and excerpts are labeled as historical, untrusted conversation data.
 - **Separate cloud consent:** the Memory tab has independent controls for using earlier chats and allowing those excerpts to go to a configured cloud AI provider. Both default **OFF**. Local-only use of historical context does not silently enable cloud sharing. Disabling continuity also disables cloud history sharing.
 - **Project-note preview:** the Memory tab can preview narrowly matched ORBIT/Luna project notes from explicit user messages in the current session. This is deterministic, not an AI-generated summary. Previews aren't saved. Choosing **Submit for memory review** creates a pending candidate, not an approved memory. The existing approval flow is still mandatory.
 - **Provider portability:** conversation history, settings and approved memory records live in ORBIT's SQLite database, independent of any selected language model.
