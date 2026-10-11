@@ -2,10 +2,11 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
+from luna.jobs import create_job, list_jobs, claim_next, finish_job, cancel_job, recover_interrupted
 from luna.development import normalize_tasks, static_draft_report, planning_report
 from luna.core import record_shared_task, list_shared_task_results, add_message, respond, candidates, add_candidate, review_candidate, history, sessions, propose_task, list_tasks, decide_task, add_project_note, list_project_notes, decide_project_note, save_code_draft, list_code_drafts, decide_code_draft, record_agent_run, list_agent_runs
 
-VERSION = "0.6.0-alpha.1"
+VERSION = "0.7.0-alpha.1"
 
 app=FastAPI(title="ORBIT · Luna " + VERSION, docs_url=None, redoc_url=None, openapi_url=None)
 
@@ -28,9 +29,9 @@ class Candidate(BaseModel):
 
 @app.get("/",response_class=HTMLResponse)
 def home():
-    return r"""<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Luna v0.6.0-alpha.1 · ORBIT</title>
+    return r"""<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Luna v0.7.0-alpha.1 · ORBIT</title>
 <style>body{font:16px system-ui;background:#101321;color:#f4f1ff;max-width:760px;margin:30px auto;padding:18px}h1{color:#d9b9ff}#log{height:58vh;overflow:auto;border:1px solid #45415b;padding:15px;border-radius:14px;white-space:pre-wrap}.msg{margin:12px 0}small{color:#b6a3d3}input,button{font:inherit;padding:12px;border-radius:9px}input{width:65%;background:#26283c;color:white;border:1px solid #777}button{background:#bfa0f5;border:0;cursor:pointer}header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}header h1{margin-bottom:8px}#main-nav{display:flex;gap:7px;overflow-x:auto;padding:14px 0;position:sticky;top:0;background:#101321;z-index:2}#main-nav button{white-space:nowrap;background:#292c44;color:#f4f1ff;padding:11px 14px}#main-nav button.active{background:#bfa0f5;color:#151124;font-weight:700}.tab-panel{display:none}.tab-panel.active{display:block}.tab-panel h2{margin-top:12px}main{min-height:55vh}#log{height:48vh}input{max-width:100%;box-sizing:border-box}pre{max-width:100%;overflow-x:auto}button{margin:3px 0}@media(max-width:550px){body{margin:0;padding:12px}#main-nav button{padding:10px}input{width:100%;margin:5px 0}#form button{width:100%}}</style>
-<header><h1>☾ Luna</h1><small>v0.6.0-alpha.1 · Development Workbench</small></header><nav id="main-nav" aria-label="Luna sections"><button type="button" data-tab="chat" class="active">Chat</button><button type="button" data-tab="memory">Memory</button><button type="button" data-tab="development">Development</button><button type="button" data-tab="testing">Testing</button><button type="button" data-tab="approvals">Approvals</button></nav><main><section id="tab-chat" class="tab-panel active"><h2>Chat</h2><label for="sessions">Conversation:</label> <select id="sessions"></select> <button type="button" id="new-session">New chat</button><div id="log"></div><form id="form"><input id="msg" placeholder="Talk to Luna…" maxlength="12000" required autocomplete="off"><button>Send</button></form></section><section id="tab-memory" class="tab-panel"><h2>Memory</h2><h3>Project notebook</h3><form id="note-form"><input id="note-text" placeholder="Remember this about ORBIT…" maxlength="1000" required><button>Save note</button></form><div id="notes-list"></div></section><section id="tab-development" class="tab-panel"><h2>Development</h2><p><a href="https://github.com/jmann358/Orbit-core/actions" target="_blank" rel="noopener noreferrer" style="color:#d9b9ff">View automated GitHub tests ↗</a></p><p><small>GitHub checks code updates independently. Test results appear on GitHub; no credentials are stored in Luna.</small></p><h3>Shared development tasks</h3><button type="button" id="shared-tasks-refresh">Refresh assignments</button><p id="shared-tasks-status">Not checked yet.</p><div id="shared-tasks-list"></div><h3>Completed assignments</h3><button type="button" id="shared-results-refresh">Refresh results</button><div id="shared-results-list"></div><p><small>Only specifically allowlisted tasks can be executed. Remote task instructions are never run as code.</small></p><h3>Latest GitHub checks</h3><button type="button" id="github-checks-refresh">Refresh GitHub checks</button><p id="github-checks-status">Not checked yet.</p><div id="github-checks-list"></div><h3>Draft a code improvement</h3><form id="draft-form"><input id="draft-goal" placeholder="What should Luna improve?" required><button>Prepare draft</button></form><p id="draft-status"></p><p id="draft-summary"></p><details id="draft-details"><summary>View proposed change</summary><pre id="draft-output" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details><h3>Saved code drafts</h3><button type="button" id="refresh-drafts">Refresh drafts</button><div id="saved-drafts"></div><h3>Project inspection</h3><button type="button" id="inspect">Inspect ORBIT</button><p id="inspect-status"></p><details id="inspect-details"><summary>View inspection report</summary><pre id="inspect-report" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details></section><section id="tab-testing" class="tab-panel"><h2>Testing</h2><h3>Project health</h3><button type="button" id="health-btn">Check project health</button><p id="health-result"></p><h3>Isolated test workspace</h3><button type="button" id="test-btn">Run safe baseline tests</button><p id="test-result"></p></section><section id="tab-approvals" class="tab-panel"><h2>Autonomous maintenance</h2><p id="scheduler-status">Checking scheduler…</p><button type="button" id="scheduler-toggle">Loading…</button><p><small>Runs read-only project and GitHub checks every 30 minutes while this server is running. Disabled by default until you enable it.</small></p><h2>Routine tasks</h2><p><small>Luna can run these allowlisted read-only checks without changing source files.</small></p><button type="button" id="agent-run">Run routine maintenance</button><p id="agent-status"></p><h3>Recent activity</h3><div id="agent-history"></div><h2>Approvals</h2><h2>Autonomy · approval queue</h2><p><small>Tasks are proposals only. Approval records your choice; nothing runs automatically yet.</small></p><form id="plan-form"><input id="plan-goal" maxlength="1500" placeholder="What should Luna plan?" required><button type="submit">Create proposal</button></form><p id="plan-status"></p><div id="task-list"></div></section></main>
+<header><h1>☾ Luna</h1><small>v0.7.0-alpha.1 · Task Inbox</small></header><nav id="main-nav" aria-label="Luna sections"><button type="button" data-tab="chat" class="active">Chat</button><button type="button" data-tab="memory">Memory</button><button type="button" data-tab="development">Development</button><button type="button" data-tab="testing">Testing</button><button type="button" data-tab="approvals">Approvals</button></nav><main><section id="tab-chat" class="tab-panel active"><h2>Chat</h2><label for="sessions">Conversation:</label> <select id="sessions"></select> <button type="button" id="new-session">New chat</button><div id="log"></div><form id="form"><input id="msg" placeholder="Talk to Luna…" maxlength="12000" required autocomplete="off"><button>Send</button></form></section><section id="tab-memory" class="tab-panel"><h2>Memory</h2><h3>Project notebook</h3><form id="note-form"><input id="note-text" placeholder="Remember this about ORBIT…" maxlength="1000" required><button>Save note</button></form><div id="notes-list"></div></section><section id="tab-development" class="tab-panel"><h2>Development</h2><p><a href="https://github.com/jmann358/Orbit-core/actions" target="_blank" rel="noopener noreferrer" style="color:#d9b9ff">View automated GitHub tests ↗</a></p><p><small>GitHub checks code updates independently. Test results appear on GitHub; no credentials are stored in Luna.</small></p><h3>Shared development tasks</h3><button type="button" id="shared-tasks-refresh">Refresh assignments</button><p id="shared-tasks-status">Not checked yet.</p><div id="shared-tasks-list"></div><h3>Completed assignments</h3><button type="button" id="shared-results-refresh">Refresh results</button><div id="shared-results-list"></div><p><small>Only specifically allowlisted tasks can be executed. Remote task instructions are never run as code.</small></p><h3>Latest GitHub checks</h3><button type="button" id="github-checks-refresh">Refresh GitHub checks</button><p id="github-checks-status">Not checked yet.</p><div id="github-checks-list"></div><h3>Draft a code improvement</h3><form id="draft-form"><input id="draft-goal" placeholder="What should Luna improve?" required><button>Prepare draft</button></form><p id="draft-status"></p><p id="draft-summary"></p><details id="draft-details"><summary>View proposed change</summary><pre id="draft-output" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details><h3>Saved code drafts</h3><button type="button" id="refresh-drafts">Refresh drafts</button><div id="saved-drafts"></div><h3>Project inspection</h3><button type="button" id="inspect">Inspect ORBIT</button><p id="inspect-status"></p><details id="inspect-details"><summary>View inspection report</summary><pre id="inspect-report" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details></section><section id="tab-testing" class="tab-panel"><h2>Testing</h2><h3>Project health</h3><button type="button" id="health-btn">Check project health</button><p id="health-result"></p><h3>Isolated test workspace</h3><button type="button" id="test-btn">Run safe baseline tests</button><p id="test-result"></p></section><section id="tab-approvals" class="tab-panel"><h2>Task inbox</h2><p><small>Queue safe work for Luna. While the server is running, the worker processes one job at a time.</small></p><form id="job-form"><select id="job-kind"><option value="project_health">Project health</option><option value="github_status">GitHub status</option><option value="development_plan">Development plan</option></select><input id="job-title" placeholder="Name this task" maxlength="120" required><button type="submit">Add task</button></form><p id="job-status"></p><button type="button" id="job-refresh">Refresh task inbox</button><div id="job-list"></div><h2>Autonomous maintenance</h2><p id="scheduler-status">Checking scheduler…</p><button type="button" id="scheduler-toggle">Loading…</button><p><small>Runs read-only project and GitHub checks every 30 minutes while this server is running. Disabled by default until you enable it.</small></p><h2>Routine tasks</h2><p><small>Luna can run these allowlisted read-only checks without changing source files.</small></p><button type="button" id="agent-run">Run routine maintenance</button><p id="agent-status"></p><h3>Recent activity</h3><div id="agent-history"></div><h2>Approvals</h2><h2>Autonomy · approval queue</h2><p><small>Tasks are proposals only. Approval records your choice; nothing runs automatically yet.</small></p><form id="plan-form"><input id="plan-goal" maxlength="1500" placeholder="What should Luna plan?" required><button type="submit">Create proposal</button></form><p id="plan-status"></p><div id="task-list"></div></section></main>
 <p><small>Local-only demo. Messages are saved on the host device. Conversations are saved locally. Cloud AI is optional; cloud memory is not configured.</small></p>
 <script>
 const tabs=['chat','memory','development','testing','approvals'];function selectTab(name){if(!tabs.includes(name))name='chat';document.querySelectorAll('.tab-panel').forEach(el=>el.classList.toggle('active',el.id==='tab-'+name));document.querySelectorAll('#main-nav button').forEach(el=>el.classList.toggle('active',el.dataset.tab===name));localStorage.setItem('luna-active-tab',name)}document.querySelectorAll('#main-nav button').forEach(el=>el.onclick=()=>selectTab(el.dataset.tab));selectTab(localStorage.getItem('luna-active-tab')||'chat');
@@ -53,6 +54,7 @@ document.querySelector('#test-btn').onclick=async()=>{const target=document.quer
 async function loadSharedTasks(){const status=document.querySelector('#shared-tasks-status'),list=document.querySelector('#shared-tasks-list');status.textContent='Loading shared tasks…';list.textContent='';try{const r=await fetch('/project/shared-tasks');const d=await r.json();if(!r.ok)throw Error(d.detail||'Unavailable');status.textContent=d.tasks.length+' assignment(s) available · only allowlisted work can run';d.tasks.forEach(t=>{const p=document.createElement('p');const strong=document.createElement('strong');strong.textContent=t.id+' · '+t.title;p.append(strong,document.createTextNode(' — '+t.status+' / '+t.execution));const detail=document.createElement('div');detail.textContent=t.instructions;p.append(detail);if(t.eligible){const btn=document.createElement('button');btn.type='button';btn.textContent=t.id==='DEV-001'?'Run verification':'Complete planning task';btn.onclick=async()=>{btn.disabled=true;btn.textContent='Checking…';try{const response=await fetch('/agent/execute-shared-task',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({task_id:t.id})});const result=await response.json();btn.textContent=result.summary||result.detail||'Check finished';loadSharedResults()}catch(e){btn.textContent='Check failed'}finally{btn.disabled=false}};p.append(btn)}list.append(p)})}catch(e){status.textContent='Could not load shared tasks: '+e.message}};document.querySelector('#shared-tasks-refresh').onclick=loadSharedTasks;loadSharedTasks();
 async function loadSharedResults(){const target=document.querySelector('#shared-results-list');try{const r=await fetch('/agent/shared-task-results');const items=await r.json();target.textContent='';if(!items.length){target.textContent='No completed assignments yet.';return}items.forEach(item=>{const p=document.createElement('p');p.textContent=item.task_id+' · '+item.status+' · '+item.summary;target.append(p)})}catch(e){target.textContent='Results unavailable'}};document.querySelector('#shared-results-refresh').onclick=loadSharedResults;loadSharedResults();
 async function loadGitHubChecks(){const status=document.querySelector('#github-checks-status'),list=document.querySelector('#github-checks-list');status.textContent='Checking GitHub…';list.textContent='';try{const r=await fetch('/project/github-checks');const d=await r.json();if(!r.ok)throw Error(d.detail||'GitHub unavailable');status.textContent=d.summary;d.runs.forEach(run=>{const p=document.createElement('p');p.textContent=run.name+' · '+run.status+' · '+(run.conclusion||'in progress')+' · '+run.branch+' · '+run.created_at+' ';const a=document.createElement('a');a.href=run.url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='View run ↗';a.style.color='#d9b9ff';p.append(a);list.append(p)})}catch(e){status.textContent='Could not retrieve GitHub checks: '+e.message}};document.querySelector('#github-checks-refresh').onclick=loadGitHubChecks;loadGitHubChecks();
+async function refreshJobs(){const target=document.querySelector('#job-list');try{const r=await fetch('/agent/jobs');const jobs=await r.json();target.textContent='';if(!jobs.length){target.textContent='No tasks yet.';return}jobs.forEach(j=>{const p=document.createElement('p');const title=document.createElement('strong');title.textContent='#'+j.id+' '+j.title+' ('+j.state+')';p.append(title);if(j.result){const result=document.createElement('div');result.textContent=j.result;p.append(result)}if(j.state==='queued'){const btn=document.createElement('button');btn.type='button';btn.textContent='Cancel';btn.onclick=async()=>{await fetch('/agent/jobs/'+j.id+'/cancel',{method:'POST'});refreshJobs()};p.append(btn)}target.append(p)})}catch(e){target.textContent='Task inbox unavailable'}};document.querySelector('#job-refresh').onclick=refreshJobs;document.querySelector('#job-form').onsubmit=async e=>{e.preventDefault();const title=document.querySelector('#job-title').value.trim(),kind=document.querySelector('#job-kind').value,status=document.querySelector('#job-status');try{const r=await fetch('/agent/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,title})});if(!r.ok)throw Error('Could not add task');status.textContent='Task queued';document.querySelector('#job-title').value='';refreshJobs()}catch(e){status.textContent=e.message}};refreshJobs();
 async function refreshScheduler(){try{const r=await fetch('/agent/scheduler');const d=await r.json();document.querySelector('#scheduler-status').textContent=d.enabled?'Automatic checks ON · every 30 minutes':'Automatic checks OFF';document.querySelector('#scheduler-toggle').textContent=d.enabled?'Pause automatic checks':'Enable automatic checks'}catch(e){document.querySelector('#scheduler-status').textContent='Scheduler unavailable'}};document.querySelector('#scheduler-toggle').onclick=async()=>{const r=await fetch('/agent/scheduler');const d=await r.json();await fetch('/agent/scheduler',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:!d.enabled})});refreshScheduler()};refreshScheduler();
 async function loadAgentHistory(){const target=document.querySelector('#agent-history');try{const r=await fetch('/agent/runs');if(!r.ok)throw Error('Unavailable');const items=await r.json();target.textContent='';if(!items.length){target.textContent='No runs yet.';return}items.forEach(item=>{const p=document.createElement('p');p.textContent=item.created_at+' · '+item.status+' · '+item.summary;target.append(p)})}catch(e){target.textContent='Activity history unavailable'}};document.querySelector('#agent-run').onclick=async()=>{const status=document.querySelector('#agent-status');status.textContent='Running routine checks…';try{const r=await fetch('/agent/run-routine',{method:'POST'});const d=await r.json();status.textContent=d.summary||'Could not complete checks';loadAgentHistory()}catch(e){status.textContent='Routine checks unavailable'}};loadAgentHistory();
 async function loadDrafts(){try{const r=await fetch('/project/drafts');if(!r.ok)throw Error('Unavailable');const target=document.querySelector('#saved-drafts');target.textContent='';const drafts=await r.json();if(!drafts.length){target.textContent='No saved drafts yet.';return}drafts.forEach(d=>{const section=document.createElement('div');section.className='msg';const title=document.createElement('strong');title.textContent=d.goal+' ('+d.status+')';const summary=document.createElement('p');summary.textContent=d.summary;const details=document.createElement('details');const label=document.createElement('summary');label.textContent='Technical draft';const pre=document.createElement('pre');pre.style.whiteSpace='pre-wrap';pre.style.overflowWrap='anywhere';pre.textContent=d.content;details.append(label,pre);section.append(title,summary,details);const check=document.createElement('button');check.type='button';check.textContent='Static syntax review';check.onclick=async()=>{check.disabled=true;try{const r=await fetch('/project/drafts/'+d.id+'/static-review',{method:'POST'});const data=await r.json();const p=document.createElement('p');p.textContent=data.note+' Python blocks: '+data.python_blocks_found+'; syntax: '+(data.all_checked_blocks_parse?'valid':'not validated');section.append(p)}catch(e){check.textContent='Review unavailable'}finally{check.disabled=false}};section.append(check);if(d.status==='draft'){[['Keep for later','shortlisted'],['Dismiss','dismissed']].forEach(([name,decision])=>{const b=document.createElement('button');b.type='button';b.textContent=name;b.onclick=async()=>{await fetch('/project/drafts/'+d.id+'/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision})});loadDrafts()};section.append(b,document.createTextNode(' '))})}target.append(section)})}catch(e){document.querySelector('#saved-drafts').textContent='Could not load saved drafts'}};document.querySelector('#refresh-drafts').onclick=loadDrafts;loadDrafts();
@@ -224,7 +226,7 @@ def project_health():
 
 @app.get("/version")
 def get_version():
-    return {"version":VERSION,"stage":"Development Workbench","features":["project notebook","code drafting","project health checks","isolated baseline tests","approval regression tests"],"build":VERSION}
+    return {"version":VERSION,"stage":"Task Inbox","features":["project notebook","code drafting","project health checks","isolated baseline tests","approval regression tests"],"build":VERSION}
 
 @app.get("/project/drafts")
 def project_drafts():
@@ -439,3 +441,77 @@ def scheduler_choice(choice:SchedulerChoice):
     record_agent_run("scheduler_settings","enabled" if choice.enabled else "paused",
                      "Automatic read-only maintenance "+("enabled" if choice.enabled else "paused"))
     return scheduler_status()
+
+# Task inbox worker: predefined operations only, no arbitrary model instructions.
+class NewJob(BaseModel):
+    kind: str
+    title: str = Field(min_length=1,max_length=120)
+    detail: str = Field(default="",max_length=1200)
+
+@app.post("/agent/jobs")
+def enqueue_job(request:NewJob):
+    try:
+        job_id=create_job(request.kind,request.title,request.detail)
+    except ValueError as exc:
+        raise HTTPException(400,str(exc)) from exc
+    return {"id":job_id,"state":"queued"}
+
+@app.get("/agent/jobs")
+def get_jobs():
+    return list_jobs()
+
+@app.post("/agent/jobs/{job_id}/cancel")
+def cancel_queued_job(job_id:int):
+    if not cancel_job(job_id):
+        raise HTTPException(409,"Job is not queued or does not exist")
+    return {"id":job_id,"state":"cancelled"}
+
+_job_stop=_threading.Event()
+_job_thread=None
+
+def _process_job(job):
+    kind=job["kind"]
+    if kind=="project_health":
+        result=project_health()
+        ok=result["passed"]==result["total"]
+        return ok,"Health "+str(result["passed"])+"/"+str(result["total"])
+    if kind=="github_status":
+        try:
+            result=github_checks()
+            latest=result["runs"][0] if result["runs"] else None
+            ok=bool(latest and latest["conclusion"]=="success")
+            return ok,result["summary"]
+        except HTTPException:
+            return False,"GitHub unavailable"
+    if kind=="development_plan":
+        return True,planning_report("DEV-003")
+    return False,"Unsupported job"
+
+def _job_worker():
+    while not _job_stop.wait(5):
+        try:
+            job=claim_next()
+            if job is None:
+                continue
+            try:
+                success,result=_process_job(job)
+            except Exception:
+                success,result=False,"Task failed; see server logs"
+            finish_job(job["id"],success,result)
+            record_agent_run("job:"+str(job["id"]),"passed" if success else "attention",result)
+        except Exception:
+            # Worker remains alive; no remote instructions are ever executed.
+            continue
+
+@app.on_event("startup")
+def _start_job_worker():
+    global _job_thread
+    recover_interrupted()
+    if _job_thread is None or not _job_thread.is_alive():
+        _job_stop.clear()
+        _job_thread=_threading.Thread(target=_job_worker,daemon=True,name="orbit-jobs")
+        _job_thread.start()
+
+@app.on_event("shutdown")
+def _stop_job_worker():
+    _job_stop.set()
