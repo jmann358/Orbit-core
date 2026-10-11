@@ -291,6 +291,37 @@ def continuity_search(q: str, session: str = "default", limit: int = 5):
         raise HTTPException(400, str(exc)) from exc
 
 
+class ContinuitySettingsRequest(BaseModel):
+    enabled: bool
+    cloud_enabled: bool = False
+
+
+@app.get("/continuity/settings")
+def get_continuity_settings():
+    from luna.continuity_settings import get_settings
+    return get_settings()
+
+
+@app.post("/continuity/settings")
+def update_continuity_settings(choice: ContinuitySettingsRequest):
+    from luna.continuity_settings import set_settings
+    try:
+        return set_settings(choice.enabled, choice.cloud_enabled)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
+@app.get("/continuity/project-notes")
+def continuity_project_notes(session: str = "default"):
+    from luna import core
+    from luna.continuity import preview_project_notes
+    try:
+        return {"suggestions": preview_project_notes(core.DB_PATH, session),
+                "saved": False, "approved": False}
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
 @app.get("/history")
 def get_history(session: str="default"):
     if len(session)>100: raise HTTPException(400,"Session too long")
