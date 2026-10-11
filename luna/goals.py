@@ -70,6 +70,9 @@ def advance_goals():
                     failed=True
                     break
                 if state=="pending":
+                    # Release the current SQLite read transaction before the job queue writes.
+                    # The single goal worker is responsible for step ordering.
+                    db.commit()
                     job_id=create_job(kind,"Goal "+str(goal_id)+": "+ALLOWED_STEPS[kind])
                     db.execute("UPDATE agent_goal_steps SET state='running',job_id=? WHERE id=?",(job_id,step_id))
                     waiting=True
