@@ -55,3 +55,31 @@ def test_readiness_api_and_dashboard(monkeypatch):
     assert 'id="readiness-refresh"' in html
     assert "loadReadiness()" in html
     assert "v"+VERSION in html
+
+
+def test_readiness_blocks_untrusted_model_endpoint_without_exposing_key(monkeypatch):
+    _safe_dependencies(monkeypatch)
+    monkeypatch.setenv("LUNA_MODEL_URL","https://example.com/v1")
+    monkeypatch.setenv("LUNA_MODEL_NAME","some-model")
+    monkeypatch.setenv("LUNA_API_KEY","secret-key-value")
+    with tempfile.TemporaryDirectory() as folder:
+        with patch.object(core,"DB_PATH",Path(folder)/"readiness.db"):
+            result=readiness.snapshot(Path(__file__).resolve().parents[1])
+    assert result["model"]["kind"]=="blocked"
+    assert result["model"]["trusted_endpoint"] is False
+    assert result["model"]["usable"] is False
+    assert result["ready_for_model_chat"] is False
+    assert "secret-key-value" not in json.dumps(result)
+
+def test_readiness_cloud_requires_credential(monkeypatch):
+    _safe_dependencies(monkeypatch)
+    monkeypatch.setenv("LUNA_MODEL_URL","https://api.openai.com/v1")
+    monkeypatch.setenv("LUNA_MODEL_NAME","approved-model")
+    monkeypatch.delenv("LUNA_API_KEY",raising=False)
+    with tempfile.TemporaryDirectory() as folder:
+        with patch.object(core,"DB_PATH",Path(folder)/"readiness.db"):
+            result=readiness.snapshot(Path(__file__).resolve().parents[1])
+    assert result["model"]["kind"]=="cloud"
+    assert result["model"]["trusted_endpoint"] is True
+    assert result["model"]["usable"] is False
+    assert result["model"]["reason"]=="cloud_credential_missing"
