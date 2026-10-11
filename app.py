@@ -642,6 +642,12 @@ async def luna_design_mission():
     prompt=(
         "You are Luna, the assistant who lives in ORBIT. This is YOUR creative design assignment. "
         "Study the existing dashboard source below and independently choose a distinctive visual direction. "
+        "You have full creative freedom to REINVENT the interface, not merely recolor it. "
+        "You may discard your own previous design concepts and propose entirely new layouts, "
+        "navigation patterns, personality touches, and visual themes. "
+        "This is an exploration phase: treat all designs as proposals, not permanent commitments. "
+        "The owner may later lock a stable design; do not suggest recurring unsolicited redesigns once locked. "
+        "Your creative choices must be yours, not dictated by the developer. "
         "The owner wants the app to feel streamlined, delightful, and full of personality. "
         "Produce a detailed, concrete, REVIEWABLE proposal with: (1) your own design concept and rationale, "
         "(2) navigation and information architecture, (3) accessible mobile-first styling, "
