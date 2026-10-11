@@ -13,6 +13,7 @@ from luna.runner_config import approved_image
 from luna.permissions import check
 from luna.continuity import status as continuity_status
 from luna.autopilot import status as autopilot_status
+from luna.worker_heartbeat import status as worker_status
 
 def _version(root):
     file=Path(root)/"VERSION"
@@ -60,6 +61,7 @@ def snapshot(root):
     model=_model()
     continuity=continuity_status()
     autopilot=autopilot_status()
+    worker=worker_status()
     checks={
         "version_file":version["ok"],
         "database_integrity":database["ok"],
@@ -67,6 +69,7 @@ def snapshot(root):
         "approved_test_image":bool(image),
         "temporary_test_grant":check("run_tests"),
         "model_configured":model["configured"],
+        "background_worker":worker["alive"],
     }
     blockers=[name for name,ok in checks.items() if not ok]
     return {
@@ -92,6 +95,7 @@ def snapshot(root):
             "enabled":autopilot["enabled"],
             "scope":autopilot["scope"],
         },
+        "worker":worker,
         "secrets_returned":False,
         "changes_made":False,
     }
