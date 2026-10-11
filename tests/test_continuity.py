@@ -219,3 +219,52 @@ def test_cloud_recall_requires_separate_opt_in():
                 assert asyncio.run(core.respond("current", "telescope lens")) == "Okay"
                 assert "Historical message" in captured[-1]
                 assert "violet lens" in captured[-1]
+
+
+def test_paginated_history_browses_older_messages_in_order():
+    from fastapi.testclient import TestClient
+    from app import app
+    with tempfile.TemporaryDirectory() as folder:
+        db = Path(folder) / "luna.db"
+        with patch.object(core, "DB_PATH", db):
+            for number in range(125):
+                core.add_message("a", "user", "entry " + str(number))
+            core.add_message("b", "user", "a different session")
+            client = TestClient(app)
+            first = client.get("/history/page", params={"session": "a"}).json()
+            assert len(first["messages"]) == 100
+            assert first["messages"][0]["content"] == "entry 25"
+            assert first["messages"][-1]["content"] == "entry 124"
+            assert first["next_before"] is not None
+            next_page = client.get("/history/page", params={
+                "session": "a", "before_id": first["next_before"],
+            }).json()
+            assert [item["content"] for item in next_page["messages"]] == [
+                "entry " + str(i) for i in range(25)
+            ]
+            assert next_page["next_before"] is None
+            assert client.get("/history/page", params={
+                "session": "a", "before_id": 0
+            }).status_code == 400
+
+
+def test_long_chat_messages_do_not_break_enabled_recall():
+    import asyncio
+    import httpx
+    from luna.continuity_settings import set_settings
+    with tempfile.TemporaryDirectory() as folder:
+        db = Path(folder) / "luna.db"
+        with patch.object(core, "DB_PATH", db):
+            core.add_message("old", "user", "I prefer telescope drawings")
+            long_message = "telescope " + ("astronomy " * 800)
+            core.add_message("current", "user", long_message)
+            async def fake_post(self, url, **kwargs):
+                return httpx.Response(200,
+                    json={"choices": [{"message": {"content": "Still here"}}]},
+                    request=httpx.Request("POST", url))
+            env = {"LUNA_MODEL_URL": "http://127.0.0.1:11434/v1",
+                   "LUNA_MODEL_NAME": "local-example"}
+            with patch.dict("os.environ", env), patch.object(
+                    httpx.AsyncClient, "post", fake_post):
+                set_settings(True, False)
+                assert asyncio.run(core.respond("current", long_message)) == "Still here"
