@@ -44,6 +44,35 @@ def _run(argv, timeout):
         argv,shell=False,capture_output=True,text=True,timeout=timeout,
         check=False,env=_env())
 
+def _normalize_image_id(value):
+    if not isinstance(value,str):
+        return None
+    value=value.strip().lower()
+    if value.startswith("sha256:"):
+        digest=value[7:]
+    else:
+        digest=value
+    if len(digest)!=64 or any(ch not in "0123456789abcdef" for ch in digest):
+        return None
+    return "sha256:"+digest
+
+def _inspect_image_id(runtime_path):
+    inspect=_run(_prefix(runtime_path)+["image","inspect",TAG],20)
+    if inspect.returncode!=0:
+        return None, (inspect.stderr or "")[-1000:]
+    try:
+        payload=json.loads(inspect.stdout or "null")
+    except json.JSONDecodeError:
+        return None, "Podman returned unreadable image metadata."
+    item=payload[0] if isinstance(payload,list) and payload else payload
+    if not isinstance(item,dict):
+        return None, "Podman returned unexpected image metadata."
+    for key in ("Id","ID","id"):
+        image_id=_normalize_image_id(item.get(key))
+        if image_id:
+            return image_id, ""
+    return None, "Podman built the image but did not report a valid immutable image ID."
+
 def main():
     preflight=inspect_runner()
     runtime_path=preflight.get("runtime_path")
@@ -73,14 +102,12 @@ def main():
             },indent=2))
             return 3
 
-    inspect=_run(_prefix(runtime_path)+[
-        "image","inspect","--format","{{.Id}}",TAG],20)
-    image_id=(inspect.stdout or "").strip()
-    if inspect.returncode!=0 or not image_id.startswith("sha256:") or len(image_id)!=71:
+    image_id, inspect_error=_inspect_image_id(runtime_path)
+    if not image_id:
         print(json.dumps({
             "ok":False,
             "blocked":"immutable_image_id_unavailable",
-            "output":(inspect.stderr or "")[-1000:],
+            "output":inspect_error,
         },indent=2))
         return 4
 
