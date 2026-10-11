@@ -28,6 +28,8 @@ def test_sensitive_and_assistant_content_are_not_suggested():
                             "Remember that my email is name@example.com",
                             "Remember that my medical diagnosis is private",
                             "Remember that 4111111111111111 is a credit card",
+                            "Remember that Bearer abcdefghijklmnopqrstuvwxyz",
+                            "Remember that -----BEGIN PRIVATE KEY----- abc",
                             "Remember that yes"):
                 assert suggest_from_user_message(message) is None
             assert core.candidates()==[]
