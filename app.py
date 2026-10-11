@@ -209,45 +209,6 @@ loadControl();
 document.querySelectorAll('[data-quick-tab]').forEach(b=>b.addEventListener('click',()=>{const tab=document.querySelector('#main-nav [data-tab="'+b.dataset.quickTab+'"]');if(tab)tab.click()}));
 
 document.querySelector('#luna-design-mission').onclick=async()=>{const btn=document.querySelector('#luna-design-mission'),status=document.querySelector('#luna-design-status');btn.disabled=true;status.textContent='Luna is studying her interface and designing a proposal…';try{const r=await fetch('/project/luna-design-mission',{method:'POST'});const data=await r.json();if(!r.ok)throw Error(data.detail||'Design studio unavailable');document.querySelector('#luna-design-output').textContent=data.draft;document.querySelector('#luna-design-details').open=true;status.textContent='Luna saved design proposal #'+data.draft_id+'. Review it below. No files were changed.';loadDrafts()}catch(e){status.textContent='Design mission could not finish: '+e.message}finally{btn.disabled=false}};
-async function refreshContinuity(){
- const status=document.querySelector('#continuity-status'),target=document.querySelector('#continuity-list');
- try{
-  const [stateRes,listRes]=await Promise.all([fetch('/continuity/status'),fetch('/continuity/summaries?status=pending')]);
-  if(!stateRes.ok||!listRes.ok)throw Error('Continuity unavailable');
-  const state=await stateRes.json(),items=await listRes.json();
-  status.textContent='Pending: '+state.pending+' · Approved: '+state.approved+' · Rejected: '+state.rejected;
-  target.replaceChildren();
-  if(!items.length){target.textContent='No pending conversation checkpoints.';return}
-  for(const item of items){
-   const card=document.createElement('article');card.className='control-card';
-   const h=document.createElement('h4');h.textContent='Conversation checkpoint';
-   const meta=document.createElement('small');meta.textContent=item.source_message_count+' source messages · '+item.tags.join(', ');
-   const p=document.createElement('p');p.textContent=item.summary;
-   card.append(h,meta,p);
-   for(const [label,approve] of [['Approve for continuity',true],['Reject',false]]){
-    const b=document.createElement('button');b.type='button';b.textContent=label;
-    if(!approve)b.className='control-reject';
-    b.onclick=async()=>{b.disabled=true;try{const r=await fetch('/continuity/summaries/'+item.id+'/decision',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({approve})});if(!r.ok)throw Error('Decision failed');await refreshContinuity();await loadControl()}catch(e){status.textContent=e.message}finally{b.disabled=false}};
-    card.append(b);
-   }
-   target.append(card);
-  }
- }catch(e){status.textContent='Continuity unavailable: '+e.message}
-}
-document.querySelector('#continuity-refresh').onclick=refreshContinuity;
-document.querySelector('#continuity-search-form').onsubmit=async e=>{
- e.preventDefault();
- const q=document.querySelector('#continuity-search').value.trim(),target=document.querySelector('#continuity-search-results'),status=document.querySelector('#continuity-search-status');
- target.replaceChildren();status.textContent='Searching locally…';
- try{
-  const r=await fetch('/continuity/search?q='+encodeURIComponent(q),{cache:'no-store'});
-  if(!r.ok){const d=await r.json();throw Error(d.detail||'Search failed')}
-  const items=await r.json();status.textContent=items.length+' result(s) · sensitive matches hidden';
-  for(const item of items){const p=document.createElement('p');const strong=document.createElement('strong');strong.textContent=item.role+' · '+item.session;const div=document.createElement('div');div.textContent=item.snippet;p.append(strong,div);target.append(p)}
- }catch(err){status.textContent=err.message}
-};
-refreshContinuity();
-
 async function refreshMemorySuggestionSetting(){const b=document.querySelector('#memory-suggestion-toggle');try{const r=await fetch('/memory/suggestions/settings');if(!r.ok)throw Error('setting');const v=await r.json();b.textContent='Memory suggestions: '+(v.enabled?'ON':'OFF');b.dataset.enabled=v.enabled?'true':'false'}catch(e){b.textContent='Memory setting unavailable'}}
 document.querySelector('#memory-suggestion-toggle').onclick=async()=>{const b=document.querySelector('#memory-suggestion-toggle');b.disabled=true;try{await fetch('/memory/suggestions/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:b.dataset.enabled!=='true'})})}finally{b.disabled=false;refreshMemorySuggestionSetting()}};refreshMemorySuggestionSetting();
 
@@ -255,40 +216,57 @@ async function refreshSuggestedMemories(){const target=document.querySelector('#
 document.querySelector('#memory-review-refresh').onclick=refreshSuggestedMemories;refreshSuggestedMemories();
 
 async function refreshContinuity(){
- const target=document.querySelector('#continuity-list'),status=document.querySelector('#continuity-status');
+ const status=document.querySelector('#continuity-status'),target=document.querySelector('#continuity-list');
  try{
-  const [summaryResponse,statusResponse]=await Promise.all([
+  const [stateRes,pendingRes,approvedRes]=await Promise.all([
+   fetch('/continuity/status',{cache:'no-store'}),
    fetch('/continuity/summaries?status=pending',{cache:'no-store'}),
-   fetch('/continuity/status',{cache:'no-store'})
+   fetch('/continuity/summaries?status=approved',{cache:'no-store'})
   ]);
-  if(!summaryResponse.ok||!statusResponse.ok)throw Error('Continuity unavailable');
-  const items=await summaryResponse.json(),meta=await statusResponse.json();
-  status.textContent=meta.pending+' pending · '+meta.approved+' approved · sensitive search results hidden';
+  if(!stateRes.ok||!pendingRes.ok||!approvedRes.ok)throw Error('Continuity unavailable');
+  const state=await stateRes.json(),pending=await pendingRes.json(),approved=await approvedRes.json();
+  status.textContent='Pending: '+state.pending+' · Approved: '+state.approved+' · Revoked: '+(state.revoked||0)+' · sensitive search results hidden';
   target.replaceChildren();
-  if(!items.length){target.textContent='No continuity checkpoints need review.';return}
-  for(const item of items){
+
+  const pendingTitle=document.createElement('h4');pendingTitle.textContent='Needs review';target.append(pendingTitle);
+  if(!pending.length){const p=document.createElement('p');p.textContent='No pending conversation checkpoints.';target.append(p)}
+  for(const item of pending){
    const card=document.createElement('article');card.className='control-card';
-   const title=document.createElement('strong');title.textContent='Conversation checkpoint · '+item.source_message_count+' messages';
-   const body=document.createElement('p');body.textContent=item.summary;
-   const tags=document.createElement('small');tags.textContent=item.tags.length?'Tags: '+item.tags.join(', '):'No tags';
-   card.append(title,body,tags,document.createElement('br'));
+   const h=document.createElement('strong');h.textContent='Conversation checkpoint · '+item.source_message_count+' messages';
+   const p=document.createElement('p');p.textContent=item.summary;
+   const meta=document.createElement('small');meta.textContent=item.tags.length?'Tags: '+item.tags.join(', '):'No tags';
+   card.append(h,p,meta,document.createElement('br'));
    for(const [label,approve] of [['Approve for Luna',true],['Reject',false]]){
     const b=document.createElement('button');b.type='button';b.textContent=label;if(!approve)b.className='control-reject';
-    b.onclick=async()=>{b.disabled=true;try{const r=await fetch('/continuity/summaries/'+item.id+'/decision',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({approve})});if(!r.ok)throw Error('Decision failed');await refreshContinuity()}catch(e){status.textContent=e.message;b.disabled=false}};
+    b.onclick=async()=>{b.disabled=true;try{const r=await fetch('/continuity/summaries/'+item.id+'/decision',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({approve})});if(!r.ok)throw Error('Decision failed');await refreshContinuity();await loadControl()}catch(e){status.textContent=e.message}finally{b.disabled=false}};
     card.append(b);
    }
    target.append(card);
   }
+
+  const approvedTitle=document.createElement('h4');approvedTitle.textContent='Approved for Luna';target.append(approvedTitle);
+  if(!approved.length){const p=document.createElement('p');p.textContent='No approved conversation summaries yet.';target.append(p)}
+  for(const item of approved){
+   const card=document.createElement('article');card.className='control-card';
+   const h=document.createElement('strong');h.textContent='Approved checkpoint';
+   const p=document.createElement('p');p.textContent=item.summary;
+   const meta=document.createElement('small');meta.textContent=item.tags.length?'Tags: '+item.tags.join(', '):'No tags';
+   const revoke=document.createElement('button');revoke.type='button';revoke.textContent='Revoke from Luna';revoke.className='control-reject';
+   revoke.onclick=async()=>{if(!confirm('Remove this summary from Luna\'s future context? The audit record will remain.'))return;revoke.disabled=true;try{const r=await fetch('/continuity/summaries/'+item.id+'/revoke',{method:'POST'});if(!r.ok)throw Error('Revoke failed');await refreshContinuity();await loadControl()}catch(e){status.textContent=e.message}finally{revoke.disabled=false}};
+   card.append(h,p,meta,document.createElement('br'),revoke);target.append(card);
+  }
  }catch(e){status.textContent='Continuity unavailable: '+e.message}
 }
 document.querySelector('#continuity-refresh').onclick=refreshContinuity;
+
 document.querySelector('#continuity-search-form').onsubmit=async e=>{
- e.preventDefault();const q=document.querySelector('#continuity-search').value.trim();
- const status=document.querySelector('#continuity-search-status'),target=document.querySelector('#continuity-search-results');
- target.replaceChildren();status.textContent='Searching local history…';
+ e.preventDefault();
+ const q=document.querySelector('#continuity-search').value.trim(),target=document.querySelector('#continuity-search-results'),status=document.querySelector('#continuity-search-status');
+ target.replaceChildren();status.textContent='Searching locally…';
  try{
-  const r=await fetch('/continuity/search?q='+encodeURIComponent(q),{cache:'no-store'});if(!r.ok)throw Error('Search failed');
-  const items=await r.json();status.textContent=items.length+' result(s)';
+  const r=await fetch('/continuity/search?q='+encodeURIComponent(q),{cache:'no-store'});
+  if(!r.ok){let d={};try{d=await r.json()}catch(e){}throw Error(d.detail||'Search failed')}
+  const items=await r.json();status.textContent=items.length+' result(s) · sensitive matches hidden';
   if(!items.length){target.textContent='No matching non-sensitive messages found.';return}
   for(const item of items){
    const card=document.createElement('article');card.className='control-card';
