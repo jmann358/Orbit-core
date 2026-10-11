@@ -226,3 +226,21 @@ def decide_code_draft(draft_id, decision):
         cur=db.execute("UPDATE code_drafts SET status=? WHERE id=? AND status='draft'",
                        (decision,draft_id))
         return cur.rowcount>0
+
+def record_agent_run(task, status, summary):
+    """Persistent, bounded activity log for allowlisted routine tasks."""
+    with connect() as db:
+        db.execute("""CREATE TABLE IF NOT EXISTS agent_runs
+            (id INTEGER PRIMARY KEY, task TEXT NOT NULL, status TEXT NOT NULL,
+             summary TEXT NOT NULL, created_at TEXT NOT NULL)""")
+        cur=db.execute("INSERT INTO agent_runs(task,status,summary,created_at) VALUES(?,?,?,?)",
+                       (task,status,summary[:1200],timestamp()))
+        return cur.lastrowid
+
+def list_agent_runs(limit=20):
+    with connect() as db:
+        db.execute("""CREATE TABLE IF NOT EXISTS agent_runs
+            (id INTEGER PRIMARY KEY, task TEXT NOT NULL, status TEXT NOT NULL,
+             summary TEXT NOT NULL, created_at TEXT NOT NULL)""")
+        rows=db.execute("SELECT id,task,status,summary,created_at FROM agent_runs ORDER BY id DESC LIMIT ?",(limit,)).fetchall()
+    return [{"id":i,"task":t,"status":s,"summary":m,"created_at":at} for i,t,s,m,at in rows]
