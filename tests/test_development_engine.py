@@ -70,3 +70,24 @@ def test_technical_decisions_are_separate_and_deduplicated():
             assert list_decisions()[0]["source"]=="owner"
             with pytest.raises(ValueError):
                 record("Secret","Don't store personal information","unreviewed_model")
+
+
+def test_development_endpoints_are_review_only():
+    from fastapi.testclient import TestClient
+    from app import app
+    with tempfile.TemporaryDirectory() as folder:
+        with patch.object(core,"DB_PATH",Path(folder)/"app.db"):
+            client=TestClient(app)
+            policy_response=client.get("/development/permissions")
+            assert policy_response.status_code==200
+            assert policy_response.json()["automatic_expansion"] is False
+            inspection=client.get("/development/inspect")
+            assert inspection.status_code==200
+            assert inspection.json()["files_changed"] is False
+            decision=client.post("/development/technical-decisions",json={
+                "topic":"Agent role","decision":"Luna handles bounded small tasks."})
+            assert decision.status_code==200
+            assert len(client.get("/development/technical-decisions").json())==1
+            denied=client.post("/development/patch-review",json={
+                "path":"app.py","base_sha256":"0"*64,"replacement":"x=1"})
+            assert denied.status_code==400
