@@ -36,3 +36,11 @@ def test_workshop_rejects_stale_revisions_and_unsafe_targets():
             stage(root,"app.py",sha,"VALUE = 2\n")
         with pytest.raises(ValueError):
             stage(root,"luna/development.py",sha,"def broken(:\n")
+
+
+def test_workshop_api_rejects_non_allowlisted_entrypoint():
+    from fastapi.testclient import TestClient
+    from app import app
+    response=TestClient(app).post("/development/workshop/stage",json={
+        "path":"app.py","base_sha256":"0"*64,"replacement":"VALUE=2"})
+    assert response.status_code==400
