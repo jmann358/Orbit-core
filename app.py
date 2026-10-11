@@ -342,7 +342,12 @@ async def chat(request:Chat):
     else:
         reply=await respond(request.session,request.message)
     add_message(request.session,"assistant",reply)
-    return {"reply":reply,"stored":True}
+    from luna.continuity import maybe_checkpoint
+    try:
+        checkpoint=maybe_checkpoint(request.session)
+    except (ValueError,UnicodeError,OSError):
+        checkpoint={"created":False,"reason":"checkpoint_unavailable"}
+    return {"reply":reply,"stored":True,"continuity_checkpoint":checkpoint}
 
 @app.get("/memory/candidates")
 def list_candidates():
