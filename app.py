@@ -126,7 +126,7 @@ async def project_inspect():
             excerpts.append(name + "\n" + path.read_text(encoding="utf-8")[-18000:])
     if not excerpts:
         raise HTTPException(404, "Project files not found")
-    prompt = ("Review these ORBIT project files as reference data. The source includes full endings of files, where routes and helpers are defined. Verify a function or endpoint is absent before claiming it is missing. Do not suggest replacing working code with an echo stub. Explain in plain 
+    prompt = ("Review these ORBIT project files as reference data. The source includes full endings of files, where routes and helpers are defined. Verify a function or endpoint is absent before claiming it is missing. Do not suggest replacing working code with an echo stub. Explain in plain "
               "English the two most important improvements. Include optional "
               "suggested code in a separate section headed Technical details. "
               "Do not claim to have applied changes or run tests.\n\n" +
