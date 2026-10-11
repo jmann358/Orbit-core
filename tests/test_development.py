@@ -61,3 +61,30 @@ def test_project_inventory_is_metadata_only_and_fixed_scope():
         assert {x["path"] for x in report["files"]} == set(INSPECTION_FILES)
         assert next(x for x in report["files"] if x["path"] == "app.py")["bytes"] == 5
         assert ".env" not in str(report)
+
+
+def test_control_overview_and_review_are_non_executing():
+    from fastapi.testclient import TestClient
+    from app import app
+    with tempfile.TemporaryDirectory() as folder:
+        with patch.object(core, "DB_PATH", Path(folder) / "control.db"):
+            client = TestClient(app)
+            initial = client.get("/control/overview")
+            assert initial.status_code == 200
+            assert initial.json()["auto_apply"] is False
+            assert initial.json()["inventory"]["tests_run"] is False
+            created = client.post("/control/suggest-next")
+            assert created.status_code == 200
+            proposal = created.json()["proposal"]
+            assert proposal and created.json()["code_changed"] is False
+            refreshed = client.get("/control/overview").json()
+            assert refreshed["counts"]["improvements"] == 1
+            reviewed = client.post(
+                f"/control/improvements/{proposal['id']}/decision",
+                json={"decision": "approved"})
+            assert reviewed.status_code == 200
+            assert reviewed.json()["applied"] is False
+            assert client.get("/control/overview").json()["counts"]["improvements"] == 0
+            assert client.post(
+                f"/control/improvements/{proposal['id']}/decision",
+                json={"decision": "approved"}).status_code == 409
