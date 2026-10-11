@@ -14,6 +14,8 @@ def route_chat_job(message):
         (r"(?:a\s+|the\s+)?(?:development\s+|scheduler\s+)(?:plan|planning\s+task)", "development_plan", "Chat-requested development plan"),
         (r"(?:your\s+|the\s+)?(?:next\s+)?(?:self-improvement\s+|self improvement\s+)(?:proposal|plan|task)", "self_improvement", "Luna self-improvement proposal"),
     )
+    if re.fullmatch(r"(?:luna[,!]?\\s*)?(?:please\\s+)?(?:draft|prepare|build)\\s+(?:the\\s+|your\\s+)?next\\s+(?:roadmap\\s+)?improvement[.!]?", text):
+        return {"kind":"workshop_draft", "title":"Luna workshop draft"}
     for pattern, kind, title in patterns:
         if re.fullmatch(prefix + pattern + r"[.!]?", text):
             return {"kind":kind, "title":title}
