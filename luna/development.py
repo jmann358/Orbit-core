@@ -102,3 +102,29 @@ def project_inventory(root):
             "present_count": sum(x["present"] for x in entries),
             "scope": "fixed allowlist; metadata only; no code execution",
             "tests_run": False, "capabilities_verified": False}
+
+# Deterministic checks only. A failed check is evidence, not authorization to patch.
+def inspect_source(root):
+    """Read fixed source paths only; reject symlinks and oversized files."""
+    from pathlib import Path
+    base=Path(root).resolve(strict=True)
+    findings=[]
+    for relative in INSPECTION_FILES:
+        path=base/relative
+        if path.is_symlink() or not path.is_file() or not path.resolve().is_relative_to(base):
+            findings.append({"path":relative,"severity":"medium","code":"missing_or_unsafe",
+                             "detail":"Missing or symlinked path; confirm whether required"})
+            continue
+        if path.suffix!=".py":
+            continue
+        if path.stat().st_size>250_000:
+            findings.append({"path":relative,"severity":"medium","code":"too_large",
+                             "detail":"File exceeds bounded inspection limit"})
+            continue
+        try:
+            ast.parse(path.read_text(encoding="utf-8"),filename=relative)
+        except (SyntaxError,UnicodeError,OSError) as exc:
+            findings.append({"path":relative,"severity":"high","code":"syntax_or_read_error",
+                             "detail":str(exc)[:300]})
+    return {"findings":findings,"inspected_scope":list(INSPECTION_FILES),
+            "tests_run":False,"files_changed":False,"model_called":False}
