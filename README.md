@@ -2,6 +2,10 @@
 
 ORBIT is a local-first, provider-independent assistant ecosystem. Luna is its conversational coordinator.
 
+## Luna 1.0 release candidate — agent core
+
+The **Goals** tab supports persisted objectives, owner-reviewed action plans, sequential execution of three allowlisted low-risk tools (local health, GitHub status, development plan), and progress recovery after a restart. Failed/interrupted steps stop the goal for attention; they are never automatically retried. This is a limited agent executor, not general-purpose autonomous computer control.
+
 ## Current capabilities
 
 - Private localhost FastAPI dashboard and persistent SQLite chat sessions.
@@ -34,7 +38,7 @@ Configure the model separately using `LUNA_MODEL_URL`, `LUNA_MODEL_NAME`, and `L
 ## What is *not* implemented
 
 - Remote phone/iPad access with authentication.
-- Arbitrary agent tool use, real sandboxed code execution, automated patch application or safe self-deployment.
+- Arbitrary agent tool use, model-selected actions, real sandboxed code execution, automated patch application or safe self-deployment.
 - Autonomous source code changes without review.
 - Verified semantic correctness of AI-generated patches.
 - Automatic identification of arbitrary conversational memories. Memory suggestions are intentionally narrow and opt-in.
