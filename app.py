@@ -2,7 +2,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
-from luna.core import add_message, respond, candidates, add_candidate, review_candidate, history, sessions, propose_task, list_tasks, decide_task
+from luna.core import add_message, respond, candidates, add_candidate, review_candidate, history, sessions, propose_task, list_tasks, decide_task, add_project_note, list_project_notes, decide_project_note
 
 app=FastAPI(title="ORBIT · Luna 0.2", docs_url=None, redoc_url=None, openapi_url=None)
 
@@ -137,3 +137,20 @@ async def project_inspect():
     if answer.startswith(("I couldn't reach", "Cloud AI needs", "Model endpoint blocked")):
         raise HTTPException(503, "Model unavailable")
     return {"report": answer, "files_changed": False}
+
+class ProjectNote(BaseModel):
+    content: str = Field(min_length=3,max_length=1000)
+
+@app.get("/project/notes")
+def get_project_notes():
+    return list_project_notes()
+
+@app.post("/project/notes")
+def create_project_note(note:ProjectNote):
+    return {"id":add_project_note(note.content),"status":"pending"}
+
+@app.post("/project/notes/{note_id}/decision")
+def review_project_note(note_id:int,request:TaskDecision):
+    if not decide_project_note(note_id,request.decision):
+        raise HTTPException(404,"Pending note not found or invalid decision")
+    return {"status":request.decision}
