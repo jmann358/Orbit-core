@@ -88,3 +88,51 @@ def render_context(excerpts):
             str(item["content"])[:MAX_EXCERPT]
         )
     return "\n\n".join(chunks)
+
+
+PROJECT_NOTE_CUE = re.compile(
+    r"^\\s*(?:for\\s+(?:orbit|luna)[,:]?\\s*|"
+    r"(?:orbit|luna)\\s+should\\s+|"
+    r"we\\s+decided\\s+(?:for\\s+orbit|that\\s+(?:orbit|luna))\\s+)"
+    r"(.+)$",
+    re.I | re.S,
+)
+
+
+def preview_project_notes(db_path, session, limit=8):
+    """Suggest project-specific notes from user turns for explicit review.
+
+    No candidate is saved or approved here. No assistant-generated text is
+    mined and no model is called. This is deliberately conservative.
+    """
+    from luna.memory_suggestions import BLOCKED
+    if not isinstance(session, str) or not 1 <= len(session) <= 100:
+        raise ValueError("Invalid session")
+    if type(limit) is not int or not 1 <= limit <= 10:
+        raise ValueError("Invalid limit")
+    if not Path(db_path).is_file():
+        return []
+    with sqlite3.connect(db_path) as db:
+        rows = db.execute(
+            "SELECT id,content FROM messages WHERE session=? AND role='user' "
+            "ORDER BY id DESC LIMIT 150", (session,),
+        ).fetchall()
+    notes, seen = [], set()
+    for message_id, content in rows:
+        if len(content) > 600:
+            continue
+        match = PROJECT_NOTE_CUE.match(content.strip())
+        if not match:
+            continue
+        content = match.group(0).strip().rstrip(".")
+        if not 12 <= len(content) <= 350 or BLOCKED.search(content):
+            continue
+        normalized = content.casefold()
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        notes.append({"source_message_id": message_id, "content": content,
+                      "pending_owner_review": True})
+        if len(notes) >= limit:
+            break
+    return notes
