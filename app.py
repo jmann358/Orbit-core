@@ -1088,6 +1088,33 @@ def _process_job(job):
             return ok,result["summary"]
         except HTTPException:
             return False,"GitHub unavailable"
+    if kind=="readiness_check":
+        from pathlib import Path
+        from luna.readiness import snapshot as readiness_snapshot
+        data=readiness_snapshot(Path(__file__).resolve().parent)
+        ok=data["ready_for_dashboard"] and data["ready_for_background_work"]
+        summary=(
+            "Dashboard "+("ready" if data["ready_for_dashboard"] else "blocked")+
+            "; background "+("ready" if data["ready_for_background_work"] else "blocked")+
+            "; model chat "+("ready" if data["ready_for_model_chat"] else "blocked")+
+            "; isolated tests "+("ready" if data["ready_for_isolated_tests"] else "blocked")+
+            "; "+str(len(data["recommendations"]))+" recommendation(s)."
+        )
+        return ok,summary
+    if kind=="maintenance_audit":
+        from luna.maintenance_audit import audit
+        data=audit()
+        ok=data["status"]=="clear"
+        counts=data["counts"]
+        summary=(
+            "Maintenance "+data["status"]+
+            "; stale jobs "+str(counts["stale_running_jobs"])+
+            "; expired grants "+str(counts["expired_active_grants"])+
+            "; stuck dispatches "+str(counts["stuck_dispatches"])+
+            "; high-priority requests "+str(counts["high_priority_requests"])+
+            "; worker stale "+str(counts["worker_stale"])+"."
+        )
+        return ok,summary
     if kind=="development_plan":
         return True,planning_report("DEV-003")
     if kind in ("workshop_draft","autonomous_draft"):
