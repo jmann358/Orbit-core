@@ -54,11 +54,15 @@ def tick(now=None):
                 (kind,)).fetchone()
             if existing:
                 continue
+            if jobs._active_count(db) >= jobs.MAX_ACTIVE:
+                continue
             stamp=datetime.now(timezone.utc).isoformat()
             cur=db.execute(
-                """INSERT INTO work_items(kind,title,detail,state,created_at,updated_at)
-                   VALUES(?,?,'','queued',?,?)""",
-                (kind,"Autopilot: "+kind.replace("_"," ").title(),stamp,stamp))
+                """INSERT INTO work_items(kind,title,detail,state,created_at,
+                   updated_at,max_attempts) VALUES(?,?,'','queued',?,?,?)""",
+                (kind,"Autopilot: "+kind.replace("_"," ").title(),
+                 stamp,stamp,jobs._attempt_limit(kind)))
+            jobs._event(db,cur.lastrowid,"queued","Allowlisted autopilot routine",stamp)
             result={"id":cur.lastrowid,"created":True}
             if result["created"]:
                 db.execute("INSERT INTO autopilot_runs(kind,last_queued_at) VALUES(?,?) ON CONFLICT(kind) DO UPDATE SET last_queued_at=excluded.last_queued_at",
