@@ -952,6 +952,17 @@ def development_autonomy_cycle():
             "authority":"review_only","may_apply_code":False,"may_merge":False,
             "may_expand_permissions":False}
 
+@app.get("/development/apply-readiness")
+def development_apply_readiness():
+    from luna.apply_gate import evaluate
+    from luna.change_guard import prepare_checkpoint
+    from luna.repair import RepairState
+    checkpoint=prepare_checkpoint("luna/development.py","0"*64,"1"*64)
+    state=RepairState(attempts=1,status="ready_for_review",
+                      base_sha256="0"*64,candidate_sha256="1"*64)
+    return evaluate("luna/development.py",state,checkpoint,
+                    isolation_enabled=False,apply_permission=False)
+
 @app.get("/development/planning-context")
 def development_planning_context(title: str = ""):
     from luna.self_improvement import planning_context
