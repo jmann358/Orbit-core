@@ -88,3 +88,14 @@ def test_control_overview_and_review_are_non_executing():
             assert client.post(
                 f"/control/improvements/{proposal['id']}/decision",
                 json={"decision": "approved"}).status_code == 409
+
+
+def test_static_review_rejects_incomplete_screening():
+    draft = "\n".join("```python\nx = %d\n```" % n for n in range(13))
+    result = static_draft_report(draft)
+    assert result["python_blocks_found"] == 13
+    assert result["blocks_checked"] == 12
+    assert result["truncated"] is True
+    assert result["all_checked_blocks_parse"] is False
+    assert result["executed"] is False
+    assert result["applied"] is False
