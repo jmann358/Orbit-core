@@ -1400,6 +1400,13 @@ def agent_goal_decision(goal_id:int,decision:AgentGoalDecision):
         raise HTTPException(404,"Proposed goal not found")
     return {"state":"approved" if decision.approve else "rejected"}
 
+@app.get("/agent/specialists")
+def agent_specialists():
+    from luna.agent_registry import list_agents
+    return {"specialists": list_agents(), "execution_mode": "existing_allowlisted_worker",
+            "model_agents": False, "dynamic_plugins": False}
+
+
 @app.get("/agent/goals/{goal_id}/report")
 def agent_goal_report(goal_id:int):
     from luna.goals import goal_report
