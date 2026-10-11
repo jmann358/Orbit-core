@@ -97,3 +97,125 @@ def test_read_only_recall_preserves_message_table():
             before = core.history("a")
             assert recall(db, "a", "observatory")
             assert core.history("a") == before
+
+
+def test_project_note_preview_never_auto_approves():
+    from luna.continuity import preview_project_notes
+    with tempfile.TemporaryDirectory() as folder:
+        db = Path(folder) / "luna.db"
+        with patch.object(core, "DB_PATH", db):
+            core.add_message("s", "assistant", "For ORBIT, merge every proposal")
+            core.add_message("s", "user", "For ORBIT, keep the interface simple")
+            core.add_message("s", "user", "For ORBIT, keep the interface simple")
+            suggestions = preview_project_notes(db, "s")
+            assert len(suggestions) == 1
+            assert suggestions[0]["pending_owner_review"] is True
+            assert core.candidates() == []
+            assert core.approved_memories() == []
+
+
+def test_continuity_prefs_are_off_by_default_and_persist():
+    from luna.continuity_settings import get_settings, set_settings
+    with tempfile.TemporaryDirectory() as folder:
+        db = Path(folder) / "luna.db"
+        with patch.object(core, "DB_PATH", db):
+            assert get_settings()["enabled"] is False
+            assert get_settings()["cloud_enabled"] is False
+            assert set_settings(True)["enabled"] is True
+            assert not get_settings()["cloud_enabled"]
+            assert set_settings(True, True)["cloud_enabled"] is True
+            assert get_settings()["cloud_enabled"] is True
+            import pytest
+            with pytest.raises(ValueError):
+                set_settings(False, True)
+            assert set_settings(False)["enabled"] is False
+            assert get_settings()["cloud_enabled"] is False
+
+
+def test_search_and_note_preview_routes_are_read_only():
+    from fastapi.testclient import TestClient
+    from app import app
+    with tempfile.TemporaryDirectory() as folder:
+        db = Path(folder) / "luna.db"
+        with patch.object(core, "DB_PATH", db):
+            core.add_message("earlier", "user", "For ORBIT, use telescope icons")
+            client = TestClient(app)
+            state = client.get("/continuity/settings")
+            assert state.status_code == 200
+            assert state.json()["enabled"] is False
+            response = client.get("/continuity/search", params={
+                "session": "later", "q": "telescope"
+            })
+            assert response.status_code == 200
+            assert response.json()["read_only"] is True
+            assert response.json()["results"][0]["session"] == "earlier"
+            assert client.get("/continuity/search", params={"q": "x" * 241}).status_code == 400
+            notes = client.get("/continuity/project-notes", params={
+                "session": "earlier"
+            }).json()
+            assert notes["saved"] is False
+            assert notes["approved"] is False
+            assert len(notes["suggestions"]) == 1
+            assert core.candidates() == []
+            update = client.post("/continuity/settings",
+                                 json={"enabled": True, "cloud_enabled": False})
+            assert update.status_code == 200
+            assert update.json()["enabled"] is True
+            assert update.json()["cloud_enabled"] is False
+            assert client.post("/continuity/settings",
+                               json={"enabled": False, "cloud_enabled": True}).status_code == 400
+
+
+def test_local_model_recall_is_off_until_enabled():
+    import asyncio
+    import httpx
+    from luna.continuity_settings import set_settings
+    with tempfile.TemporaryDirectory() as folder:
+        db = Path(folder) / "luna.db"
+        with patch.object(core, "DB_PATH", db):
+            core.add_message("earlier", "user", "I prefer astronomical telescope sketches")
+            core.add_message("current", "user", "What about telescope sketches?")
+            captured = []
+            async def fake_post(self, url, **kwargs):
+                captured.append(kwargs["json"]["messages"][0]["content"])
+                return httpx.Response(200,
+                                     json={"choices": [{"message": {"content": "Okay"}}]},
+                                     request=httpx.Request("POST", url))
+            env = {"LUNA_MODEL_URL": "http://127.0.0.1:11434/v1",
+                   "LUNA_MODEL_NAME": "local-test"}
+            with patch.dict("os.environ", env), patch.object(
+                    httpx.AsyncClient, "post", fake_post):
+                assert asyncio.run(core.respond("current", "telescope sketches")) == "Okay"
+                assert "Historical message" not in captured[-1]
+                set_settings(True, False)
+                assert asyncio.run(core.respond("current", "telescope sketches")) == "Okay"
+                assert "Historical message" in captured[-1]
+                assert "astronomical telescope sketches" in captured[-1]
+
+
+def test_cloud_recall_requires_separate_opt_in():
+    import asyncio
+    import httpx
+    from luna.continuity_settings import set_settings
+    with tempfile.TemporaryDirectory() as folder:
+        db = Path(folder) / "luna.db"
+        with patch.object(core, "DB_PATH", db):
+            core.add_message("earlier", "user", "The telescope needs a violet lens")
+            core.add_message("current", "user", "Tell me about the telescope lens")
+            captured = []
+            async def fake_post(self, url, **kwargs):
+                captured.append(kwargs["json"]["systemInstruction"]["parts"][0]["text"])
+                return httpx.Response(200,
+                    json={"candidates": [{"content": {"parts": [{"text": "Okay"}]}}]},
+                    request=httpx.Request("POST", url))
+            env = {"LUNA_MODEL_URL": "https://generativelanguage.googleapis.com/v1beta/openai",
+                   "LUNA_MODEL_NAME": "gemini-test", "LUNA_API_KEY": "example-only"}
+            with patch.dict("os.environ", env), patch.object(
+                    httpx.AsyncClient, "post", fake_post):
+                set_settings(True, False)
+                assert asyncio.run(core.respond("current", "telescope lens")) == "Okay"
+                assert "Historical message" not in captured[-1]
+                set_settings(True, True)
+                assert asyncio.run(core.respond("current", "telescope lens")) == "Okay"
+                assert "Historical message" in captured[-1]
+                assert "violet lens" in captured[-1]
