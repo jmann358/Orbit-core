@@ -156,6 +156,8 @@ def test_bubblewrap_command_never_shares_host_root_or_network(tmp_path):
     assert "--unshare-all" in argv
     assert "--clearenv" in argv and "--die-with-parent" in argv
     assert "--share-net" not in argv
+    assert argv[argv.index("--uid") + 1] == "0"  # root only inside mapped user namespace
+    assert argv[argv.index("--gid") + 1] == "0"
     assert "--ro-bind" in argv and "--tmpfs" in argv
     assert "--bind" not in argv
     assert argv[-1] == "tests/test_sample.py"
