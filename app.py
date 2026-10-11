@@ -1,4 +1,4 @@
-"""Private local-only browser interface for Luna 0.1."""
+"""Private local-only browser interface for Luna."""
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
@@ -12,7 +12,7 @@ from luna.jobs import create_job, list_jobs, claim_next, finish_job, cancel_job,
 from luna.development import normalize_tasks, static_draft_report, planning_report
 from luna.core import record_shared_task, list_shared_task_results, add_message, respond, candidates, add_candidate, review_candidate, history, sessions, propose_task, list_tasks, decide_task, add_project_note, list_project_notes, decide_project_note, save_code_draft, list_code_drafts, decide_code_draft, record_agent_run, list_agent_runs
 
-VERSION = "1.0.0-rc.1"
+VERSION = "1.2"
 
 app=FastAPI(title="ORBIT · Luna " + VERSION, docs_url=None, redoc_url=None, openapi_url=None)
 
@@ -927,6 +927,18 @@ def control_sprint():
     from luna.sprint import sprint_snapshot
     from luna.runner_preflight import inspect_runner
     return {"sprint":sprint_snapshot(), "runner":inspect_runner()}
+
+@app.post("/development/autonomy-cycle")
+def development_autonomy_cycle():
+    """Run one bounded review-only Luna development cycle."""
+    from luna.autonomy_cycle import cycle
+    payload={"schema_version":1,"tasks":[
+        {"id":"DEV-002","title":"Draft validation","status":"ready",
+         "execution":"planning_only","instructions":""},
+        {"id":"DEV-003","title":"Bounded scheduler","status":"ready",
+         "execution":"planning_only","instructions":""},
+    ]}
+    return cycle(normalize_tasks(payload))
 
 @app.get("/development/planning-context")
 def development_planning_context(title: str = ""):
