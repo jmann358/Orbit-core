@@ -686,6 +686,34 @@ def _start_job_worker():
 def _stop_job_worker():
     _job_stop.set()
 
+class LunaRequestPayload(BaseModel):
+    kind: str
+    priority: str
+    title: str = Field(min_length=3,max_length=120)
+    message: str = Field(min_length=5,max_length=3000)
+    context: str = Field(default="",max_length=3000)
+
+@app.get("/control/requests")
+def control_requests():
+    from luna.requests import list_requests
+    return list_requests(open_only=True)
+
+@app.post("/control/requests")
+def control_create_request(request: LunaRequestPayload):
+    from luna.requests import create_request
+    try:
+        return create_request(request.kind,request.priority,request.title,
+                              request.message,request.context)
+    except ValueError as exc:
+        raise HTTPException(400,str(exc)) from exc
+
+@app.post("/control/requests/{request_id}/decision")
+def control_request_decision(request_id: int, request: TaskDecision):
+    from luna.requests import decide_request
+    if not decide_request(request_id,request.decision):
+        raise HTTPException(409,"Request unavailable or decision unsupported")
+    return {"status":request.decision,"executed":False}
+
 @app.get("/control/autopilot")
 def control_autopilot_status():
     from luna import autopilot
@@ -705,7 +733,7 @@ def control_autopilot_choice(choice: AutopilotChoice):
 @app.get("/control/overview")
 def control_overview():
     """One read-only snapshot. Proposal approvals never execute work."""
-    proposed = [x for x in list_improvements() if x["status"] == "proposed"]
+    from luna.requests import list_requests\n    requests = list_requests(open_only=True)\n    proposed = [x for x in list_improvements() if x["status"] == "proposed"]
     tasks = [x for x in list_tasks() if x["status"] == "pending"]
     memories = [x for x in candidates() if x["status"] == "pending"]
     notes = [x for x in list_project_notes() if x["status"] == "pending"]
@@ -715,12 +743,12 @@ def control_overview():
     from luna.development import project_inventory
     inventory = project_inventory(Path(__file__).resolve().parent)
     return {
-        "counts": {"improvements": len(proposed), "tasks": len(tasks),
+        "counts": {"requests": len(requests), "improvements": len(proposed), "tasks": len(tasks),
                    "memories": len(memories), "notes": len(notes),
                    "drafts": len(drafts),
                    "queued_jobs": sum(x["state"] == "queued" for x in work),
                    "attention_jobs": sum(x["state"] == "attention" for x in work)},
-        "improvements": proposed, "tasks": tasks, "memories": memories,
+        "requests": requests, "improvements": proposed, "tasks": tasks, "memories": memories,
         "notes": notes, "drafts": [
             {"id": d["id"], "goal": d["goal"], "summary": d["summary"],
              "status": d["status"]} for d in drafts],
