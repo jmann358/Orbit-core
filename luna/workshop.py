@@ -8,6 +8,7 @@ import hashlib
 import tempfile
 from pathlib import Path
 from luna.patches import review_patch, ALLOWED_PATHS, MAX_BYTES
+from luna.change_guard import prepare_checkpoint
 
 def stage(root, relative_path, expected_sha256, replacement):
     """Validate a revision-locked draft in an automatically deleted temp directory."""
@@ -23,8 +24,9 @@ def stage(root, relative_path, expected_sha256, replacement):
         digest=hashlib.sha256(target.read_bytes()).hexdigest()
         if digest!=review["replacement_sha256"]:
             raise ValueError("Staged content digest mismatch")
+    checkpoint=prepare_checkpoint(relative_path,expected_sha256,digest)
     return {"path":relative_path,"base_sha256":expected_sha256,
-            "replacement_sha256":digest,"changed":review["changed"],
+            "replacement_sha256":digest,"checkpoint":checkpoint,"changed":review["changed"],
             "syntax_valid":True,"bytecode_compiles":True,
             "diff":review["diff"],"staged_in_temporary_workspace":True,
             "workspace_deleted":True,"tests_executed":False,
