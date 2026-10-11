@@ -49,3 +49,28 @@ def test_autonomy_approval_only_records_status():
             assert core.decide_task(task_id,"approved")
             assert core.list_tasks()[0]["status"]=="approved"
             assert not core.decide_task(task_id,"approved")
+
+
+def test_gemini_native_endpoint_and_history():
+    import asyncio
+    import httpx
+    from unittest.mock import AsyncMock
+    with tempfile.TemporaryDirectory() as folder:
+        with patch.object(core, "DB_PATH", Path(folder) / "gemini.db"):
+            core.add_message("session", "user", "Hello Luna")
+            captured = {}
+            async def fake_post(self, url, **kwargs):
+                captured["url"] = url
+                captured["headers"] = kwargs["headers"]
+                captured["body"] = kwargs["json"]
+                return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": "Hi!"}]}}]},
+                                      request=httpx.Request("POST", url))
+            env = {"LUNA_MODEL_URL": "https://generativelanguage.googleapis.com/v1beta/openai",
+                   "LUNA_MODEL_NAME": "gemini-2.5-flash", "LUNA_API_KEY": "test-secret"}
+            with patch.dict("os.environ", env), patch.object(httpx.AsyncClient, "post", fake_post):
+                answer = asyncio.run(core.respond("session", "Hello Luna"))
+            assert answer == "Hi!"
+            assert captured["url"].endswith("/models/gemini-2.5-flash:generateContent")
+            assert captured["headers"] == {"x-goog-api-key": "test-secret"}
+            assert captured["body"]["contents"][0]["parts"][0]["text"] == "Hello Luna"
+            assert captured["body"]["systemInstruction"]["parts"][0]["text"].startswith("You are Luna")
