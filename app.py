@@ -927,8 +927,10 @@ def control_sprint():
     from luna.sprint import sprint_snapshot
     from luna.runner_preflight import inspect_runner
     from luna.isolation_policy import status as isolation_status
+    from luna.runner_activation import status as runner_activation_status
     return {"sprint":sprint_snapshot(), "runner":inspect_runner(),
-            "isolation":isolation_status()}
+            "isolation":isolation_status(),
+            "runner_activation":runner_activation_status()}
 
 @app.post("/development/autonomy-cycle")
 def development_autonomy_cycle():
