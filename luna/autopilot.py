@@ -50,7 +50,7 @@ def tick(now=None):
             # Use the same transaction: opening another writer here locks SQLite.
             jobs._setup(db)
             existing=db.execute(
-                "SELECT id FROM work_items WHERE kind=? AND state IN ('queued','running') LIMIT 1",
+                "SELECT id FROM work_items WHERE kind=? AND state IN ('queued','running','retry_wait') LIMIT 1",
                 (kind,)).fetchone()
             if existing:
                 continue
