@@ -44,3 +44,13 @@ def test_dashboard_contains_continuity_controls():
     assert 'id="continuity-refresh"' in html
     assert 'id="continuity-search-form"' in html
     assert "Approve for Luna" in html
+
+
+def test_dashboard_has_one_continuity_handler_and_main_review_wiring():
+    response=TestClient(app).get("/")
+    assert response.status_code==200
+    html=response.text
+    assert html.count("async function refreshContinuity()")==1
+    assert "Conversation checkpoint" in html
+    assert "Revoke from Luna" in html
+    assert "data.counts.continuity" in html
