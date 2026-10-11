@@ -2,20 +2,23 @@
 
 Produces arguments only. No shell or process is launched here.
 """
+import re
 from pathlib import Path
 from luna.runner_preflight import RUNTIME_CANDIDATES
 
-IMAGE="orbit-luna-test:local"
+_PINNED_IMAGE=re.compile(r"^orbit-luna-test@sha256:[0-9a-f]{64}$")
 FIXED_TESTS={
     "luna/development.py":"tests/test_development.py",
     "luna/self_improvement.py":"tests/test_self_improvement.py",
 }
 
-def build(runtime, workspace, relative_path):
+def build(runtime, workspace, relative_path, image_ref):
     if runtime not in RUNTIME_CANDIDATES:
         raise ValueError("Unsupported container runtime")
     if relative_path not in FIXED_TESTS:
         raise ValueError("Unsupported regression target")
+    if not isinstance(image_ref,str) or not _PINNED_IMAGE.fullmatch(image_ref):
+        raise ValueError("Pinned image digest required")
     root=Path(workspace).resolve(strict=True)
     if not root.is_dir() or root.is_symlink():
         raise ValueError("Unsafe workspace")
@@ -26,6 +29,6 @@ def build(runtime, workspace, relative_path):
         "--security-opt=no-new-privileges",
         "--mount",f"type=bind,src={root},dst=/workspace,ro",
         "--tmpfs","/tmp:rw,noexec,nosuid,size=64m",
-        "-w","/workspace",IMAGE,
+        "-w","/workspace",image_ref,
         "python","-m","pytest","-q",test_target,
     ]
