@@ -148,6 +148,8 @@ const controlGroups=[
    actions:[['Shortlist','shortlisted'],['Dismiss','dismissed']],url:x=>'/project/drafts/'+x.id+'/review'},
   {key:'notes',label:'Project note',title:x=>'Project note #'+x.id,body:x=>x.content,
    actions:[['Approve note','approved'],['Reject','rejected']],url:x=>'/project/notes/'+x.id+'/decision'},
+  {key:'continuity',label:'Conversation checkpoint',title:x=>'Continuity #'+x.id,body:x=>x.summary,
+   actions:[['Approve continuity','approved'],['Reject','rejected']],url:x=>'/continuity/summaries/'+x.id+'/decision'},
   {key:'memories',label:'Memory candidate',title:x=>'Memory #'+x.id,body:x=>x.content,
    actions:[['Approve memory','approved'],['Reject','rejected']],url:x=>'/memory/candidates/'+x.id+'/review?approve='+(x==='approved')}
 ];
@@ -155,8 +157,9 @@ async function controlDecision(group,item,decision,button){
   if(!window.confirm('Confirm '+decision.replaceAll('_',' ')+' for '+group.label.toLowerCase()+' #'+item.id+'?'))return;
   button.disabled=true;
   const url=group.key==='memories'?'/memory/candidates/'+item.id+'/review?approve='+(decision==='approved'):group.url(item);
+  const payload=group.key==='continuity'?{approve:decision==='approved'}:{decision};
   try{
-    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision})});
+    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     if(!r.ok)throw Error((await r.json()).detail||'Decision failed');
     await loadControl();
 async function loadAutopilot(){const b=document.querySelector('#control-autopilot');try{const r=await fetch('/control/autopilot');if(!r.ok)throw Error('Unavailable');const data=await r.json();b.dataset.enabled=String(data.enabled);b.textContent=data.enabled?'Pause independent work':'Resume independent work';b.title='Tier 1 only: predefined local checks and planning; no code changes or paid model calls.'}catch(e){b.textContent='Autopilot status unavailable';b.disabled=true}}
@@ -193,7 +196,7 @@ async function loadControl(){
     }
     if(!pending){const p=document.createElement('p');p.textContent='All caught up. Ask Luna for the next improvement when you are ready.';review.append(p)}
     const files=data.inventory.files||[];inventory.textContent=data.inventory.present_count+' of '+files.length+' known project files present (metadata only; tests not run).';
-    const alerts={bridge:[data.counts.bridge||0,'medium'],home:[pending+(data.counts.attention_jobs||0),'high'],memory:[(data.counts.memories||0)+(data.counts.continuity||0),'medium'],development:[(data.counts.improvements||0)+(data.counts.drafts||0),'medium'],testing:[data.counts.attention_jobs||0,'high'],approvals:[(data.counts.requests||0)+(data.counts.tasks||0)+(data.counts.notes||0)+(data.counts.memories||0),'high']};
+    const alerts={bridge:[data.counts.bridge||0,'medium'],home:[pending+(data.counts.attention_jobs||0),'high'],memory:[(data.counts.memories||0)+(data.counts.continuity||0),'medium'],development:[(data.counts.improvements||0)+(data.counts.drafts||0),'medium'],testing:[data.counts.attention_jobs||0,'high'],approvals:[(data.counts.requests||0)+(data.counts.tasks||0)+(data.counts.notes||0)+(data.counts.memories||0)+(data.counts.continuity||0),'high']};
     for(const [key,[count,priority]] of Object.entries(alerts)){const el=document.querySelector('[data-alert="'+key+'"]');if(!el)continue;el.hidden=!count;el.className='nav-attention priority-'+priority;el.textContent=count+' · '+(priority==='high'?'High':'Review');el.setAttribute('aria-label',count+' items needing '+priority+' priority attention')}
     status.textContent=pending+' item(s) awaiting review · no changes applied automatically';
   }catch(e){status.textContent='Could not load overview: '+e.message}
