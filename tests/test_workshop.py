@@ -17,6 +17,8 @@ def test_workshop_compiles_in_temporary_workspace_without_live_changes():
         result=stage(root,"luna/development.py",sha,"VALUE = 2\n")
         assert result["bytecode_compiles"]
         assert result["workspace_deleted"]
+        assert result["checkpoint"]["automatic_restore"] is False
+        assert result["checkpoint"]["requires_review"] is True
         assert not result["tests_executed"]
         assert not result["draft_executed"]
         assert not result["live_files_changed"]
