@@ -22,7 +22,7 @@ def test_fixed_runner_isolated_path_passes_without_live_write(monkeypatch,tmp_pa
     root,runtime=_project(tmp_path)
     original=(root/"luna"/"development.py").read_text()
     monkeypatch.setattr(runner_executor,"activation_status",
-        lambda **kwargs:{"enabled":True,"gates":{"ok":True}})
+        lambda **kwargs:{"enabled":True,"gates":{"ok":True},"image_ref":IMAGE})
     monkeypatch.setattr(runner_executor,"inspect_runner",
         lambda:{"runtime_path":str(runtime)})
     monkeypatch.setattr(runner_executor,"consume",lambda capability:True)
