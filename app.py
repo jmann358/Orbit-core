@@ -911,6 +911,16 @@ def development_record_decision(request:TechnicalDecisionRequest):
     except ValueError as exc:
         raise HTTPException(400,str(exc)) from exc
 
+@app.post("/development/workshop/stage")
+def development_workshop_stage(request:PatchReviewRequest):
+    from pathlib import Path
+    from luna.workshop import stage
+    try:
+        return stage(Path(__file__).resolve().parent,request.path,
+                     request.base_sha256,request.replacement)
+    except (ValueError,UnicodeError,OSError) as exc:
+        raise HTTPException(400,str(exc)) from exc
+
 @app.get("/development/permissions")
 def development_permissions():
     from luna.permissions import policy
