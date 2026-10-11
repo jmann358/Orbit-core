@@ -81,7 +81,7 @@ def propose(session,summary,tags=None):
         return {"id":cur.lastrowid,"created":True}
 
 def list_summaries(status=None,limit=60):
-    if status not in (None,"pending","approved","rejected"):
+    if status not in (None,"pending","approved","rejected","revoked"):
         raise ValueError("Invalid summary status")
     if type(limit) is not int or not 1<=limit<=100:
         raise ValueError("Invalid limit")
@@ -308,3 +308,15 @@ def context_for_session(session,query="",limit=5):
         if len(selected)>=limit:
             break
     return selected[:limit]
+
+
+def revoke(summary_id):
+    """Remove an approved summary from future Luna context without deleting history."""
+    with core.connect() as db:
+        _setup(db)
+        cur=db.execute(
+            """UPDATE conversation_summaries
+               SET status='revoked',reviewed_at=?
+               WHERE id=? AND status='approved'""",
+            (_now(),summary_id))
+        return cur.rowcount==1
