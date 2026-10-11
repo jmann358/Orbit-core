@@ -82,6 +82,8 @@ a{color:#394db1!important}details{border:1px solid var(--line);border-radius:12p
 <script>
 
 const controlGroups=[
+  {key:'requests',label:'Luna request',title:x=>x.title,body:x=>x.message+(x.context?'\\nContext: '+x.context:''),actions:[['Acknowledge','acknowledged'],['Dismiss','dismissed']],url:x=>'/control/requests/'+x.id+'/decision'},
+
   {key:'improvements',label:'Improvement',title:x=>x.title,body:x=>x.description,
    actions:[['Approve proposal','approved'],['Reject','rejected']],url:x=>'/control/improvements/'+x.id+'/decision'},
   {key:'tasks',label:'Task',title:x=>x.title,body:x=>x.description,
@@ -112,7 +114,7 @@ async function loadControl(){
   try{
     const r=await fetch('/control/overview');if(!r.ok)throw Error('Overview unavailable');
     const data=await r.json();metrics.replaceChildren();review.replaceChildren();inventory.replaceChildren();
-    for(const [key,label] of [['improvements','Improvements'],['tasks','Task approvals'],['drafts','Code drafts'],['memories','Memories'],['notes','Project notes'],['queued_jobs','Queued jobs'],['attention_jobs','Needs attention']]){
+    for(const [key,label] of [['requests','Luna requests'],['improvements','Improvements'],['tasks','Task approvals'],['drafts','Code drafts'],['memories','Memories'],['notes','Project notes'],['queued_jobs','Queued jobs'],['attention_jobs','Needs attention']]){
       const card=document.createElement('div');card.className='control-metric';
       const number=document.createElement('strong');number.textContent=String(data.counts[key]||0);
       const caption=document.createElement('span');caption.textContent=label;card.append(number,caption);metrics.append(card);
@@ -125,6 +127,8 @@ async function loadControl(){
       const title=document.createElement('h4');title.textContent=group.title(item);
       const desc=document.createElement('p');desc.textContent=group.body(item);
       card.append(kind,title,desc);
+      if(group.key==='requests'){const relay=document.createElement('button');relay.type='button';relay.textContent='Copy for ChatGPT';relay.onclick=async()=>{const text='Luna ORBIT request #'+item.id+'\\nPriority: '+item.priority+'\\nType: '+item.kind+'\\nSubject: '+item.title+'\\nRequest: '+item.message+'\\nContext: '+item.context+'\\nPlease help plan or implement this safely; verify before claiming changes are made.';try{await navigator.clipboard.writeText(text);relay.textContent='Copied!'}catch(e){const box=document.createElement('textarea');box.value=text;box.readOnly=true;box.rows=6;card.append(box);box.select();relay.textContent='Select text to copy'}};card.append(relay)}
+
       for(const [label,decision] of group.actions){
         const b=document.createElement('button');b.type='button';b.textContent=label;
         if(['rejected','dismissed','revision_requested'].includes(decision))b.className='control-reject';
@@ -133,7 +137,7 @@ async function loadControl(){
     }
     if(!pending){const p=document.createElement('p');p.textContent='All caught up. Ask Luna for the next improvement when you are ready.';review.append(p)}
     const files=data.inventory.files||[];inventory.textContent=data.inventory.present_count+' of '+files.length+' known project files present (metadata only; tests not run).';
-    const alerts={home:[pending+(data.counts.attention_jobs||0),'high'],memory:[data.counts.memories||0,'medium'],development:[(data.counts.improvements||0)+(data.counts.drafts||0),'medium'],testing:[data.counts.attention_jobs||0,'high'],approvals:[(data.counts.tasks||0)+(data.counts.notes||0)+(data.counts.memories||0),'high']};
+    const alerts={home:[pending+(data.counts.attention_jobs||0),'high'],memory:[data.counts.memories||0,'medium'],development:[(data.counts.improvements||0)+(data.counts.drafts||0),'medium'],testing:[data.counts.attention_jobs||0,'high'],approvals:[(data.counts.requests||0)+(data.counts.tasks||0)+(data.counts.notes||0)+(data.counts.memories||0),'high']};
     for(const [key,[count,priority]] of Object.entries(alerts)){const el=document.querySelector('[data-alert="'+key+'"]');if(!el)continue;el.hidden=!count;el.className='nav-attention priority-'+priority;el.textContent=count+' · '+(priority==='high'?'High':'Review');el.setAttribute('aria-label',count+' items needing '+priority+' priority attention')}
     status.textContent=pending+' item(s) awaiting review · no changes applied automatically';
   }catch(e){status.textContent='Could not load overview: '+e.message}
