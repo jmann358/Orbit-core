@@ -280,3 +280,31 @@ def maybe_checkpoint(session,min_new_user_messages=8):
     return {"created":created["created"],"id":created["id"],
             "reason":"created" if created["created"] else "duplicate",
             "model_called":False,"approved":False}
+
+
+def context_for_session(session,query="",limit=5):
+    """Return the latest approved current-session checkpoint plus relevant older context."""
+    if not isinstance(session,str) or not 1<=len(session)<=100:
+        raise ValueError("Invalid session")
+    if type(limit) is not int or not 1<=limit<=10:
+        raise ValueError("Invalid limit")
+    with core.connect() as db:
+        _setup(db)
+        current=db.execute(
+            """SELECT id,session,summary,tags,created_at
+               FROM conversation_summaries
+               WHERE session=? AND status='approved'
+               ORDER BY id DESC LIMIT 1""",(session,)).fetchone()
+    selected=[]
+    seen=set()
+    if current:
+        item={"id":current[0],"session":current[1],"summary":current[2],
+              "tags":json.loads(current[3]),"created_at":current[4]}
+        selected.append(item);seen.add(item["id"])
+    for item in approved_context(query,limit=limit):
+        if item["id"] in seen:
+            continue
+        selected.append(item);seen.add(item["id"])
+        if len(selected)>=limit:
+            break
+    return selected[:limit]
