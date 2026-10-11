@@ -13,6 +13,10 @@ ORBIT is a local-first, provider-independent assistant ecosystem. Luna is its co
 - Development workshop: drafts **unapplied** code proposals, runs conservative text screening, and can attempt one revision. Saved drafts can be reviewed but are never applied or executed by the workshop.
 - GitHub Actions regression checks.
 
+## Verified update and launch
+
+Stop the currently running server first. From the project directory run `bash scripts/verify_and_launch.sh`. The script pulls only fast-forward changes, backs up the default SQLite database, compiles Python files, runs regression tests, and starts Luna **only if the checks pass**. It requires `pytest` to be installed (`python -m pip install pytest`). If you configured `LUNA_DB_PATH` to a custom location, back up that database separately.
+
 ## Start locally
 
 Use Python 3.11+ (GitHub CI tests 3.13).
