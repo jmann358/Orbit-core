@@ -1123,19 +1123,22 @@ def _process_job(job):
         if not ok:
             from luna.requests import create_request
             issues=data.get("issues") or []
-            codes=sorted({item.get("code","unknown_issue") for item in issues
-                          if isinstance(item,dict)})
-            if not codes:
-                codes=sorted(name for name,value in counts.items() if value)
-            priority=("high" if
-                      any(isinstance(item,dict) and item.get("severity")=="high" for item in issues)
-                      or counts.get("high_priority_requests",0)
-                      or counts.get("worker_stale",0)
-                      else "medium")
-            create_request(
-                "issue",priority,"ORBIT maintenance needs attention",
-                "Luna found stale or inconsistent local runtime metadata.",
-                "Issue codes: "+", ".join(codes)[:1200])
+            actionable=[item for item in issues
+                        if isinstance(item,dict) and item.get("code")!="high_priority_request"]
+            codes=sorted({item.get("code","unknown_issue") for item in actionable})
+            if not issues:
+                # Compatibility fallback for older/incomplete diagnostic producers.
+                codes=sorted(name for name,value in counts.items()
+                             if value and name!="high_priority_requests")
+            if codes:
+                priority=("high" if
+                          any(item.get("severity")=="high" for item in actionable)
+                          or counts.get("worker_stale",0)
+                          else "medium")
+                create_request(
+                    "issue",priority,"ORBIT maintenance needs attention",
+                    "Luna found stale or inconsistent local runtime metadata.",
+                    "Issue codes: "+", ".join(codes)[:1200])
         return ok,summary
     if kind=="development_plan":
         return True,planning_report("DEV-003")
