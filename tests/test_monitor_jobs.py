@@ -129,3 +129,33 @@ def test_high_priority_request_alone_does_not_create_recursive_maintenance_alert
     assert ok is False
     assert "high-priority requests 1" in summary
     assert created==[]
+
+
+def test_advisory_maintenance_completes_without_owner_alert(monkeypatch):
+    created=[]
+    monkeypatch.setattr(
+        "luna.maintenance_audit.audit",
+        lambda:{
+            "status":"advisory",
+            "counts":{
+                "stale_running_jobs":0,
+                "expired_active_grants":1,
+                "stuck_dispatches":0,
+                "high_priority_requests":0,
+                "worker_stale":0,
+            },
+            "severity_counts":{"high":0,"medium":0,"low":1},
+            "issues":[
+                {"code":"expired_active_grant","severity":"low",
+                 "subject":"grant:1","kind":"run_tests"},
+            ],
+            "changes_made":False,
+            "payloads_included":False,
+        })
+    monkeypatch.setattr(
+        "luna.requests.create_request",
+        lambda *args,**kwargs: created.append((args,kwargs)) or {"id":1,"created":True})
+    ok,summary=orbit_app._process_job({"kind":"maintenance_audit"})
+    assert ok is True
+    assert "Maintenance advisory" in summary
+    assert created==[]
