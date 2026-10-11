@@ -93,8 +93,9 @@ async function loadBridge(){
    const card=document.createElement('article');card.className='control-card';
    const h=document.createElement('h4');h.textContent=item.title+' · '+item.priority.toUpperCase();
    const state=document.createElement('small');state.textContent='Status: '+item.status;
-   const messages=document.createElement('div');card.append(h,state,messages);
+   const messages=document.createElement('details');const expand=document.createElement('summary');expand.textContent='View full conversation';messages.append(expand);card.append(h,state,messages);
    const thread=await bridgeFetch('/bridge/threads/'+item.id);
+   const short=document.createElement('p');short.textContent=(thread.messages.length?thread.messages[thread.messages.length-1].content:'No messages').slice(0,200);card.append(short);
    for(const m of thread.messages){const p=document.createElement('p');const who=document.createElement('strong');who.textContent=m.sender==='chatgpt'?'ChatGPT (pasted by user): ':m.sender==='luna'?'Luna: ':'You: ';p.append(who,document.createTextNode(m.content));messages.append(p)}
    if(item.status!=='closed'){
     card.append(bridgeButton('Copy Luna message',async()=>{
