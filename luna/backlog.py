@@ -2,7 +2,7 @@
 from datetime import datetime, timezone
 from luna import core, jobs
 
-ALLOWED = ("project_health", "github_status", "development_plan", "self_improvement")
+ALLOWED = ("project_health", "github_status", "readiness_check", "maintenance_audit", "development_plan", "self_improvement")
 OWNERS = ("luna", "assistant", "human")
 PRIORITIES = (1, 2, 3)
 
