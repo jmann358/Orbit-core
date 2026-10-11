@@ -6,11 +6,11 @@ import re
 from luna.runner_preflight import inspect_runner
 from luna.permissions import check
 
-_PINNED_IMAGE=re.compile(r"^orbit-luna-test@sha256:[0-9a-f]{64}$")
+_IMMUTABLE_IMAGE=re.compile(r"^sha256:[0-9a-f]{64}$")
 
 def status(image_ref=None, owner_approved=True):
     preflight=inspect_runner()
-    image_pinned=isinstance(image_ref,str) and bool(_PINNED_IMAGE.fullmatch(image_ref))
+    image_pinned=isinstance(image_ref,str) and bool(_IMMUTABLE_IMAGE.fullmatch(image_ref))
     grant_active=check("run_tests")
     gates={
         "owner_approved":owner_approved is True,
@@ -27,6 +27,7 @@ def status(image_ref=None, owner_approved=True):
         "enabled":enabled,
         "gates":gates,
         "runtime":preflight["runtime"],
+        "runtime_path":preflight.get("runtime_path"),
         "image_ref":image_ref if image_pinned else None,
         "fail_closed":True,
         "auto_apply":False,
