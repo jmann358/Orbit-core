@@ -244,3 +244,26 @@ def list_agent_runs(limit=20):
              summary TEXT NOT NULL, created_at TEXT NOT NULL)""")
         rows=db.execute("SELECT id,task,status,summary,created_at FROM agent_runs ORDER BY id DESC LIMIT ?",(limit,)).fetchall()
     return [{"id":i,"task":t,"status":s,"summary":m,"created_at":at} for i,t,s,m,at in rows]
+
+def record_shared_task(task_id, status, summary):
+    """Store a result without executing or modifying the shared assignment."""
+    if task_id not in ("DEV-001","DEV-002","DEV-003"):
+        raise ValueError("Unrecognized shared task")
+    if status not in ("completed","attention"):
+        raise ValueError("Unsupported task status")
+    with connect() as db:
+        db.execute("""CREATE TABLE IF NOT EXISTS shared_task_results
+            (id INTEGER PRIMARY KEY, task_id TEXT NOT NULL, status TEXT NOT NULL,
+             summary TEXT NOT NULL, created_at TEXT NOT NULL)""")
+        cur=db.execute("INSERT INTO shared_task_results(task_id,status,summary,created_at) VALUES(?,?,?,?)",
+                       (task_id,status,summary[:1500],timestamp()))
+        return cur.lastrowid
+
+def list_shared_task_results(limit=30):
+    with connect() as db:
+        db.execute("""CREATE TABLE IF NOT EXISTS shared_task_results
+            (id INTEGER PRIMARY KEY, task_id TEXT NOT NULL, status TEXT NOT NULL,
+             summary TEXT NOT NULL, created_at TEXT NOT NULL)""")
+        rows=db.execute("SELECT id,task_id,status,summary,created_at FROM shared_task_results ORDER BY id DESC LIMIT ?",(limit,)).fetchall()
+    return [{"id":i,"task_id":task,"status":status,"summary":summary,"created_at":at}
+            for i,task,status,summary,at in rows]
