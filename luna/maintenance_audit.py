@@ -19,13 +19,16 @@ def _age_seconds(timestamp,now):
     except (TypeError,ValueError):
         return None
 
-def audit(now=None, stale_job_seconds=900):
+def audit(now=None, stale_job_seconds=900, stale_queue_seconds=1800):
     now=now or datetime.now(timezone.utc)
     if type(stale_job_seconds) is not int or not 60<=stale_job_seconds<=86400:
         raise ValueError("Invalid stale job threshold")
+    if type(stale_queue_seconds) is not int or not 300<=stale_queue_seconds<=172800:
+        raise ValueError("Invalid stale queue threshold")
     issues=[]
     counts={
         "stale_running_jobs":0,
+        "stale_queued_jobs":0,
         "expired_active_grants":0,
         "stuck_dispatches":0,
         "high_priority_requests":0,
@@ -41,6 +44,19 @@ def audit(now=None, stale_job_seconds=900):
                     counts["stale_running_jobs"]+=1
                     issues.append({
                         "code":"stale_running_job",
+                        "severity":"medium",
+                        "subject":"job:"+str(job_id),
+                        "kind":kind,
+                        "age_seconds":round(age,1) if age is not None else None,
+                    })
+            queued=db.execute(
+                "SELECT id,kind,created_at FROM work_items WHERE state='queued'").fetchall()
+            for job_id,kind,created_at in queued:
+                age=_age_seconds(created_at,now)
+                if age is None or age>stale_queue_seconds:
+                    counts["stale_queued_jobs"]+=1
+                    issues.append({
+                        "code":"stale_queued_job",
                         "severity":"medium",
                         "subject":"job:"+str(job_id),
                         "kind":kind,
