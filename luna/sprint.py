@@ -3,9 +3,9 @@ from datetime import datetime, timezone
 
 STAGES = (
     ("runner", "Restricted test runner", "blocked", "Container isolation must be independently verified"),
-    ("repairs", "Bounded repairs and rollback", "planned", "Requires verified isolated tests and scoped permission"),
+    ("repairs", "Bounded repairs and rollback", "partial", "Two-attempt state machine implemented; execution and restoration are not enabled"),
     ("github", "Draft GitHub pull requests", "ready_for_review", "Never merge without owner approval"),
-    ("memory", "Searchable technical and conversation memory", "planned", "Sensitive memories require explicit approval"),
+    ("memory", "Searchable technical and conversation memory", "partial", "Technical decision search implemented; conversation summaries still require approval"),
     ("planning", "Independent safe task planning", "available", "Only predefined local checks"),
     ("dashboard", "Development command center", "available", "Recorded activity and approval inbox"),
 )
