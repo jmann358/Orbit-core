@@ -46,3 +46,18 @@ def test_shared_task_results_are_persistent_and_validated():
             assert records[0]["summary"] == "Safe plan"
             with pytest.raises(ValueError):
                 core.record_shared_task("DEV-999", "completed", "Bad task")
+
+
+def test_project_inventory_is_metadata_only_and_fixed_scope():
+    from luna.development import project_inventory, INSPECTION_FILES
+    with tempfile.TemporaryDirectory() as folder:
+        root = Path(folder)
+        (root / "app.py").write_text("hello")
+        (root / ".env").write_text("SECRET=do-not-read")
+        report = project_inventory(root)
+        assert report["present_count"] == 1
+        assert not report["tests_run"]
+        assert not report["capabilities_verified"]
+        assert {x["path"] for x in report["files"]} == set(INSPECTION_FILES)
+        assert next(x for x in report["files"] if x["path"] == "app.py")["bytes"] == 5
+        assert ".env" not in str(report)
