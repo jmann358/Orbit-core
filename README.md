@@ -52,3 +52,9 @@ Configure the model separately using `LUNA_MODEL_URL`, `LUNA_MODEL_NAME`, and `L
 Development proposals are drafts, not applied changes. The quality gate flags some common issues but **cannot** certify security, functionality, or syntax of unified diffs. GitHub CI validates repository code, not generated draft patches. Routine changes should be batched, reviewed and tested before installing locally.
 
 See [architecture](docs/ARCHITECTURE.md), [decisions](docs/DECISIONS.md), and [development policy](DEVELOPMENT_POLICY.md).
+
+## Development backlog and overnight delegation (foundation)
+
+The local API now has `GET/POST /agent/backlog` and `GET/POST /agent/overnight`. Backlog items have priority (1 essential, 2 next, 3 later), owner (human/assistant/luna), and an optional **allowlisted** job kind for Luna. Overnight delegation is **off by default**, persists in SQLite, dispatches at most the configured number of jobs per UTC day, and pauses at its configured model-token budget. The worker reconciles completed jobs and flags interrupted dispatches for attention.
+
+Example local-only calls: `POST /agent/backlog` with `{"title":"Check project health","priority":1,"owner":"luna","kind":"project_health"}`; `POST /agent/overnight` with `{"enabled":true,"max_jobs":3,"max_model_tokens":0}`. Zero token cap currently means no token-budget enforcement, **not** zero AI usage. **Model token accounting is not yet connected to provider responses**; do not enable AI-generating unattended jobs until real accounting and request limits are implemented. Current unattended kinds are read-only checks and proposal generation, not code execution or deployment. This is an initial foundation, not an isolated code-writing sandbox, secrets vault, or full overnight autonomous coding agent. Keep the device awake and the worker running.
