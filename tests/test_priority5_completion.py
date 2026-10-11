@@ -293,3 +293,29 @@ def test_queued_capacity_is_enforced_and_recovers():
             goals.advance_goals()
         assert len(jobs.list_jobs()) == 2
         assert goals.goal_report(ident)["state"] == "running"
+
+
+@pytest.mark.parametrize("objective, expected", [
+    ("Please plan the next improvement", "development-review"),
+    ("Check CI and GitHub status", "repository-readiness"),
+    ("Inspect local health diagnostics", "local-health"),
+    ("Write me a new dance song", None),
+])
+def test_safe_recipe_suggestion_never_executes(objective, expected):
+    suggested = goal_recipes.suggest(objective)
+    assert suggested["recipe_id"] == expected
+    assert suggested["executes"] is False
+    assert suggested["requires_owner_review"] is True
+
+
+def test_api_suggestion_does_not_propose_or_dispatch():
+    with isolated() as folder, patch.object(core, "DB_PATH", Path(folder) / "db"):
+        client = TestClient(app)
+        response = client.post("/agent/goals/recipes/suggest", json={
+            "objective": "Please plan the next improvement",
+        })
+        assert response.status_code == 200
+        assert response.json()["recipe_id"] == "development-review"
+        assert goals.list_goals() == []
+        assert jobs.list_jobs() == []
+        assert 'id="goal-recipe-suggest"' in client.get("/").text
