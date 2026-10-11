@@ -18,7 +18,7 @@ def test_luna_design_mission_creates_unapplied_draft():
                 assert data["draft_id"] > 0
                 assert "Moonlit studio" in data["draft"]
                 assert "CURRENT DASHBOARD SOURCE" in model.await_args.args[1]
-                assert "id=\\"main-nav\\"" in model.await_args.args[1]
+                assert 'id="main-nav"' in model.await_args.args[1]
                 drafts = TestClient(app).get("/project/drafts").json()
                 assert any(item["id"] == data["draft_id"] for item in drafts)
 
