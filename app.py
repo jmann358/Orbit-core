@@ -226,6 +226,7 @@ async function loadReadiness(){
    ['Container runtime',data.checks.container_runtime],
    ['Approved test image',data.checks.approved_test_image],
    ['Temporary test grant',data.checks.temporary_test_grant],
+   ['Background worker',data.checks.background_worker],
    ['Model configured',data.checks.model_configured],
   ];
   for(const [label,ok] of lines){const p=document.createElement('p');p.textContent=(ok?'✓ ':'○ ')+label;target.append(p)}
