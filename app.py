@@ -101,3 +101,12 @@ async def autonomy_plan(request:PlanningGoal):
         raise HTTPException(503, "Planning unavailable")
     task_id = propose_task(goal[:100], draft[:3000])
     return {"id": task_id, "status": "pending", "executed": False}
+
+@app.get("/project/overview")
+def project_overview():
+    """List known project files without reading secrets or changing anything."""
+    from pathlib import Path
+    root = Path(__file__).resolve().parent
+    names = ["app.py", "luna/core.py", "requirements.txt", "README.md", "tests/test_core.py"]
+    return {"files": [{"name": name, "exists": (root / name).is_file()} for name in names],
+            "read_only": True}
