@@ -20,4 +20,4 @@ def test_autopilot_queues_bounded_jobs_without_repeating():
 
 def test_autopilot_has_no_unsafe_job_kinds():
     assert set(autopilot.ROUTINES) <= {"project_health","development_plan","self_improvement"}
-    assert not autopilot.status if False else True
+    assert all(kind in jobs.KINDS for kind in autopilot.ROUTINES)
