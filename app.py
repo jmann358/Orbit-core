@@ -15,7 +15,7 @@ class Candidate(BaseModel):
 
 @app.get("/",response_class=HTMLResponse)
 def home():
-    return """<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Luna · ORBIT</title>
+    return r"""<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Luna · ORBIT</title>
 <style>body{font:16px system-ui;background:#101321;color:#f4f1ff;max-width:760px;margin:30px auto;padding:18px}h1{color:#d9b9ff}#log{height:58vh;overflow:auto;border:1px solid #45415b;padding:15px;border-radius:14px;white-space:pre-wrap}.msg{margin:12px 0}small{color:#b6a3d3}input,button{font:inherit;padding:12px;border-radius:9px}input{width:65%;background:#26283c;color:white;border:1px solid #777}button{background:#bfa0f5;border:0;cursor:pointer}</style>
 <h1>☾ Luna <small>0.1 · local prototype</small></h1><div id="log"></div><form id="form"><input id="msg" placeholder="Talk to Luna…" maxlength="12000" required autocomplete="off"><button>Send</button></form>
 <p><small>Local-only demo. Messages are saved on the host device. No cloud storage or remote AI configured.</small></p>
