@@ -632,7 +632,12 @@ async def luna_design_mission():
     if start<0:
         raise HTTPException(500,"Dashboard source unavailable")
     # The dashboard is supplied as data, not as authority to change permissions.
-    dashboard=source[start:end+len('</html>')][:35000]
+    dashboard=source[start:end+len('</html>')]
+    # Strip implementation-heavy scripts and styles; preserve the actual UI structure.
+    import re
+    dashboard=re.sub(r"<script[^>]*>[\\s\\S]*?</script>", "[Existing JavaScript preserved]", dashboard, flags=re.I)
+    dashboard=re.sub(r"<style[^>]*>[\\s\\S]*?</style>", "[Existing CSS preserved]", dashboard, flags=re.I)
+    dashboard=re.sub(r"\\s+", " ", dashboard)[:8500]
     goal="Luna-led redesign of the ORBIT interface: streamline navigation, create a playful visual identity, and preserve all existing functionality."
     prompt=(
         "You are Luna, the assistant who lives in ORBIT. This is YOUR creative design assignment. "
@@ -654,7 +659,7 @@ async def luna_design_mission():
     add_message(session,"user",prompt)
     draft=await respond(session,prompt)
     if not draft or draft.startswith(("I couldn't reach","Cloud AI needs","Model endpoint blocked")):
-        raise HTTPException(503,"Luna's configured model is unavailable")
+        raise HTTPException(503,"Design request failed. Chat may still work; the model may have hit a request-size, rate, or output limit. No changes were applied.")
     summary=draft[:650]
     draft_id=save_code_draft(goal,summary,draft)
     return {"draft":draft,"summary":summary,"draft_id":draft_id,"applied":False,"requires_approval":True}
