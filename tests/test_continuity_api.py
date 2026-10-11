@@ -48,3 +48,20 @@ def test_continuity_search_rejects_too_short_query():
             client=TestClient(app)
             response=client.get("/continuity/search",params={"q":"x"})
             assert response.status_code==400
+
+
+def test_continuity_sessions_and_memory_ui():
+    with tempfile.TemporaryDirectory() as folder:
+        with patch.object(core,"DB_PATH",Path(folder)/"continuity-api.db"):
+            _seed()
+            client=TestClient(app)
+            sessions=client.get("/continuity/sessions")
+            assert sessions.status_code==200
+            assert sessions.json()[0]["session"]=="session-a"
+            assert sessions.json()[0]["message_count"]==2
+
+    html=TestClient(app).get("/").text
+    assert 'id="continuity-list"' in html
+    assert 'id="continuity-search-form"' in html
+    assert "refreshContinuity()" in html
+    assert "v1.1.2.3.5.8" in html
