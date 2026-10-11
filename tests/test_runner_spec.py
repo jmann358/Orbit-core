@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from luna.runner_spec import build
 
-IMAGE="orbit-luna-test@sha256:"+"a"*64
+IMAGE="sha256:"+"a"*64
 
 def _runtime(directory,name="podman"):
     path=Path(directory)/name
