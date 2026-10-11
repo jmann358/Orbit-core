@@ -840,8 +840,13 @@ def _process_job(job):
             return False,"GitHub unavailable"
     if kind=="development_plan":
         return True,planning_report("DEV-003")
-    if kind=="workshop_draft":
+    if kind in ("workshop_draft","autonomous_draft"):
         import asyncio
+        if kind=="autonomous_draft":
+            from luna.model_autonomy import reserve_calls
+            reservation=reserve_calls(2)
+            if not reservation["allowed"]:
+                return False,"Automatic drafting blocked: "+reservation["reason"]
         proposals=list_improvements()
         if not proposals:
             return False,"Create a roadmap proposal first."
@@ -849,7 +854,14 @@ def _process_job(job):
         goal=proposal["title"]+": "+proposal["description"]
         result=asyncio.run(draft_change(ChangeDraft(goal=goal[:1000])))
         review=result["quality_gate"]
-        return True,"Prepared unapplied draft #"+str(result["draft_id"])+" for "+proposal["title"]+". Quality: "+review["status"]+"; "+str(len(review["blockers"]))+" blockers, "+str(len(review["warnings"]))+" warnings. No code installed."
+        candidate=result.get("candidate")
+        candidate_note=(" Candidate #"+str(candidate["id"])+" queued for isolated validation."
+                        if candidate else " No structured candidate was queued.")
+        return True,("Prepared unapplied draft #"+str(result["draft_id"])+" for "+
+                     proposal["title"]+". Quality: "+review["status"]+"; "+
+                     str(len(review["blockers"]))+" blockers, "+
+                     str(len(review["warnings"]))+" warnings."+
+                     candidate_note+" No code installed.")
     if kind=="self_improvement":
         proposal=next_improvement()
         if proposal is None:
