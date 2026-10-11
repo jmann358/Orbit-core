@@ -247,7 +247,9 @@ async function loadMaintenanceAudit(){
   const r=await fetch('/control/maintenance-audit',{cache:'no-store'});if(!r.ok)throw Error('Maintenance audit unavailable');
   const data=await r.json();
   if(!data.issues.length){status.textContent='No stale or inconsistent runtime metadata found.';return}
-  status.textContent=data.issues.length+' item(s) need attention.';
+  status.textContent=(data.status==='advisory'
+    ? data.issues.length+' low-priority advisory item(s); no immediate action required.'
+    : data.issues.length+' item(s) need attention.');
   for(const item of data.issues){
    const p=document.createElement('p');
    p.textContent=item.severity.toUpperCase()+' · '+item.code.replaceAll('_',' ')+' · '+item.subject;
@@ -1082,7 +1084,7 @@ def _process_job(job):
     if kind=="maintenance_audit":
         from luna.maintenance_audit import audit
         data=audit()
-        ok=data["status"]=="clear"
+        ok=data["status"]!="attention"
         counts=data["counts"]
         summary=(
             "Maintenance "+data["status"]+
