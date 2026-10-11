@@ -7,11 +7,11 @@ import re
 from luna.patches import ALLOWED_PATHS,MAX_BYTES
 
 _BLOCK=re.compile(
-    r"(?ms)^ORBIT_CANDIDATE_START\\s*\\n"
-    r"path:\\s*(?P<path>[^\\n]+)\\s*\\n"
-    r"base_sha256:\\s*(?P<sha>[0-9a-f]{64})\\s*\\n"
-    r"```python\\s*\\n(?P<replacement>.*?)\\n```\\s*\\n"
-    r"ORBIT_CANDIDATE_END\\s*$"
+    r"(?ms)^ORBIT_CANDIDATE_START\s*\n"
+    r"path:\s*(?P<path>[^\n]+)\s*\n"
+    r"base_sha256:\s*(?P<sha>[0-9a-f]{64})\s*\n"
+    r"```python\s*\n(?P<replacement>.*?)\n```\s*\n"
+    r"ORBIT_CANDIDATE_END\s*$"
 )
 
 def parse(text):
