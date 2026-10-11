@@ -882,6 +882,23 @@ def development_patch_review(request:PatchReviewRequest):
     except (ValueError,UnicodeError,OSError) as exc:
         raise HTTPException(400,str(exc)) from exc
 
+@app.get("/development/technical-decisions")
+def development_decisions():
+    from luna.technical_memory import list_decisions
+    return list_decisions()
+
+class TechnicalDecisionRequest(BaseModel):
+    topic: str = Field(min_length=3,max_length=120)
+    decision: str = Field(min_length=5,max_length=3000)
+
+@app.post("/development/technical-decisions")
+def development_record_decision(request:TechnicalDecisionRequest):
+    from luna.technical_memory import record
+    try:
+        return record(request.topic,request.decision,source="owner")
+    except ValueError as exc:
+        raise HTTPException(400,str(exc)) from exc
+
 @app.get("/development/permissions")
 def development_permissions():
     from luna.permissions import policy
