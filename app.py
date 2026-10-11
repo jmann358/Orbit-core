@@ -206,7 +206,6 @@ async def draft_change(request:ChangeDraft):
     draft=await respond(session,prompt)
     if draft.startswith(("I couldn't reach","Cloud AI needs","Model endpoint blocked")):
         raise HTTPException(503,"Drafting unavailable")
-    task_id=propose_task("Draft change: "+request.goal[:80],draft[:3000])
     summary=draft.split("**Patch",1)[0].split("Patch (",1)[0].strip()
     if len(summary)>650:
         summary=summary[:647]+"..."
@@ -229,6 +228,7 @@ async def draft_change(request:ChangeDraft):
                 draft=candidate
                 review=revised_review
                 summary=draft.split("**Patch",1)[0].split("Patch (",1)[0].strip()[:650]
+    task_id=propose_task("Draft change: "+request.goal[:80],draft[:3000])
     draft_id=save_code_draft(request.goal,summary,draft)
     return {"draft":draft,"summary":summary,"task_id":task_id,"draft_id":draft_id,"quality_gate":review,"applied":False}
 
