@@ -26,7 +26,7 @@ COPY_LIMIT = 250_000
 def _regular_source(path, root):
     if path.is_symlink() or not path.is_file() or not path.resolve().is_relative_to(root):
         raise ValueError("Missing, symlinked or unsafe source: " + str(path))
-    if not 0 < path.stat().st_size <= COPY_LIMIT:
+    if not 0 <= path.stat().st_size <= COPY_LIMIT:
         raise ValueError("Source exceeds allowed size: " + str(path))
     return path.read_bytes()
 
