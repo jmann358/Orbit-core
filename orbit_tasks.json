@@ -18,7 +18,7 @@
       "title": "Design safe draft validation",
       "category": "planning",
       "priority": "medium",
-      "status": "planned",
+      "status": "ready",
       "instructions": "Outline static syntax and patch validation for proposed code changes without applying or executing generated code.",
       "execution": "planning_only",
       "approval_required": false
@@ -28,8 +28,18 @@
       "title": "Plan autonomous scheduler",
       "category": "planning",
       "priority": "medium",
-      "status": "planned",
+      "status": "ready",
       "instructions": "Define a bounded scheduler for allowlisted routine tasks with logs and an emergency stop.",
+      "execution": "planning_only",
+      "approval_required": false
+    },
+    {
+      "id": "DEV-004",
+      "title": "Evaluate machine-readable code patch format",
+      "category": "architecture",
+      "priority": "medium",
+      "status": "backlog",
+      "instructions": "Define a constrained patch schema with base commit, target file allowlist, and expected test evidence. Do not apply any patch without a secured execution environment.",
       "execution": "planning_only",
       "approval_required": false
     }
