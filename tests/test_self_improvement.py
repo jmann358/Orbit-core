@@ -2,7 +2,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 from luna import core
-from luna.self_improvement import next_improvement, list_improvements
+from luna.self_improvement import next_improvement, list_improvements, ROADMAP
 from luna.chat_router import route_chat_job
 
 
@@ -16,7 +16,7 @@ def test_self_improvement_proposals_are_persistent_and_bounded():
             for _ in range(10):
                 next_improvement()
             assert next_improvement() is None
-            assert len(list_improvements()) == 5
+            assert len(list_improvements()) == len(ROADMAP)
 
 
 def test_explicit_chat_command_only():
