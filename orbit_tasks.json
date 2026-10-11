@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "project": "ORBIT",
+  "updated_by": "ChatGPT",
+  "tasks": [
+    {
+      "id": "DEV-001",
+      "title": "Validate GitHub development bridge",
+      "category": "verification",
+      "priority": "high",
+      "status": "ready",
+      "instructions": "Check that latest ORBIT checks workflow has succeeded and record whether the local dashboard can display it.",
+      "execution": "read_only",
+      "approval_required": false
+    },
+    {
+      "id": "DEV-002",
+      "title": "Design safe draft validation",
+      "category": "planning",
+      "priority": "medium",
+      "status": "planned",
+      "instructions": "Outline static syntax and patch validation for proposed code changes without applying or executing generated code.",
+      "execution": "planning_only",
+      "approval_required": false
+    },
+    {
+      "id": "DEV-003",
+      "title": "Plan autonomous scheduler",
+      "category": "planning",
+      "priority": "medium",
+      "status": "planned",
+      "instructions": "Define a bounded scheduler for allowlisted routine tasks with logs and an emergency stop.",
+      "execution": "planning_only",
+      "approval_required": false
+    }
+  ]
+}
