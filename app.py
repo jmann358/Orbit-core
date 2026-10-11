@@ -1061,21 +1061,26 @@ def _job_worker():
     from pathlib import Path
     from luna import autopilot
     from luna.development_worker import run_one as run_development_candidate
+    from luna.worker_heartbeat import beat as worker_beat
     root=Path(__file__).resolve().parent
+    worker_beat("jobs","idle")
     while not _job_stop.wait(5):
         try:
+            worker_beat("jobs","idle")
             advance_goals()
             autopilot.tick()
             backlog.reconcile()
             backlog.tick()
             job=claim_next()
             if job is not None:
+                worker_beat("jobs","working",job["kind"])
                 try:
                     success,result=_process_job(job)
                 except Exception:
                     success,result=False,"Task failed; see server logs"
                 finish_job(job["id"],success,result)
                 record_agent_run("job:"+str(job["id"]),"passed" if success else "attention",result)
+                worker_beat("jobs","idle")
             candidate=run_development_candidate(root)
             if candidate["state"]!="idle":
                 summary=("Candidate #"+str(candidate["candidate_id"])+" validation: "+
@@ -1083,7 +1088,9 @@ def _job_worker():
                 record_agent_run("development_candidate",
                                  "passed" if candidate["state"]=="passed" else "attention",
                                  summary)
+                worker_beat("jobs","idle")
         except Exception:
+            worker_beat("jobs","attention")
             # Worker remains alive; no remote instructions are ever executed.
             continue
 
@@ -1091,15 +1098,19 @@ def _start_job_worker():
     global _job_thread
     recover_interrupted()
     from luna.development_candidates import recover_interrupted as recover_development_candidates
+    from luna.worker_heartbeat import beat as worker_beat
     recover_development_candidates()
     backlog.reconcile()
     if _job_thread is None or not _job_thread.is_alive():
+        worker_beat("jobs","starting")
         _job_stop.clear()
         _job_thread=_threading.Thread(target=_job_worker,daemon=True,name="orbit-jobs")
         _job_thread.start()
 
 def _stop_job_worker():
+    from luna.worker_heartbeat import beat as worker_beat
     _job_stop.set()
+    worker_beat("jobs","stopped")
 
 class BridgeThreadPayload(BaseModel):
     title: str = Field(min_length=3,max_length=120)
