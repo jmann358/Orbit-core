@@ -86,3 +86,23 @@ def test_expired_grant_only_is_advisory_not_attention():
             assert result["status"]=="advisory"
             assert result["severity_counts"]=={"high":0,"medium":0,"low":1}
             assert result["counts"]["expired_active_grants"]==1
+
+
+def test_maintenance_audit_detects_stale_queued_job():
+    with tempfile.TemporaryDirectory() as folder:
+        with patch.object(core,"DB_PATH",Path(folder)/"audit.db"):
+            now=datetime(2026,10,11,20,0,0,tzinfo=timezone.utc)
+            job_id=jobs.create_job("project_health","Queued too long")
+            with core.connect() as db:
+                db.execute("UPDATE work_items SET created_at=?,updated_at=? WHERE id=?",
+                           ((now-timedelta(hours=2)).isoformat(),
+                            (now-timedelta(hours=2)).isoformat(),job_id))
+                db.execute("""CREATE TABLE IF NOT EXISTS worker_heartbeat (
+                  worker TEXT PRIMARY KEY,state TEXT NOT NULL,
+                  current_kind TEXT NOT NULL DEFAULT '',updated_at TEXT NOT NULL)""")
+                db.execute("""INSERT INTO worker_heartbeat(worker,state,current_kind,updated_at)
+                              VALUES('jobs','idle','',?)""",(now.isoformat(),))
+            result=audit(now=now)
+            assert result["status"]=="attention"
+            assert result["counts"]["stale_queued_jobs"]==1
+            assert any(item["code"]=="stale_queued_job" for item in result["issues"])
