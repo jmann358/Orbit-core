@@ -1400,6 +1400,30 @@ def agent_goal_decision(goal_id:int,decision:AgentGoalDecision):
         raise HTTPException(404,"Proposed goal not found")
     return {"state":"approved" if decision.approve else "rejected"}
 
+@app.get("/agent/goals/{goal_id}/report")
+def agent_goal_report(goal_id:int):
+    from luna.goals import goal_report
+    report=goal_report(goal_id)
+    if report is None:
+        raise HTTPException(404,"Goal not found")
+    return report
+
+
+class AgentGoalControl(BaseModel):
+    action: str
+
+
+@app.post("/agent/goals/{goal_id}/control")
+def agent_goal_control(goal_id:int,choice:AgentGoalControl):
+    from luna.goals import control_goal, goal_report
+    if choice.action not in ("pause","resume","cancel"):
+        raise HTTPException(400,"Unsupported goal action")
+    if not control_goal(goal_id,choice.action):
+        raise HTTPException(409,"Goal cannot make that transition")
+    record_agent_run("goal:"+str(goal_id),choice.action,
+                     "Owner requested "+choice.action)
+    return goal_report(goal_id)
+
 @app.post("/project/luna-design-mission")
 async def luna_design_mission():
     """Luna designs her own interface using the configured model; text-only, reviewable."""
