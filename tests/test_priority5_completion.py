@@ -213,3 +213,83 @@ def test_goal_dashboard_contains_operational_controls():
     assert 'id="goal-budget-status"' in page
     assert "Progress, outcomes and audit" in page
     assert "waiting_budget" in page
+
+
+def test_failed_goal_escalates_only_once_to_local_inbox():
+    from luna import goal_escalations, requests
+    with isolated() as folder, patch.object(core, "DB_PATH", Path(folder) / "db"):
+        ident = goals.propose_goal("Inspect local project safely", ["project_health"])
+        goals.decide_goal(ident, True)
+        goals.advance_goals()
+        claimed = jobs.claim_next()
+        jobs.finish_job(claimed["id"], False, "Needs attention")
+        goals.advance_goals()
+        assert goal_escalations.tick() == [ident]
+        pending = requests.list_requests(open_only=True)
+        assert len(pending) == 1
+        assert pending[0]["kind"] == "decision"
+        assert pending[0]["title"] == "Goal #" + str(ident) + " needs review"
+        assert goal_escalations.tick() == []
+        assert requests.decide_request(pending[0]["id"], "acknowledged")
+        assert goal_escalations.tick() == []
+        assert len(requests.list_requests()) == 1
+        assert [x["event"] for x in goals.goal_report(ident)["events"]].count(
+            "owner_notified") == 1
+
+
+def test_only_attention_goals_generate_owner_requests():
+    from luna import goal_escalations, requests
+    with isolated() as folder, patch.object(core, "DB_PATH", Path(folder) / "db"):
+        proposed = goals.propose_goal("Review one project", ["project_health"])
+        approved = goals.propose_goal("Review another project", ["project_health"])
+        goals.decide_goal(approved, True)
+        goals.advance_goals()
+        assert goals.control_goal(approved, "pause")
+        assert goal_escalations.tick() == []
+        assert requests.list_requests() == []
+        assert goals.goal_report(proposed)["state"] == "proposed"
+
+
+def test_corrupted_step_kind_does_not_dispatch():
+    with isolated() as folder, patch.object(core, "DB_PATH", Path(folder) / "db"):
+        ident = goals.propose_goal("Inspect local project", ["project_health"])
+        goals.decide_goal(ident, True)
+        with core.connect() as db:
+            db.execute("UPDATE agent_goal_steps SET kind='run_shell' "
+                       "WHERE goal_id=?", (ident,))
+        goals.advance_goals()
+        assert jobs.list_jobs() == []
+        assert goals.goal_report(ident)["state"] == "attention"
+
+
+def test_dependency_guard_blocks_out_of_order_queued_job():
+    with isolated() as folder, patch.object(core, "DB_PATH", Path(folder) / "db"):
+        ident = goals.propose_goal("Check project readiness",
+                                   ["project_health", "development_plan"])
+        goals.decide_goal(ident, True)
+        goals.advance_goals()
+        first = goals.goal_report(ident)["steps"][0]
+        with core.connect() as db:
+            db.execute("UPDATE agent_goal_steps SET state='pending' WHERE id=?",
+                       (first["id"],))
+        assert jobs.claim_next() is None
+        assert jobs.get_job(first["job_id"])["state"] == "attention"
+
+
+def test_queued_capacity_is_enforced_and_recovers():
+    with isolated() as folder, patch.object(core, "DB_PATH", Path(folder) / "db"):
+        block_id = jobs.create_job("project_health", "Existing queued maintenance")
+        ident = goals.propose_goal("Inspect local project", ["project_health"])
+        goals.decide_goal(ident, True)
+        with patch.object(jobs, "MAX_ACTIVE", 1):
+            goals.advance_goals()
+            report = goals.goal_report(ident)
+            assert report["state"] == "waiting_queue"
+            assert report["blocked_reason"] == "queue_capacity"
+            assert len(jobs.list_jobs()) == 1
+            claimed = jobs.claim_next()
+            assert claimed["id"] == block_id
+            jobs.finish_job(claimed["id"], True, "OK")
+            goals.advance_goals()
+        assert len(jobs.list_jobs()) == 2
+        assert goals.goal_report(ident)["state"] == "running"
