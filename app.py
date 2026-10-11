@@ -1100,6 +1100,12 @@ def _process_job(job):
             "; isolated tests "+("ready" if data["ready_for_isolated_tests"] else "blocked")+
             "; "+str(len(data["recommendations"]))+" recommendation(s)."
         )
+        if not ok:
+            from luna.requests import create_request
+            create_request(
+                "issue","high","ORBIT readiness needs attention",
+                "A required local ORBIT readiness gate is blocked.",
+                "Blocked gates: "+", ".join(data["blockers"])[:1200])
         return ok,summary
     if kind=="maintenance_audit":
         from luna.maintenance_audit import audit
@@ -1114,6 +1120,14 @@ def _process_job(job):
             "; high-priority requests "+str(counts["high_priority_requests"])+
             "; worker stale "+str(counts["worker_stale"])+"."
         )
+        if not ok:
+            from luna.requests import create_request
+            codes=sorted({item["code"] for item in data["issues"]})
+            priority="high" if any(item["severity"]=="high" for item in data["issues"]) else "medium"
+            create_request(
+                "issue",priority,"ORBIT maintenance needs attention",
+                "Luna found stale or inconsistent local runtime metadata.",
+                "Issue codes: "+", ".join(codes)[:1200])
         return ok,summary
     if kind=="development_plan":
         return True,planning_report("DEV-003")
