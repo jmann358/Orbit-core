@@ -151,7 +151,7 @@ document.querySelector('#bridge-new').onsubmit=async e=>{e.preventDefault();try{
 loadBridge();
 
 const controlGroups=[
-  {key:'requests',label:'Luna request',title:x=>x.title,body:x=>x.message+(x.context?'\\nContext: '+x.context:''),actions:[['Acknowledge','acknowledged'],['Dismiss','dismissed']],url:x=>'/control/requests/'+x.id+'/decision'},
+  {key:'requests',label:'Luna request',title:x=>x.title,body:x=>x.message+(x.context?'\\nContext: '+x.context:'')+(x.repeat_count>1?'\\nRepeated: '+x.repeat_count+' times':''),actions:[['Acknowledge','acknowledged'],['Dismiss','dismissed']],url:x=>'/control/requests/'+x.id+'/decision'},
 
   {key:'improvements',label:'Improvement',title:x=>x.title,body:x=>x.description,
    actions:[['Approve proposal','approved'],['Reject','rejected']],url:x=>'/control/improvements/'+x.id+'/decision'},
