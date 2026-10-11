@@ -91,9 +91,9 @@ def render_context(excerpts):
 
 
 PROJECT_NOTE_CUE = re.compile(
-    r"^\\s*(?:for\\s+(?:orbit|luna)[,:]?\\s*|"
-    r"(?:orbit|luna)\\s+should\\s+|"
-    r"we\\s+decided\\s+(?:for\\s+orbit|that\\s+(?:orbit|luna))\\s+)"
+    r"^\s*(?:for\s+(?:orbit|luna)[,:]?\s*|"
+    r"(?:orbit|luna)\s+should\s+|"
+    r"we\s+decided\s+(?:for\s+orbit|that\s+(?:orbit|luna))\s+)"
     r"(.+)$",
     re.I | re.S,
 )
