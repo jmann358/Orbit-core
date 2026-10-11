@@ -188,3 +188,23 @@ async def draft_change(request:ChangeDraft):
     if len(summary)>650:
         summary=summary[:647]+"..."
     return {"draft":draft,"summary":summary,"task_id":task_id,"applied":False}
+
+@app.get("/project/health")
+def project_health():
+    """Run local, read-only syntax and project structure checks."""
+    import ast
+    from pathlib import Path
+    root=Path(__file__).resolve().parent
+    checks=[]
+    for name in ("app.py","luna/core.py"):
+        file=root/name
+        try:
+            ast.parse(file.read_text(encoding="utf-8"),filename=name)
+            checks.append({"name":name,"ok":True,"detail":"Python syntax looks valid"})
+        except (SyntaxError,UnicodeError,OSError) as exc:
+            checks.append({"name":name,"ok":False,"detail":str(exc)[:250]})
+    for name in ("requirements.txt","README.md"):
+        checks.append({"name":name,"ok":(root/name).is_file(),
+                       "detail":"Present" if (root/name).is_file() else "Missing"})
+    return {"checks":checks,"passed":sum(x["ok"] for x in checks),
+            "total":len(checks),"changes_made":False}
