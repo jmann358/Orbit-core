@@ -867,6 +867,17 @@ def control_overview():
         "inventory": inventory, "read_only": True, "auto_apply": False
     }
 
+@app.get("/development/permissions")
+def development_permissions():
+    from luna.permissions import policy
+    return policy()
+
+@app.get("/development/inspect")
+def development_inspect():
+    from pathlib import Path
+    from luna.development import inspect_source
+    return inspect_source(Path(__file__).resolve().parent)
+
 @app.get("/control/diagnostics")
 def control_diagnostics():
     """Bounded read-only diagnostic; never runs shell commands or model calls."""
