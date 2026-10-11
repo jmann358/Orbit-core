@@ -243,3 +243,35 @@ def test_queue_limit_fails_closed():
             assert len(jobs.list_jobs(limit=jobs.MAX_ACTIVE)) == jobs.MAX_ACTIVE
     finally:
         directory.cleanup()
+
+
+def test_autopilot_routines_are_audited_and_not_duplicated_during_retry_wait():
+    from luna import autopilot
+    directory, path = new_db()
+    try:
+        with patch.object(core, "DB_PATH", path):
+            current = datetime(2026, 10, 11, 10, 0, tzinfo=timezone.utc)
+            created = autopilot.tick(now=current)["queued"]
+            assert len(created) == 3
+            original = next(x for x in created if x["kind"] == "project_health")
+            assert jobs.list_events(original["job_id"])[0]["event"] == "queued"
+            with core.connect() as db:
+                db.execute(
+                    "UPDATE work_items SET state='retry_wait',next_attempt_at=? "
+                    "WHERE id=?", ((current + timedelta(hours=1)).isoformat(),
+                                    original["job_id"])
+                )
+            assert autopilot.tick(now=current+timedelta(minutes=31))["queued"] == []
+            assert len(jobs.list_jobs()) == 3
+    finally:
+        directory.cleanup()
+
+
+def test_worker_dashboard_controls_are_visible():
+    from app import home
+    html = home()
+    assert 'id="worker-toggle"' in html
+    assert 'id="worker-status"' in html
+    assert "View activity history" in html
+    assert "Retry with my approval" in html
+    assert "/agent/worker" in html
