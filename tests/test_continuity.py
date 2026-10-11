@@ -66,3 +66,45 @@ def test_duplicate_summary_is_deduplicated():
             second=continuity.propose("s1",text,["orbit"])
             assert first["created"] is True
             assert second=={"id":first["id"],"created":False}
+
+
+def test_checkpoint_is_local_pending_and_deduplicated():
+    with tempfile.TemporaryDirectory() as folder:
+        with patch.object(core,"DB_PATH",Path(folder)/"continuity.db"):
+            for i in range(8):
+                core.add_message("long","user","ORBIT planning topic number "+str(i)+" about dashboard continuity")
+                core.add_message("long","assistant","Acknowledged "+str(i))
+            first=continuity.maybe_checkpoint("long",min_new_user_messages=8)
+            assert first["created"] is True
+            assert first["model_called"] is False
+            assert first["approved"] is False
+            assert continuity.approved_context("dashboard continuity")==[]
+            second=continuity.maybe_checkpoint("long",min_new_user_messages=8)
+            assert second["created"] is False
+            assert second["reason"]=="pending_review"
+            pending=continuity.list_summaries("pending")
+            assert len(pending)==1
+            assert pending[0]["session"]=="long"
+
+def test_checkpoint_skips_sensitive_user_messages():
+    with tempfile.TemporaryDirectory() as folder:
+        with patch.object(core,"DB_PATH",Path(folder)/"continuity.db"):
+            for i in range(5):
+                core.add_message("private","user","password=hiddenvalue"+str(i))
+            result=continuity.maybe_checkpoint("private",min_new_user_messages=4)
+            assert result["created"] is False
+            assert result["reason"]=="insufficient_safe_content"
+
+def test_reviewed_checkpoint_allows_next_generation_only_after_new_threshold():
+    with tempfile.TemporaryDirectory() as folder:
+        with patch.object(core,"DB_PATH",Path(folder)/"continuity.db"):
+            for i in range(8):
+                core.add_message("rolling","user","Project milestone "+str(i)+" focuses on continuity testing")
+            first=continuity.maybe_checkpoint("rolling",8)
+            assert continuity.decide(first["id"],True)
+            assert continuity.maybe_checkpoint("rolling",8)["reason"]=="threshold"
+            for i in range(8,16):
+                core.add_message("rolling","user","Project milestone "+str(i)+" focuses on memory retrieval")
+            second=continuity.maybe_checkpoint("rolling",8)
+            assert second["created"] is True
+            assert second["id"]!=first["id"]
