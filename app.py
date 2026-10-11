@@ -1253,6 +1253,9 @@ def _job_worker():
             backlog.reconcile()
             backlog.tick()
             run_once(_process_job)
+            # Route stopped goals to the local approval inbox once.
+            from luna.goal_escalations import tick as escalate_goals
+            escalate_goals()
         except Exception:
             # Worker remains alive; no remote instructions are ever executed.
             continue
