@@ -7,7 +7,7 @@ from luna.patches import review_patch
 from luna.repair import RepairState, advance, rollback_plan
 from luna.runner_executor import run_fixed
 
-def evaluate_candidate(root, relative_path, expected_sha256, replacement, image_ref,
+def evaluate_candidate(root, relative_path, expected_sha256, replacement, image_ref=None,
                        state=None, *, owner_approved=True):
     current=state or RepairState(base_sha256=expected_sha256)
     if current.base_sha256 and current.base_sha256!=expected_sha256:
