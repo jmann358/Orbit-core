@@ -1,23 +1,42 @@
 # ORBIT · Luna
 
-ORBIT is a provider-independent AI agent ecosystem. **Luna** is its central assistant.
+ORBIT is a local-first, provider-independent assistant ecosystem. Luna is its conversational coordinator.
 
-## Status
-**Phase A — repository foundation only.** No assistant is deployed, no model API keys are configured, and no background processes are running.
+## Current capabilities
 
-## Principles
-- Identity, memory, permissions, and goals are independent of model providers.
-- Start with free/local resources; escalate to paid models only when justified and authorized.
-- Preserve conversations and extract useful memories with reviewable provenance.
-- Record improvement opportunities without spending tokens on constant self-reflection.
-- Test upgrades in isolation; require human approval before deploying core changes.
-- Never bypass quotas, register accounts, or spend money without authorization.
-- Mac M4 mini is the planned local host; iPhone/iPad access comes later.
+- Private localhost FastAPI dashboard and persistent SQLite chat sessions.
+- Optional OpenAI-compatible model connection through environment variables.
+- Approval-gated memory candidates and project notes.
+- **Opt-in memory suggestions**: explicit user statements beginning with “Remember that…” can become pending suggestions; sensitive-looking strings are filtered, repeated suggestions are deduplicated, and approval is required before inclusion in Luna's context. This is a heuristic, not comprehensive privacy protection.
+- Durable allowlisted task inbox with a background worker and restart recovery.
+- Read-only health/GitHub status checks and self-improvement roadmap proposals.
+- Development workshop: drafts **unapplied** code proposals, runs conservative text screening, and can attempt one revision. Saved drafts can be reviewed but are never applied or executed by the workshop.
+- GitHub Actions regression checks.
 
-## Next steps
-1. Implement a local-first Python core with SQLite memory and append-only improvement journal.
-2. Add a resource router with a strict zero-spend default.
-3. Add tests and a simple private chat interface.
-4. Review security before exposing anything to the internet.
+## Start locally
 
-See [architecture](docs/ARCHITECTURE.md) and [decisions](docs/DECISIONS.md).
+Use Python 3.11+ (GitHub CI tests 3.13).
+
+```bash
+python -m pip install -r requirements.txt
+python -m pytest -q tests
+python -m uvicorn app:app --host 127.0.0.1 --port 8000
+```
+
+Open http://127.0.0.1:8000 on the **same machine**. Keep the bind address at 127.0.0.1: there is **no authentication** for remote users yet.
+
+Configure the model separately using `LUNA_MODEL_URL`, `LUNA_MODEL_NAME`, and `LUNA_API_KEY` in the local environment. Do not commit credentials. SQLite is stored in `luna_local.db` by default; back it up before migrating hosts.
+
+## What is *not* implemented
+
+- Remote phone/iPad access with authentication.
+- Arbitrary agent tool use, real sandboxed code execution, automated patch application or safe self-deployment.
+- Autonomous source code changes without review.
+- Verified semantic correctness of AI-generated patches.
+- Automatic identification of arbitrary conversational memories. Memory suggestions are intentionally narrow and opt-in.
+
+## Development workflow
+
+Development proposals are drafts, not applied changes. The quality gate flags some common issues but **cannot** certify security, functionality, or syntax of unified diffs. GitHub CI validates repository code, not generated draft patches. Routine changes should be batched, reviewed and tested before installing locally.
+
+See [architecture](docs/ARCHITECTURE.md), [decisions](docs/DECISIONS.md), and [development policy](DEVELOPMENT_POLICY.md).
