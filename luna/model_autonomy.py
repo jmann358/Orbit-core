@@ -75,8 +75,10 @@ def configure_local(enabled,max_daily_calls,approved_by):
                    (int(enabled),max_daily_calls,approved_by,now))
     return status()
 
-def reserve_call():
-    """Atomically reserve one unattended LOCAL model call, or fail closed."""
+def reserve_calls(count=1):
+    """Atomically reserve bounded unattended LOCAL model calls, or fail closed."""
+    if type(count) is not int or not 1<=count<=2:
+        raise ValueError("Automatic call reservation must be one or two calls")
     if endpoint_class()!="local":
         return {"allowed":False,"reason":"local_model_required"}
     with core.connect() as db:
@@ -89,10 +91,14 @@ def reserve_call():
         day=_today()
         row=db.execute("SELECT calls FROM model_autonomy_usage WHERE day=?",(day,)).fetchone()
         used=row[0] if row else 0
-        if used>=max_calls:
+        if used+count>max_calls:
             return {"allowed":False,"reason":"daily_limit"}
         if row:
-            db.execute("UPDATE model_autonomy_usage SET calls=calls+1 WHERE day=?",(day,))
+            db.execute("UPDATE model_autonomy_usage SET calls=calls+? WHERE day=?",(count,day))
         else:
-            db.execute("INSERT INTO model_autonomy_usage(day,calls) VALUES(?,1)",(day,))
-    return {"allowed":True,"reason":"local_budget","remaining_today":max_calls-used-1}
+            db.execute("INSERT INTO model_autonomy_usage(day,calls) VALUES(?,?)",(day,count))
+    return {"allowed":True,"reason":"local_budget","reserved":count,
+            "remaining_today":max_calls-used-count}
+
+def reserve_call():
+    return reserve_calls(1)
