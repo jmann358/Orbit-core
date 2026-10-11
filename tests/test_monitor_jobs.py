@@ -19,6 +19,9 @@ def test_readiness_job_is_read_only(monkeypatch):
 
 def test_maintenance_job_reports_attention_without_mutating(monkeypatch):
     monkeypatch.setattr(
+        "luna.requests.create_request",
+        lambda *args,**kwargs: {"id":1,"created":True})
+    monkeypatch.setattr(
         "luna.maintenance_audit.audit",
         lambda:{
             "status":"attention",
@@ -97,3 +100,32 @@ def test_maintenance_blocker_creates_metadata_only_request(monkeypatch):
     assert "stale_running_job" in request["context"]
     assert "worker_stale" in request["context"]
     assert "job:7" not in request["context"]
+
+
+def test_high_priority_request_alone_does_not_create_recursive_maintenance_alert(monkeypatch):
+    created=[]
+    monkeypatch.setattr(
+        "luna.maintenance_audit.audit",
+        lambda:{
+            "status":"attention",
+            "counts":{
+                "stale_running_jobs":0,
+                "expired_active_grants":0,
+                "stuck_dispatches":0,
+                "high_priority_requests":1,
+                "worker_stale":0,
+            },
+            "issues":[
+                {"code":"high_priority_request","severity":"high",
+                 "subject":"request:9","kind":"issue"},
+            ],
+            "changes_made":False,
+            "payloads_included":False,
+        })
+    monkeypatch.setattr(
+        "luna.requests.create_request",
+        lambda *args,**kwargs: created.append((args,kwargs)) or {"id":1,"created":True})
+    ok,summary=orbit_app._process_job({"kind":"maintenance_audit"})
+    assert ok is False
+    assert "high-priority requests 1" in summary
+    assert created==[]
