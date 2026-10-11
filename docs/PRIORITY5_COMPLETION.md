@@ -8,7 +8,7 @@ general autonomous computer use or independent AI agents (those are separate,
 later priorities).
 
 1. **Plan:** Enter an objective, select explicit fixed actions, or choose one
-   of the deterministic goal recipes. Preview recipes without side effects.
+   of the deterministic goal recipes. A conservative keyword matcher can\n   suggest a fixed recipe without running a model. Preview recipes without\n   side effects.
    Arbitrary objective text is kept as data, not converted to commands.
 2. **Approve:** The user reviews the exact action sequence. Nothing is
    scheduled until the user explicitly approves it. No plan can change the
@@ -43,7 +43,7 @@ later priorities).
 | Endpoint | Purpose |
 | --- | --- |
 | `GET /agent/goals/recipes` | Inspect fixed recipes |
-| `POST /agent/goals/recipes/preview` | Preview `{"recipe_id":"development-review","objective":"Review ORBIT health"}` |
+| `POST /agent/goals/recipes/suggest` | Suggest a fixed recipe from simple objective keywords; no persistence |\n| `POST /agent/goals/recipes/preview` | Preview `{"recipe_id":"development-review","objective":"Review ORBIT health"}` |
 | `POST /agent/goals/recipes/propose` | Create an unapproved goal from the selected recipe |
 | `POST /agent/goals` | Create an unapproved goal from explicit steps |
 | `POST /agent/goals/{id}/decision` | Approve/reject the immutable step list |
