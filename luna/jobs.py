@@ -3,7 +3,7 @@ import sqlite3
 from datetime import datetime, timezone
 from luna import core
 
-KINDS = ("project_health", "github_status", "development_plan")
+KINDS = ("project_health", "github_status", "development_plan", "self_improvement")
 STATES = ("queued", "running", "completed", "attention", "cancelled")
 
 def _now():
