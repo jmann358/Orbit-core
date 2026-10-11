@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 
 from luna import core
 from luna.sensitivity_policy import classify
+from luna.worker_heartbeat import status as worker_status
 
 def _table_exists(db,name):
     row=db.execute(
@@ -121,10 +122,13 @@ def snapshot(limit=100):
             "completed","passed","approved","replied","closed","acknowledged","rejected","revoked"
         } for item in events),
     }
-    status=("Needs Attention" if counts["attention"] else
-            "Working" if counts["active"] else "Idle")
+    worker=worker_status()
+    status=("Needs Attention" if counts["attention"] or worker["stale"] else
+            "Working" if worker["alive"] and worker["state"]=="working" else
+            "Queued" if counts["active"] else "Idle")
     return {
         "status":status,
+        "worker":worker,
         "counts":counts,
         "events":events,
         "limited_to_recent":limit,
@@ -137,6 +141,7 @@ def current(limit=100):
     """Return one concise current-status card from the safe timeline."""
     data=snapshot(limit)
     events=data["events"]
+    worker=data["worker"]
     attention=next((item for item in events if item["needs_attention"]),None)
     active=next((item for item in events if item["state"] in {
         "queued","running","retry_allowed","proposed","approved",
@@ -144,7 +149,11 @@ def current(limit=100):
     }),None)
     recent=events[0] if events else None
     focus=attention or active or recent
-    if focus is None:
+    if worker["stale"]:
+        headline="Luna's background worker is not reporting."
+    elif worker["state"]=="working":
+        headline="Luna is working: "+(worker["current_kind"] or "bounded local task")
+    elif focus is None:
         headline="Luna is idle. No recorded work is waiting."
     elif attention:
         headline="Needs attention: "+focus["label"]
@@ -157,6 +166,7 @@ def current(limit=100):
         "headline":headline,
         "focus":focus,
         "counts":data["counts"],
+        "worker":worker,
         "generated_at":data["generated_at"],
         "payloads_excluded":True,
     }
