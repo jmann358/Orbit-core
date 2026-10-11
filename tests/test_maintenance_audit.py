@@ -64,3 +64,25 @@ def test_maintenance_audit_api_and_dashboard():
     assert 'id="maintenance-list"' in html
     assert 'id="maintenance-refresh"' in html
     assert "loadMaintenanceAudit()" in html
+
+
+def test_expired_grant_only_is_advisory_not_attention():
+    with tempfile.TemporaryDirectory() as folder:
+        with patch.object(core,"DB_PATH",Path(folder)/"audit.db"):
+            now=datetime(2026,10,11,20,0,0,tzinfo=timezone.utc)
+            with core.connect() as db:
+                permissions._setup(db)
+                db.execute("""INSERT INTO capability_grants
+                  (capability,expires_at,status,approved_by,created_at)
+                  VALUES('run_tests',?,'active','owner',?)""",
+                  ((now-timedelta(minutes=1)).isoformat(),
+                   (now-timedelta(hours=1)).isoformat()))
+                db.execute("""CREATE TABLE IF NOT EXISTS worker_heartbeat (
+                  worker TEXT PRIMARY KEY,state TEXT NOT NULL,
+                  current_kind TEXT NOT NULL DEFAULT '',updated_at TEXT NOT NULL)""")
+                db.execute("""INSERT INTO worker_heartbeat(worker,state,current_kind,updated_at)
+                              VALUES('jobs','idle','',?)""",(now.isoformat(),))
+            result=audit(now=now)
+            assert result["status"]=="advisory"
+            assert result["severity_counts"]=={"high":0,"medium":0,"low":1}
+            assert result["counts"]["expired_active_grants"]==1
