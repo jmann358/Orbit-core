@@ -627,6 +627,12 @@ def _process_job(job):
     if kind=="project_health":
         result=project_health()
         ok=result["passed"]==result["total"]
+        if not ok:
+            from luna.requests import create_request
+            failed=[x["name"]+": "+x["detail"] for x in result["checks"] if not x["ok"]]
+            create_request("issue","high","Local project health needs attention",
+                           "Please relay the following failing checks to ChatGPT for investigation.",
+                           "; ".join(failed)[:3000])
         return ok,"Health "+str(result["passed"])+"/"+str(result["total"])
     if kind=="github_status":
         try:
