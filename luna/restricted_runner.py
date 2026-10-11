@@ -87,7 +87,7 @@ def _python_mount():
 def _command(bwrap, workspace, tests):
     python, venv_mount = _python_mount()
     cmd = [bwrap, "--die-with-parent", "--new-session", "--unshare-all",
-           "--clearenv", "--uid", "65534", "--gid", "65534"]
+           "--clearenv", "--uid", "0", "--gid", "0"]
     for dirname in ("usr", "bin", "lib", "lib64"):
         host = Path("/") / dirname
         if host.is_symlink():
