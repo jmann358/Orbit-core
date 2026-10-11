@@ -1,0 +1,48 @@
+import tempfile
+from pathlib import Path
+from unittest.mock import patch
+
+import pytest
+from luna import core
+from luna.development import normalize_tasks, planning_report, static_draft_report
+
+
+def test_shared_task_registry_does_not_trust_remote_authority():
+    tasks = normalize_tasks({"schema_version": 1, "tasks": [
+        {"id": "DEV-001", "execution": "read_only", "title": "Check"},
+        {"id": "DEV-999", "execution": "shell", "title": "Run shell"},
+        {"id": "DEV-002", "execution": "shell", "title": "Wrong capability"},
+        {"id": "DEV-003", "execution": "planning_only", "title": "Plan"},
+    ]})
+    assert [t["eligible"] for t in tasks] == [True, False, False, True]
+    with pytest.raises(ValueError):
+        normalize_tasks({"schema_version": 1, "tasks": [
+            {"id": "DEV-001"}, {"id": "DEV-001"}]})
+
+
+def test_static_review_only_parses_python_blocks():
+    result = static_draft_report("Example:\n```python\nx = 1\n```")
+    assert result["all_checked_blocks_parse"]
+    assert not result["executed"]
+    assert not result["applied"]
+    broken = static_draft_report("```python\nif :\n```")
+    assert not broken["all_checked_blocks_parse"]
+    assert not static_draft_report("No code block")["all_checked_blocks_parse"]
+
+
+def test_planning_reports_are_fixed_and_read_only():
+    assert "AST" in planning_report("DEV-002")
+    assert "pause" in planning_report("DEV-003")
+    with pytest.raises(ValueError):
+        planning_report("DEV-999")
+
+
+def test_shared_task_results_are_persistent_and_validated():
+    with tempfile.TemporaryDirectory() as folder:
+        with patch.object(core, "DB_PATH", Path(folder) / "tasks.db"):
+            result_id = core.record_shared_task("DEV-002", "completed", "Safe plan")
+            records = core.list_shared_task_results()
+            assert records[0]["id"] == result_id
+            assert records[0]["summary"] == "Safe plan"
+            with pytest.raises(ValueError):
+                core.record_shared_task("DEV-999", "completed", "Bad task")
