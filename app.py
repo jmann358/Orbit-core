@@ -6,7 +6,7 @@ from luna import backlog
 from luna.goals import propose_goal, list_goals, decide_goal, advance_goals, ALLOWED_STEPS
 from luna.memory_suggestions import enabled as memory_suggestions_enabled, set_enabled as set_memory_suggestions_enabled, suggest_from_user_message
 from luna.quality_gate import quality_gate
-from luna.self_improvement import next_improvement, list_improvements
+from luna.self_improvement import next_improvement, list_improvements, decide_improvement
 from luna.chat_router import route_chat_job
 from luna.jobs import create_job, list_jobs, claim_next, finish_job, cancel_job, recover_interrupted
 from luna.development import normalize_tasks, static_draft_report, planning_report
@@ -598,6 +598,45 @@ def _start_job_worker():
 @app.on_event("shutdown")
 def _stop_job_worker():
     _job_stop.set()
+
+@app.get("/control/overview")
+def control_overview():
+    """One read-only snapshot. Proposal approvals never execute work."""
+    proposed = [x for x in list_improvements() if x["status"] == "proposed"]
+    tasks = [x for x in list_tasks() if x["status"] == "pending"]
+    memories = [x for x in candidates() if x["status"] == "pending"]
+    notes = [x for x in list_project_notes() if x["status"] == "pending"]
+    drafts = [x for x in list_code_drafts(limit=100) if x["status"] == "draft"]
+    work = list_jobs()
+    from pathlib import Path
+    from luna.development import project_inventory
+    inventory = project_inventory(Path(__file__).resolve().parent)
+    return {
+        "counts": {"improvements": len(proposed), "tasks": len(tasks),
+                   "memories": len(memories), "notes": len(notes),
+                   "drafts": len(drafts),
+                   "queued_jobs": sum(x["state"] == "queued" for x in work),
+                   "attention_jobs": sum(x["state"] == "attention" for x in work)},
+        "improvements": proposed, "tasks": tasks, "memories": memories,
+        "notes": notes, "drafts": [
+            {"id": d["id"], "goal": d["goal"], "summary": d["summary"],
+             "status": d["status"]} for d in drafts],
+        "inventory": inventory, "read_only": True, "auto_apply": False
+    }
+
+@app.post("/control/suggest-next")
+def suggest_next_control_improvement():
+    """One fixed roadmap proposal per click; no model call or code changes."""
+    proposal = next_improvement()
+    return {"proposal": proposal, "code_changed": False, "requires_review": True}
+
+@app.post("/control/improvements/{improvement_id}/decision")
+def decide_control_improvement(improvement_id: int, request: TaskDecision):
+    if request.decision not in ("approved", "rejected"):
+        raise HTTPException(400, "Unsupported decision")
+    if not decide_improvement(improvement_id, request.decision):
+        raise HTTPException(409, "Proposal not pending or unavailable")
+    return {"status": request.decision, "executed": False, "applied": False}
 
 @app.get("/agent/improvements")
 def improvement_roadmap():
