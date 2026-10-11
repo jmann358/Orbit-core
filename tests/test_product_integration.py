@@ -4,6 +4,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 from luna import core
 from app import app
+from unittest.mock import AsyncMock
 
 def test_memory_review_end_to_end_without_model_calls():
     with tempfile.TemporaryDirectory() as folder:
@@ -13,7 +14,8 @@ def test_memory_review_end_to_end_without_model_calls():
             assert settings["enabled"] is False
             assert client.post("/memory/suggestions/settings",json={"enabled":True}).status_code==200
             # Explicit chat command uses local job routing, avoiding a model request.
-            response=client.post("/chat",json={"session":"test","message":"Remember that ORBIT should remain local first"})
+            with patch("app.respond",new_callable=AsyncMock,return_value="Acknowledged"):
+                response=client.post("/chat",json={"session":"test","message":"Remember that ORBIT should remain local first"})
             assert response.status_code==200
             items=client.get("/memory/candidates").json()
             assert len(items)==1 and items[0]["status"]=="pending"
