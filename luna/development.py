@@ -75,3 +75,30 @@ def planning_report(task_id):
                 "minimum interval and timeouts; activity journal; pause/stop control; "
                 "no model-generated shell commands or automatic code deployment.")
     raise ValueError("No local planning template for this task")
+
+# Read-only, fixed-scope inspection. Never walk the filesystem or read secrets.
+INSPECTION_FILES = (
+    "app.py", "luna/core.py", "luna/development.py",
+    "luna/backlog.py", "luna/goals.py", "luna/jobs.py",
+    "tests/test_core.py", "tests/test_development.py",
+    "scripts/verify_and_launch.sh", "DEVELOPMENT_POLICY.md",
+)
+
+def project_inventory(root):
+    """Report known source-file presence without reading file contents."""
+    from pathlib import Path
+    root = Path(root).resolve(strict=True)
+    if not root.is_dir():
+        raise ValueError("Project root must be a directory")
+    entries = []
+    for relative in INSPECTION_FILES:
+        path = root / relative
+        # A symlink must never redirect inspection outside the project.
+        safe = not path.is_symlink() and path.resolve().is_relative_to(root)
+        present = safe and path.is_file()
+        entries.append({"path": relative, "present": bool(present),
+                        "bytes": path.stat().st_size if present else None})
+    return {"root": str(root), "files": entries,
+            "present_count": sum(x["present"] for x in entries),
+            "scope": "fixed allowlist; metadata only; no code execution",
+            "tests_run": False, "capabilities_verified": False}
