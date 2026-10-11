@@ -59,3 +59,16 @@ def test_fixed_runner_stays_blocked_before_subprocess(monkeypatch,tmp_path):
     assert result["state"]=="blocked"
     assert result["tests_executed"] is False
     assert result["live_files_changed"] is False
+
+
+def test_sealed_workspace_is_read_only_and_world_readable(tmp_path):
+    root,_runtime=_project(tmp_path)
+    workspace=tmp_path/"workspace"
+    workspace.mkdir()
+    digest=runner_executor._prepare_workspace(
+        root,workspace,"luna/development.py","VALUE = 2\n")
+    assert len(digest)==64
+    runner_executor._seal_workspace(workspace)
+    assert (workspace.stat().st_mode & 0o777)==0o555
+    assert ((workspace/"luna"/"development.py").stat().st_mode & 0o777)==0o444
+    assert ((workspace/"tests").stat().st_mode & 0o777)==0o555
