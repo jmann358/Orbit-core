@@ -101,7 +101,7 @@ a{color:#394db1!important}details{border:1px solid var(--line);border-radius:12p
 <div id="continuity-results"></div>
 <button type="button" id="continuity-insights">Preview project notes from this chat</button>
 <div id="continuity-insight-results"></div>
-<h3>Memory suggestions</h3><p><small>Off by default. When enabled, explicit “Remember that…” requests create pending suggestions. Sensitive-looking text is excluded; you approve permanent memories.</small></p><button type="button" id="memory-suggestion-toggle">Loading memory setting…</button><h3>Review suggested memories</h3><button type="button" id="memory-review-refresh">Refresh suggestions</button><div id="memory-suggestion-list"></div><h3>Project notebook</h3><form id="note-form"><input id="note-text" placeholder="Remember this about ORBIT…" maxlength="1000" required><button>Save note</button></form><div id="notes-list"></div></section><section id="tab-goals" class="tab-panel"><h2>Agent goals</h2><p><small>Define a goal and select safe steps. No execution until you approve the plan. Steps run sequentially, with results saved across restarts.</small></p><form id="goal-form"><input id="goal-objective" placeholder="Goal objective…" minlength="5" maxlength="500" required><label><input type="checkbox" class="goal-step" value="project_health" checked> Local health check</label><label><input type="checkbox" class="goal-step" value="github_status"> GitHub checks</label><label><input type="checkbox" class="goal-step" value="development_plan"> Development plan</label><button>Create goal plan</button></form><p id="goal-status"></p><button id="goals-refresh" type="button">Refresh goals</button><div id="goals-list"></div></section><section id="tab-development" class="tab-panel"><h2>Development</h2><p><a href="https://github.com/jmann358/Orbit-core/actions" target="_blank" rel="noopener noreferrer" style="color:#d9b9ff">View automated GitHub tests ↗</a></p><p><small>GitHub checks code updates independently. Test results appear on GitHub; no credentials are stored in Luna.</small></p><h3>Luna’s improvement roadmap</h3><p><small>Luna proposes one new capability at a time. Proposals never change code.</small></p><button type="button" id="improvement-refresh">Refresh roadmap</button><div id="improvement-list"></div><h3>Shared development tasks</h3><button type="button" id="shared-tasks-refresh">Refresh assignments</button><p id="shared-tasks-status">Not checked yet.</p><div id="shared-tasks-list"></div><h3>Completed assignments</h3><button type="button" id="shared-results-refresh">Refresh results</button><div id="shared-results-list"></div><p><small>Only specifically allowlisted tasks can be executed. Remote task instructions are never run as code.</small></p><h3>Latest GitHub checks</h3><button type="button" id="github-checks-refresh">Refresh GitHub checks</button><p id="github-checks-status">Not checked yet.</p><div id="github-checks-list"></div><h3>☾ Luna's Design Studio</h3><p><small>Give Luna creative direction over her own interface. She reads the current dashboard, invents a visual direction, and saves a reviewable redesign proposal. Nothing is installed automatically.</small></p><button type="button" id="luna-design-mission">Let Luna redesign ORBIT</button><p id="luna-design-status" role="status"></p><details id="luna-design-details"><summary>Read Luna's design proposal</summary><pre id="luna-design-output" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details><h3>Draft a code improvement</h3><form id="draft-form"><input id="draft-goal" placeholder="What should Luna improve?" required><button>Prepare draft</button></form><p id="draft-status"></p><p id="draft-summary"></p><details id="draft-details"><summary>View proposed change</summary><pre id="draft-output" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details><h3>Saved code drafts</h3><button type="button" id="refresh-drafts">Refresh drafts</button><div id="saved-drafts"></div><h3>Project inspection</h3><button type="button" id="inspect">Inspect ORBIT</button><p id="inspect-status"></p><details id="inspect-details"><summary>View inspection report</summary><pre id="inspect-report" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details></section><section id="tab-testing" class="tab-panel"><h2>Testing</h2><h3>Project health</h3><button type="button" id="health-btn">Check project health</button><p id="health-result"></p><h3>Trusted baseline tests (temporary copy, not an OS sandbox)</h3><button type="button" id="test-btn">Run safe baseline tests</button><p id="test-result"></p></section><section id="tab-approvals" class="tab-panel"><h2>Task inbox</h2>
+<h3>Memory suggestions</h3><p><small>Off by default. When enabled, explicit “Remember that…” requests create pending suggestions. Sensitive-looking text is excluded; you approve permanent memories.</small></p><button type="button" id="memory-suggestion-toggle">Loading memory setting…</button><h3>Review suggested memories</h3><button type="button" id="memory-review-refresh">Refresh suggestions</button><div id="memory-suggestion-list"></div><h3>Project notebook</h3><form id="note-form"><input id="note-text" placeholder="Remember this about ORBIT…" maxlength="1000" required><button>Save note</button></form><div id="notes-list"></div></section><section id="tab-goals" class="tab-panel"><h2>Agent goals</h2><p><small>Define a goal and select safe steps. No execution until you approve the plan. Steps run sequentially, with results saved across restarts.</small></p><form id="goal-form"><input id="goal-objective" placeholder="Goal objective…" minlength="5" maxlength="500" required><label><input type="checkbox" class="goal-step" value="project_health" checked> Local health check</label><label><input type="checkbox" class="goal-step" value="github_status"> GitHub checks</label><label><input type="checkbox" class="goal-step" value="development_plan"> Development plan</label><button>Create goal plan</button></form><p id="goal-status"></p><h3>Guided delegation plans</h3><p><small>Choose a fixed, read-only plan. Preview it first. Nothing runs until you approve the proposed steps below.</small></p><label for="goal-recipe">Suggested plan</label><select id="goal-recipe"></select><button id="goal-recipe-preview" type="button">Preview steps</button><button id="goal-recipe-create" type="button">Propose this plan</button><p id="goal-recipe-status" role="status"></p><div id="goal-recipe-details"></div><p id="goal-budget-status"></p><button id="goals-refresh" type="button">Refresh goals</button><div id="goals-list"></div></section><section id="tab-development" class="tab-panel"><h2>Development</h2><p><a href="https://github.com/jmann358/Orbit-core/actions" target="_blank" rel="noopener noreferrer" style="color:#d9b9ff">View automated GitHub tests ↗</a></p><p><small>GitHub checks code updates independently. Test results appear on GitHub; no credentials are stored in Luna.</small></p><h3>Luna’s improvement roadmap</h3><p><small>Luna proposes one new capability at a time. Proposals never change code.</small></p><button type="button" id="improvement-refresh">Refresh roadmap</button><div id="improvement-list"></div><h3>Shared development tasks</h3><button type="button" id="shared-tasks-refresh">Refresh assignments</button><p id="shared-tasks-status">Not checked yet.</p><div id="shared-tasks-list"></div><h3>Completed assignments</h3><button type="button" id="shared-results-refresh">Refresh results</button><div id="shared-results-list"></div><p><small>Only specifically allowlisted tasks can be executed. Remote task instructions are never run as code.</small></p><h3>Latest GitHub checks</h3><button type="button" id="github-checks-refresh">Refresh GitHub checks</button><p id="github-checks-status">Not checked yet.</p><div id="github-checks-list"></div><h3>☾ Luna's Design Studio</h3><p><small>Give Luna creative direction over her own interface. She reads the current dashboard, invents a visual direction, and saves a reviewable redesign proposal. Nothing is installed automatically.</small></p><button type="button" id="luna-design-mission">Let Luna redesign ORBIT</button><p id="luna-design-status" role="status"></p><details id="luna-design-details"><summary>Read Luna's design proposal</summary><pre id="luna-design-output" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details><h3>Draft a code improvement</h3><form id="draft-form"><input id="draft-goal" placeholder="What should Luna improve?" required><button>Prepare draft</button></form><p id="draft-status"></p><p id="draft-summary"></p><details id="draft-details"><summary>View proposed change</summary><pre id="draft-output" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details><h3>Saved code drafts</h3><button type="button" id="refresh-drafts">Refresh drafts</button><div id="saved-drafts"></div><h3>Project inspection</h3><button type="button" id="inspect">Inspect ORBIT</button><p id="inspect-status"></p><details id="inspect-details"><summary>View inspection report</summary><pre id="inspect-report" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details></section><section id="tab-testing" class="tab-panel"><h2>Testing</h2><h3>Project health</h3><button type="button" id="health-btn">Check project health</button><p id="health-result"></p><h3>Trusted baseline tests (temporary copy, not an OS sandbox)</h3><button type="button" id="test-btn">Run safe baseline tests</button><p id="test-result"></p></section><section id="tab-approvals" class="tab-panel"><h2>Task inbox</h2>
 <p><small>Approved, allowlisted local tasks only. Pausing the worker prevents future claims; a task already running finishes first.</small></p>
 <div class="control-card"><strong>Supervised task worker</strong><p id="worker-status" role="status">Checking worker…</p>
 <button type="button" id="worker-toggle">Loading worker controls…</button></div><form id="job-form"><select id="job-kind"><option value="project_health">Project health</option><option value="github_status">GitHub status</option><option value="development_plan">Development plan</option><option value="self_improvement">Propose next self-improvement</option><option value="workshop_draft">Draft next roadmap improvement</option></select><input id="job-title" placeholder="Name this task" maxlength="120" required><button type="submit">Add task</button></form><p id="job-status"></p><button type="button" id="job-refresh">Refresh task inbox</button><div id="job-list"></div><h2>Autonomous maintenance</h2><p id="scheduler-status">Checking scheduler…</p><button type="button" id="scheduler-toggle">Loading…</button><p><small>Runs read-only project and GitHub checks every 30 minutes while this server is running. Disabled by default until you enable it.</small></p><h2>Routine tasks</h2><p><small>Luna can run these allowlisted read-only checks without changing source files.</small></p><button type="button" id="agent-run">Run routine maintenance</button><p id="agent-status"></p><h3>Recent activity</h3><div id="agent-history"></div><h2>Approvals</h2><h2>Autonomy · approval queue</h2><p><small>Tasks are proposals only. Approval records your choice; nothing runs automatically yet.</small></p><form id="plan-form"><input id="plan-goal" maxlength="1500" placeholder="What should Luna plan?" required><button type="submit">Create proposal</button></form><p id="plan-status"></p><div id="task-list"></div></section></main>
@@ -222,8 +222,161 @@ document.querySelector('#memory-suggestion-toggle').onclick=async()=>{const b=do
 async function refreshSuggestedMemories(){const target=document.querySelector('#memory-suggestion-list');try{const r=await fetch('/memory/candidates');if(!r.ok)throw Error('Memory list');const items=(await r.json()).filter(i=>i.status==='pending').slice(0,30);target.textContent='';if(!items.length){target.textContent='No pending suggestions.';return}for(const item of items){const p=document.createElement('p');p.textContent=item.content+' ';for(const [label,approve] of [['Remember',true],['Discard',false]]){const b=document.createElement('button');b.textContent=label;b.onclick=async()=>{const result=await fetch('/memory/candidates/'+item.id+'/review?approve='+approve,{method:'POST'});if(result.ok)refreshSuggestedMemories()};p.append(b)}target.append(p)}}catch(e){target.textContent='Memory suggestions unavailable'}}
 document.querySelector('#memory-review-refresh').onclick=refreshSuggestedMemories;refreshSuggestedMemories();
 
-async function refreshGoals(){const target=document.querySelector('#goals-list');try{const r=await fetch('/agent/goals');if(!r.ok)throw Error('goals');const goals=await r.json();target.textContent='';if(!goals.length){target.textContent='No goals yet.';return}for(const g of goals){const div=document.createElement('div');div.className='msg';const h=document.createElement('strong');h.textContent='#'+g.id+' '+g.objective+' ('+g.state+')';div.append(h);for(const s of g.steps){const p=document.createElement('p');p.textContent=(s.position+1)+'. '+s.kind+' — '+s.state;div.append(p)}if(g.state==='proposed'){for(const [label,approve] of [['Approve plan',true],['Reject',false]]){const b=document.createElement('button');b.textContent=label;b.onclick=async()=>{await fetch('/agent/goals/'+g.id+'/decision',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({approve})});refreshGoals()};div.append(b)}}target.append(div)}}catch(e){target.textContent='Goals unavailable'}}
-document.querySelector('#goals-refresh').onclick=refreshGoals;document.querySelector('#goal-form').onsubmit=async e=>{e.preventDefault();const objective=document.querySelector('#goal-objective').value.trim();const steps=[...document.querySelectorAll('.goal-step:checked')].map(x=>x.value);const status=document.querySelector('#goal-status');if(!steps.length){status.textContent='Select at least one safe step.';return}try{const r=await fetch('/agent/goals',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({objective,steps})});if(!r.ok)throw Error('Goal creation failed');status.textContent='Plan created. Approve it below to begin.';refreshGoals()}catch(e){status.textContent=e.message}};refreshGoals();setInterval(refreshGoals,10000);
+async function goalApi(url,options){
+ const response=await fetch(url,options);
+ if(!response.ok){let data={};try{data=await response.json()}catch(e){}
+   throw Error(data.detail||'Request failed ('+response.status+')')}
+ return response.json();
+}
+async function loadGoalRecipes(){
+ const picker=document.querySelector('#goal-recipe'),status=document.querySelector('#goal-recipe-status');
+ try{
+   const data=await goalApi('/agent/goals/recipes');
+   picker.replaceChildren();
+   for(const item of data.recipes){
+     const option=document.createElement('option');
+     option.value=item.id;option.textContent=item.title;
+     picker.append(option);
+   }
+   status.textContent='Recipes are fixed; Luna will not interpret the objective as commands.';
+ }catch(e){status.textContent=e.message}
+}
+function recipePayload(){
+ return {recipe_id:document.querySelector('#goal-recipe').value,
+   objective:document.querySelector('#goal-objective').value.trim()};
+}
+document.querySelector('#goal-recipe-preview').onclick=async()=>{
+ const target=document.querySelector('#goal-recipe-details'),status=document.querySelector('#goal-recipe-status');
+ try{
+   const plan=await goalApi('/agent/goals/recipes/preview',{
+     method:'POST',headers:{'Content-Type':'application/json'},
+     body:JSON.stringify(recipePayload())});
+   target.replaceChildren();
+   const title=document.createElement('strong');title.textContent=plan.title+' · preview only';target.append(title);
+   for(const step of plan.steps){
+     const line=document.createElement('p');line.textContent=step.specialist+': '+step.kind;target.append(line);
+   }
+   status.textContent='Preview ready. Review before proposing; proposal still needs approval.';
+ }catch(e){status.textContent=e.message}
+};
+document.querySelector('#goal-recipe-create').onclick=async()=>{
+ const button=document.querySelector('#goal-recipe-create'),status=document.querySelector('#goal-recipe-status');
+ button.disabled=true;
+ try{
+   const result=await goalApi('/agent/goals/recipes/propose',{
+     method:'POST',headers:{'Content-Type':'application/json'},
+     body:JSON.stringify(recipePayload())});
+   status.textContent='Goal #'+result.id+' proposed. Approve the exact steps below.';
+   await refreshGoals();
+ }catch(e){status.textContent=e.message}
+ finally{button.disabled=false}
+};
+async function renderGoalDetails(goal,content){
+ try{
+   const data=await goalApi('/agent/goals/'+goal.id+'/report');
+   content.replaceChildren();
+   const progress=document.createElement('p');
+   progress.textContent='Progress: '+data.completed_steps+'/'+data.total_steps+
+     ' · Next step: '+(data.next_step||'none')+
+     (data.blocked_reason?' · Waiting: '+data.blocked_reason:'');
+   content.append(progress);
+   for(const step of data.steps){
+     const line=document.createElement('p');line.textContent=
+       (step.position+1)+'. '+step.label+' · '+(step.specialist||'UNASSIGNED')+
+       ' · '+step.state+(step.job?' · Job #'+step.job.id+' '+step.job.state+
+        ' ('+step.job.attempt_count+'/'+step.job.max_attempts+' attempts)':'');
+     content.append(line);
+     if(step.job&&step.job.result){
+       const result=document.createElement('p');result.textContent='Outcome: '+step.job.result;
+       content.append(result);
+     }
+   }
+   const events=document.createElement('details');
+   const summary=document.createElement('summary');summary.textContent='Audit history ('+data.events.length+' recent events)';
+   events.append(summary);
+   for(const event of data.events){
+     const line=document.createElement('p');line.textContent=
+       event.created_at+' · '+event.event+' · '+event.details;
+     events.append(line);
+   }
+   content.append(events);
+ }catch(e){content.textContent='Report unavailable: '+e.message}
+}
+async function refreshGoals(){
+ const target=document.querySelector('#goals-list'),budgetStatus=document.querySelector('#goal-budget-status');
+ const expanded=new Set([...target.querySelectorAll('details[data-goal-id]')]
+   .filter(x=>x.open).map(x=>x.dataset.goalId));
+ try{
+   const [goals,budget]=await Promise.all([
+     goalApi('/agent/goals'),goalApi('/agent/delegation/status')]);
+   budgetStatus.textContent='Safe delegation today (UTC): '+budget.dispatched_today+
+     '/'+budget.daily_dispatch_limit+' queued · Active goals: '+budget.active_goals+
+     '/'+budget.active_goal_limit+' · No model spending.';
+   target.replaceChildren();
+   if(!goals.length){target.textContent='No goals yet.';return}
+   for(const g of goals){
+     const card=document.createElement('article');card.className='control-card';
+     const heading=document.createElement('strong');
+     heading.textContent='#'+g.id+' · '+g.objective+' ('+g.state+')';
+     card.append(heading);
+     const steps=document.createElement('p');
+     steps.textContent=g.steps.map(s=>(s.position+1)+'. '+s.kind+' ['+s.state+']').join(' → ');
+     card.append(steps);
+     if(g.state==='proposed'){
+       for(const [label,approve] of [['Approve plan',true],['Reject',false]]){
+         const btn=document.createElement('button');btn.type='button';btn.textContent=label;
+         btn.onclick=async()=>{btn.disabled=true;try{
+           await goalApi('/agent/goals/'+g.id+'/decision',{
+             method:'POST',headers:{'Content-Type':'application/json'},
+             body:JSON.stringify({approve})});
+           await refreshGoals();
+         }catch(e){document.querySelector('#goal-status').textContent=e.message}
+         finally{btn.disabled=false}};
+         card.append(btn);
+       }
+     }
+     const commands=[];
+     if(['approved','running','waiting_budget','waiting_queue'].includes(g.state))
+       commands.push(['Pause','pause']);
+     if(g.state==='paused')commands.push(['Resume','resume']);
+     if(['proposed','approved','running','paused','attention','waiting_budget','waiting_queue'].includes(g.state))
+       commands.push(['Cancel','cancel']);
+     for(const [label,action] of commands){
+       const btn=document.createElement('button');btn.type='button';btn.textContent=label;
+       btn.onclick=async()=>{btn.disabled=true;try{
+         await goalApi('/agent/goals/'+g.id+'/control',{
+           method:'POST',headers:{'Content-Type':'application/json'},
+           body:JSON.stringify({action})});
+         await refreshGoals();
+       }catch(e){document.querySelector('#goal-status').textContent=e.message}
+       finally{btn.disabled=false}};
+       card.append(btn);
+     }
+     const details=document.createElement('details');details.dataset.goalId=String(g.id);
+     const summary=document.createElement('summary');summary.textContent='Progress, outcomes and audit';
+     const content=document.createElement('div');details.append(summary,content);
+     details.addEventListener('toggle',()=>{if(details.open)renderGoalDetails(g,content)});
+     card.append(details);target.append(card);
+     if(expanded.has(String(g.id))){details.open=true}
+   }
+ }catch(e){target.textContent='Goals unavailable: '+e.message}
+}
+document.querySelector('#goals-refresh').onclick=refreshGoals;
+document.querySelector('#goal-form').onsubmit=async e=>{
+ e.preventDefault();
+ const objective=document.querySelector('#goal-objective').value.trim();
+ const steps=[...document.querySelectorAll('.goal-step:checked')].map(x=>x.value);
+ const status=document.querySelector('#goal-status');
+ if(!steps.length){status.textContent='Select at least one safe step.';return}
+ try{
+   const result=await goalApi('/agent/goals',{
+     method:'POST',headers:{'Content-Type':'application/json'},
+     body:JSON.stringify({objective,steps})});
+   status.textContent='Goal #'+result.id+' proposed. Review and approve below.';
+   refreshGoals();
+ }catch(e){status.textContent=e.message}
+};
+loadGoalRecipes();refreshGoals();setInterval(refreshGoals,15000);
 const tabs=['home','activity','chat','bridge','memory','goals','development','testing','approvals'];function selectTab(name){if(!tabs.includes(name))name='home';document.querySelectorAll('.tab-panel').forEach(el=>el.classList.toggle('active',el.id==='tab-'+name));document.querySelectorAll('#main-nav button').forEach(el=>el.classList.toggle('active',el.dataset.tab===name));localStorage.setItem('luna-active-tab',name)}document.querySelectorAll('#main-nav button').forEach(el=>el.onclick=()=>selectTab(el.dataset.tab));selectTab(localStorage.getItem('luna-active-tab')||'home');
 async function refreshActivity(){
  const state=document.querySelector('#activity-state'),feed=document.querySelector('#activity-feed'),
@@ -1396,9 +1549,50 @@ def create_agent_goal(request:AgentGoalRequest):
 
 @app.post("/agent/goals/{goal_id}/decision")
 def agent_goal_decision(goal_id:int,decision:AgentGoalDecision):
-    if not decide_goal(goal_id,decision.approve):
-        raise HTTPException(404,"Proposed goal not found")
+    try:
+        if not decide_goal(goal_id,decision.approve):
+            raise HTTPException(404,"Proposed goal not found")
+    except ValueError as exc:
+        raise HTTPException(409,str(exc)) from exc
     return {"state":"approved" if decision.approve else "rejected"}
+
+
+@app.get("/agent/delegation/status")
+def agent_delegation_status():
+    from luna.goals import delegation_status
+    return delegation_status()
+
+
+@app.get("/agent/goals/recipes")
+def agent_goal_recipes():
+    from luna.goal_recipes import list_recipes
+    return {"recipes":list_recipes(),"model_generated":False,
+            "approval_required":True}
+
+
+class AgentRecipeRequest(BaseModel):
+    recipe_id: str = Field(min_length=1,max_length=80)
+    objective: str = Field(min_length=5,max_length=500)
+
+
+@app.post("/agent/goals/recipes/preview")
+def agent_recipe_preview(request:AgentRecipeRequest):
+    from luna.goal_recipes import preview
+    try:
+        return preview(request.recipe_id,request.objective)
+    except ValueError as exc:
+        raise HTTPException(400,str(exc)) from exc
+
+
+@app.post("/agent/goals/recipes/propose")
+def agent_recipe_propose(request:AgentRecipeRequest):
+    from luna.goals import propose_from_recipe
+    try:
+        ident=propose_from_recipe(request.recipe_id,request.objective)
+    except ValueError as exc:
+        raise HTTPException(400,str(exc)) from exc
+    return {"id":ident,"state":"proposed","requires_approval":True,
+            "recipe":request.recipe_id}
 
 @app.get("/agent/specialists")
 def agent_specialists():
