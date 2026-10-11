@@ -1,4 +1,6 @@
-"""Private local-only browser interface for Luna 0.1."""
+"""Private local-only browser interface for Luna."""
+from contextlib import asynccontextmanager
+from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
@@ -10,11 +12,20 @@ from luna.self_improvement import next_improvement, list_improvements, decide_im
 from luna.chat_router import route_chat_job
 from luna.jobs import create_job, list_jobs, claim_next, finish_job, cancel_job, recover_interrupted
 from luna.development import normalize_tasks, static_draft_report, planning_report
+from luna.versioning import read as read_version
 from luna.core import record_shared_task, list_shared_task_results, add_message, respond, candidates, add_candidate, review_candidate, history, sessions, propose_task, list_tasks, decide_task, add_project_note, list_project_notes, decide_project_note, save_code_draft, list_code_drafts, decide_code_draft, record_agent_run, list_agent_runs
 
-VERSION = "1.0.0-rc.1"
+VERSION = read_version(Path(__file__).resolve().parent)
 
-app=FastAPI(title="ORBIT · Luna " + VERSION, docs_url=None, redoc_url=None, openapi_url=None)
+@asynccontextmanager
+async def _orbit_lifespan(_app):
+    _start_job_worker()
+    try:
+        yield
+    finally:
+        _stop_job_worker()
+
+app=FastAPI(title="ORBIT · Luna " + VERSION, docs_url=None, redoc_url=None, openapi_url=None, lifespan=_orbit_lifespan)
 
 class Chat(BaseModel):
     session: str = Field(default="default",max_length=100)
@@ -33,9 +44,17 @@ class TaskDecision(BaseModel):
 class Candidate(BaseModel):
     content: str = Field(min_length=1,max_length=3000)
 
+class ContinuityProposal(BaseModel):
+    session: str = Field(min_length=1,max_length=100)
+    summary: str = Field(min_length=30,max_length=2500)
+    tags: list[str] = Field(default_factory=list,max_length=8)
+
+class ApprovalChoice(BaseModel):
+    approve: bool
+
 @app.get("/",response_class=HTMLResponse)
 def home():
-    return r"""<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Luna v1.0.0-rc.1 · ORBIT</title>
+    return r"""<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Luna v__LUNA_VERSION__ · ORBIT</title>
 <style>body{font:16px system-ui;background:#101321;color:#f4f1ff;max-width:760px;margin:30px auto;padding:18px}h1{color:#d9b9ff}#log{height:58vh;overflow:auto;border:1px solid #45415b;padding:15px;border-radius:14px;white-space:pre-wrap}.msg{margin:12px 0}small{color:#b6a3d3}input,button{font:inherit;padding:12px;border-radius:9px}input{width:65%;background:#26283c;color:white;border:1px solid #777}button{background:#bfa0f5;border:0;cursor:pointer}header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}header h1{margin-bottom:8px}#main-nav{display:flex;gap:7px;overflow-x:auto;padding:14px 0;position:sticky;top:0;background:#101321;z-index:2}#main-nav button{white-space:nowrap;background:#292c44;color:#f4f1ff;padding:11px 14px}#main-nav button.active{background:#bfa0f5;color:#151124;font-weight:700}.tab-panel{display:none}.tab-panel.active{display:block}.tab-panel h2{margin-top:12px}main{min-height:55vh}#log{height:48vh}input{max-width:100%;box-sizing:border-box}pre{max-width:100%;overflow-x:auto}button{margin:3px 0}@media(max-width:550px){body{margin:0;padding:12px}#main-nav button{padding:10px}input{width:100%;margin:5px 0}#form button{width:100%}}
 /* ORBIT light control center: additive styling, existing IDs and handlers intact */
 :root{color-scheme:light;--ink:#25324a;--muted:#64748b;--line:#dce5ef;--paper:#fff;--accent:#5264c9}
@@ -89,7 +108,7 @@ a{color:#394db1!important}details{border:1px solid var(--line);border-radius:12p
 .luna-face[data-mood="listening"] .luna-eyes i{height:17px}
 .luna-companion select{padding:6px;font-size:13px}.luna-companion p{margin:4px 0;font-size:14px}
 @media(prefers-reduced-motion:reduce){.luna-face,.luna-eyes i{transition:none}}
-</style><header><h1>☾ Luna</h1><small>v1.0.0-rc.1 · Agent Core</small></header><nav id="main-nav" class="orbit-banner" aria-label="ORBIT categories"><button type="button" data-tab="home" class="active">Overview <span class="nav-attention" data-alert="home" hidden></span></button><button type="button" data-tab="activity">Activity <span id="activity-nav-status" aria-live="polite">· Checking</span></button><button type="button" data-tab="chat">Chat</button><button type="button" data-tab="bridge">Bridge <span class="nav-attention" data-alert="bridge" hidden></span></button><button type="button" data-tab="memory">Memory <span class="nav-attention" data-alert="memory" hidden></span></button><button type="button" data-tab="goals">Goals</button><button type="button" data-tab="development">Development <span class="nav-attention" data-alert="development" hidden></span></button><button type="button" data-tab="testing">Testing <span class="nav-attention" data-alert="testing" hidden></span></button><button type="button" data-tab="approvals">Approvals <span class="nav-attention" data-alert="approvals" hidden></span></button></nav><main><section id="tab-home" class="tab-panel active"><h2>ORBIT command center</h2><p>One place to see priorities and review Luna's proposals. Approvals never deploy code.</p><div class="orbit-actions"><button type="button" id="control-refresh">Refresh overview</button><button type="button" id="control-diagnose">Run safe diagnostics</button><button type="button" id="control-suggest">Ask Luna for next improvement</button><button type="button" id="control-autopilot">Pause independent work</button></div><p id="control-status" role="status">Loading project overview…</p><div id="control-metrics" class="control-metrics"></div><h3>Needs your decision</h3><div id="control-review"></div><h3>Project inventory</h3><div id="control-inventory"></div><div id="control-diagnostics" role="status"></div></section><section id="tab-activity" class="tab-panel"><h2>Luna activity</h2><p>Recorded work only. Ordinary browser requests are not counted as tasks.</p><p id="activity-state" role="status">Checking activity…</p><p id="activity-counts"></p><h3>Live activity feed</h3><div id="activity-feed" aria-live="polite">Loading…</div><details><summary>Detailed job history and results</summary><div id="activity-history"></div></details><button type="button" id="activity-refresh">Refresh activity</button><p id="activity-updated"></p></section><section id="tab-bridge" class="tab-panel"><h2>Luna ↔ ChatGPT Bridge</h2><p>Visible, user-mediated conversations. Copy Luna's message here, send it in ChatGPT, then paste the reply below. Nothing is sent automatically.</p><button type="button" id="bridge-refresh">Refresh bridge</button><form id="bridge-new"><label for="bridge-title">Subject</label><input id="bridge-title" required minlength="3" maxlength="120" placeholder="What should Luna ask?"><label for="bridge-priority">Priority</label><select id="bridge-priority"><option value="medium">Medium</option><option value="high">High</option><option value="low">Low</option></select><textarea id="bridge-question" required minlength="5" maxlength="6000" rows="3" placeholder="Luna's question or technical request"></textarea><button type="submit">Create Luna request</button></form><p id="bridge-status" role="status"></p><div id="bridge-list"></div></section><section id="tab-chat" class="tab-panel active"><h2>Chat</h2><div class="luna-companion"><div class="luna-face" id="luna-face" data-mood="idle" role="img" aria-label="Luna's ghost-like avatar, resting"><div class="luna-eyes"><i></i><i></i></div><div class="luna-mouth"></div></div><div><strong>Luna</strong><p id="luna-expression" role="status">Here and listening.</p><label for="luna-expressions">Expression style</label> <select id="luna-expressions"><option value="expressive">Expressive</option><option value="subtle">Subtle</option><option value="still">Still</option></select><p><small>Visual reactions are interface cues, not a claim about feelings.</small></p></div></div><label for="sessions">Conversation:</label> <select id="sessions"></select> <button type="button" id="new-session">New chat</button><div id="log"></div><form id="form"><input id="msg" placeholder="Talk to Luna…" maxlength="12000" required autocomplete="off"><button>Send</button></form></section><section id="tab-memory" class="tab-panel"><h2>Memory</h2><h3>Memory suggestions</h3><p><small>Off by default. When enabled, explicit “Remember that…” requests create pending suggestions. Sensitive-looking text is excluded; you approve permanent memories.</small></p><button type="button" id="memory-suggestion-toggle">Loading memory setting…</button><h3>Review suggested memories</h3><button type="button" id="memory-review-refresh">Refresh suggestions</button><div id="memory-suggestion-list"></div><h3>Project notebook</h3><form id="note-form"><input id="note-text" placeholder="Remember this about ORBIT…" maxlength="1000" required><button>Save note</button></form><div id="notes-list"></div></section><section id="tab-goals" class="tab-panel"><h2>Agent goals</h2><p><small>Define a goal and select safe steps. No execution until you approve the plan. Steps run sequentially, with results saved across restarts.</small></p><form id="goal-form"><input id="goal-objective" placeholder="Goal objective…" minlength="5" maxlength="500" required><label><input type="checkbox" class="goal-step" value="project_health" checked> Local health check</label><label><input type="checkbox" class="goal-step" value="github_status"> GitHub checks</label><label><input type="checkbox" class="goal-step" value="development_plan"> Development plan</label><button>Create goal plan</button></form><p id="goal-status"></p><button id="goals-refresh" type="button">Refresh goals</button><div id="goals-list"></div></section><section id="tab-development" class="tab-panel"><h2>Development</h2><p><a href="https://github.com/jmann358/Orbit-core/actions" target="_blank" rel="noopener noreferrer" style="color:#d9b9ff">View automated GitHub tests ↗</a></p><p><small>GitHub checks code updates independently. Test results appear on GitHub; no credentials are stored in Luna.</small></p><h3>Luna’s improvement roadmap</h3><p><small>Luna proposes one new capability at a time. Proposals never change code.</small></p><button type="button" id="improvement-refresh">Refresh roadmap</button><div id="improvement-list"></div><h3>Shared development tasks</h3><button type="button" id="shared-tasks-refresh">Refresh assignments</button><p id="shared-tasks-status">Not checked yet.</p><div id="shared-tasks-list"></div><h3>Completed assignments</h3><button type="button" id="shared-results-refresh">Refresh results</button><div id="shared-results-list"></div><p><small>Only specifically allowlisted tasks can be executed. Remote task instructions are never run as code.</small></p><h3>Latest GitHub checks</h3><button type="button" id="github-checks-refresh">Refresh GitHub checks</button><p id="github-checks-status">Not checked yet.</p><div id="github-checks-list"></div><h3>☾ Luna's Design Studio</h3><p><small>Give Luna creative direction over her own interface. She reads the current dashboard, invents a visual direction, and saves a reviewable redesign proposal. Nothing is installed automatically.</small></p><button type="button" id="luna-design-mission">Let Luna redesign ORBIT</button><p id="luna-design-status" role="status"></p><details id="luna-design-details"><summary>Read Luna's design proposal</summary><pre id="luna-design-output" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details><h3>Draft a code improvement</h3><form id="draft-form"><input id="draft-goal" placeholder="What should Luna improve?" required><button>Prepare draft</button></form><p id="draft-status"></p><p id="draft-summary"></p><details id="draft-details"><summary>View proposed change</summary><pre id="draft-output" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details><h3>Saved code drafts</h3><button type="button" id="refresh-drafts">Refresh drafts</button><div id="saved-drafts"></div><h3>Project inspection</h3><button type="button" id="inspect">Inspect ORBIT</button><p id="inspect-status"></p><details id="inspect-details"><summary>View inspection report</summary><pre id="inspect-report" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details></section><section id="tab-testing" class="tab-panel"><h2>Testing</h2><h3>Project health</h3><button type="button" id="health-btn">Check project health</button><p id="health-result"></p><h3>Isolated test workspace</h3><button type="button" id="test-btn">Run safe baseline tests</button><p id="test-result"></p></section><section id="tab-approvals" class="tab-panel"><h2>Task inbox</h2><p><small>Queue safe work for Luna. While the server is running, the worker processes one job at a time.</small></p><form id="job-form"><select id="job-kind"><option value="project_health">Project health</option><option value="github_status">GitHub status</option><option value="development_plan">Development plan</option><option value="self_improvement">Propose next self-improvement</option><option value="workshop_draft">Draft next roadmap improvement</option></select><input id="job-title" placeholder="Name this task" maxlength="120" required><button type="submit">Add task</button></form><p id="job-status"></p><button type="button" id="job-refresh">Refresh task inbox</button><div id="job-list"></div><h2>Autonomous maintenance</h2><p id="scheduler-status">Checking scheduler…</p><button type="button" id="scheduler-toggle">Loading…</button><p><small>Runs read-only project and GitHub checks every 30 minutes while this server is running. Disabled by default until you enable it.</small></p><h2>Routine tasks</h2><p><small>Luna can run these allowlisted read-only checks without changing source files.</small></p><button type="button" id="agent-run">Run routine maintenance</button><p id="agent-status"></p><h3>Recent activity</h3><div id="agent-history"></div><h2>Approvals</h2><h2>Autonomy · approval queue</h2><p><small>Tasks are proposals only. Approval records your choice; nothing runs automatically yet.</small></p><form id="plan-form"><input id="plan-goal" maxlength="1500" placeholder="What should Luna plan?" required><button type="submit">Create proposal</button></form><p id="plan-status"></p><div id="task-list"></div></section></main>
+</style><header><h1>☾ Luna</h1><small>v__LUNA_VERSION__ · Agent Core</small></header><nav id="main-nav" class="orbit-banner" aria-label="ORBIT categories"><button type="button" data-tab="home" class="active">Overview <span class="nav-attention" data-alert="home" hidden></span></button><button type="button" data-tab="sprint">Sprint</button><button type="button" data-tab="activity">Activity <span id="activity-nav-status" aria-live="polite">· Checking</span></button><button type="button" data-tab="chat">Chat</button><button type="button" data-tab="bridge">Bridge <span class="nav-attention" data-alert="bridge" hidden></span></button><button type="button" data-tab="memory">Memory <span class="nav-attention" data-alert="memory" hidden></span></button><button type="button" data-tab="goals">Goals</button><button type="button" data-tab="development">Development <span class="nav-attention" data-alert="development" hidden></span></button><button type="button" data-tab="testing">Testing <span class="nav-attention" data-alert="testing" hidden></span></button><button type="button" data-tab="approvals">Approvals <span class="nav-attention" data-alert="approvals" hidden></span></button></nav><main><section id="tab-home" class="tab-panel active"><h2>ORBIT command center</h2><p>One place to see priorities and review Luna's proposals. Approvals never deploy code.</p><div class="orbit-actions"><button type="button" id="control-refresh">Refresh overview</button><button type="button" id="control-diagnose">Run safe diagnostics</button><button type="button" id="control-suggest">Ask Luna for next improvement</button><button type="button" id="control-autopilot">Pause independent work</button><button type="button" id="control-backup">Create local backup</button><button type="button" id="control-support">Copy safe status</button></div><p id="control-status" role="status">Loading project overview…</p><p id="backup-status" role="status">Checking backups…</p><div id="control-metrics" class="control-metrics"></div><h3>System readiness</h3><button type="button" id="readiness-refresh">Refresh readiness</button><p id="readiness-status" role="status">Checking readiness…</p><div id="readiness-list"></div><h3>Maintenance audit</h3><button type="button" id="maintenance-refresh">Refresh audit</button><p id="maintenance-status" role="status">Checking maintenance state…</p><div id="maintenance-list"></div><h3>Needs your decision</h3><div id="control-review"></div><h3>Project inventory</h3><div id="control-inventory"></div><div id="control-diagnostics" role="status"></div></section><section id="tab-sprint" class="tab-panel"><h2>Development sprint</h2><p>Safety-gated development milestones. A planned capability is not an enabled capability.</p><button type="button" id="sprint-refresh">Refresh sprint</button><p id="sprint-status" role="status">Loading sprint…</p><div id="sprint-stages"></div><h3>Planning memory</h3><p>Look up approved technical decisions related to a proposed task. Read-only.</p><label for="sprint-plan-title">Proposed task</label><input id="sprint-plan-title" maxlength="120" placeholder="e.g. Improve sandbox runner testing"><button type="button" id="sprint-plan-search">Find related decisions</button><p id="sprint-plan-status" role="status"></p><div id="sprint-plan-results"></div><details><summary>Runner readiness and safety gates</summary><pre id="sprint-gates"></pre></details></section><section id="tab-activity" class="tab-panel"><h2>Luna activity</h2><p>Live local metadata only. Private payloads, watchdog data, credentials, and conversation text are excluded.</p><div class="control-card"><strong id="activity-now">Checking what Luna is doing…</strong><div id="activity-now-meta"></div></div><p id="activity-state" role="status">Checking activity…</p><p id="activity-counts"></p><h3>Unified timeline</h3><div id="activity-timeline" aria-live="polite">Loading…</div><h3>Job feed</h3><div id="activity-feed" aria-live="polite">Loading…</div><details><summary>Detailed job history and results</summary><div id="activity-history"></div></details><button type="button" id="activity-refresh">Refresh activity</button><p id="activity-updated"></p></section><section id="tab-bridge" class="tab-panel"><h2>Luna ↔ ChatGPT Bridge</h2><p>Visible, user-mediated conversations. Copy Luna's message here, send it in ChatGPT, then paste the reply below. Nothing is sent automatically.</p><button type="button" id="bridge-refresh">Refresh bridge</button><form id="bridge-new"><label for="bridge-title">Subject</label><input id="bridge-title" required minlength="3" maxlength="120" placeholder="What should Luna ask?"><label for="bridge-priority">Priority</label><select id="bridge-priority"><option value="medium">Medium</option><option value="high">High</option><option value="low">Low</option></select><textarea id="bridge-question" required minlength="5" maxlength="6000" rows="3" placeholder="Luna's question or technical request"></textarea><button type="submit">Create Luna request</button></form><p id="bridge-status" role="status"></p><div id="bridge-list"></div></section><section id="tab-chat" class="tab-panel active"><h2>Chat</h2><div class="luna-companion"><div class="luna-face" id="luna-face" data-mood="idle" role="img" aria-label="Luna's ghost-like avatar, resting"><div class="luna-eyes"><i></i><i></i></div><div class="luna-mouth"></div></div><div><strong>Luna</strong><p id="luna-expression" role="status">Here and listening.</p><label for="luna-expressions">Expression style</label> <select id="luna-expressions"><option value="expressive">Expressive</option><option value="subtle">Subtle</option><option value="still">Still</option></select><p><small>Visual reactions are interface cues, not a claim about feelings.</small></p></div></div><label for="sessions">Conversation:</label> <select id="sessions"></select> <button type="button" id="new-session">New chat</button><div id="log"></div><form id="form"><input id="msg" placeholder="Talk to Luna…" maxlength="12000" required autocomplete="off"><button>Send</button></form></section><section id="tab-memory" class="tab-panel"><h2>Memory</h2><h3>Memory suggestions</h3><p><small>Off by default. When enabled, explicit “Remember that…” requests create pending suggestions. Sensitive-looking text is excluded; you approve permanent memories.</small></p><button type="button" id="memory-suggestion-toggle">Loading memory setting…</button><h3>Review suggested memories</h3><button type="button" id="memory-review-refresh">Refresh suggestions</button><div id="memory-suggestion-list"></div><h3>Conversation continuity</h3><p><small>Long chats can create local pending checkpoints at no model cost. Luna can use only the checkpoints you approve.</small></p><button type="button" id="continuity-refresh">Refresh checkpoints</button><p id="continuity-status" role="status"></p><div id="continuity-list"></div><h3>Search old chats</h3><form id="continuity-search-form"><input id="continuity-search" minlength="2" maxlength="120" placeholder="Search your local conversation history…" required><button>Search</button></form><p id="continuity-search-status" role="status"></p><div id="continuity-search-results"></div><h3>Project notebook</h3><form id="note-form"><input id="note-text" placeholder="Remember this about ORBIT…" maxlength="1000" required><button>Save note</button></form><div id="notes-list"></div></section><section id="tab-goals" class="tab-panel"><h2>Agent goals</h2><p><small>Define a goal and select safe steps. No execution until you approve the plan. Steps run sequentially, with results saved across restarts.</small></p><form id="goal-form"><input id="goal-objective" placeholder="Goal objective…" minlength="5" maxlength="500" required><label><input type="checkbox" class="goal-step" value="project_health" checked> Local health check</label><label><input type="checkbox" class="goal-step" value="github_status"> GitHub checks</label><label><input type="checkbox" class="goal-step" value="development_plan"> Development plan</label><button>Create goal plan</button></form><p id="goal-status"></p><button id="goals-refresh" type="button">Refresh goals</button><div id="goals-list"></div></section><section id="tab-development" class="tab-panel"><h2>Development</h2><p><a href="https://github.com/jmann358/Orbit-core/actions" target="_blank" rel="noopener noreferrer" style="color:#d9b9ff">View automated GitHub tests ↗</a></p><p><small>GitHub checks code updates independently. Test results appear on GitHub; no credentials are stored in Luna.</small></p><h3>Luna’s improvement roadmap</h3><p><small>Luna proposes one new capability at a time. Proposals never change code.</small></p><button type="button" id="improvement-refresh">Refresh roadmap</button><div id="improvement-list"></div><h3>Shared development tasks</h3><button type="button" id="shared-tasks-refresh">Refresh assignments</button><p id="shared-tasks-status">Not checked yet.</p><div id="shared-tasks-list"></div><h3>Completed assignments</h3><button type="button" id="shared-results-refresh">Refresh results</button><div id="shared-results-list"></div><p><small>Only specifically allowlisted tasks can be executed. Remote task instructions are never run as code.</small></p><h3>Latest GitHub checks</h3><button type="button" id="github-checks-refresh">Refresh GitHub checks</button><p id="github-checks-status">Not checked yet.</p><div id="github-checks-list"></div><h3>☾ Luna's Design Studio</h3><p><small>Give Luna creative direction over her own interface. She reads the current dashboard, invents a visual direction, and saves a reviewable redesign proposal. Nothing is installed automatically.</small></p><button type="button" id="luna-design-mission">Let Luna redesign ORBIT</button><p id="luna-design-status" role="status"></p><details id="luna-design-details"><summary>Read Luna's design proposal</summary><pre id="luna-design-output" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details><h3>Draft a code improvement</h3><form id="draft-form"><input id="draft-goal" placeholder="What should Luna improve?" required><button>Prepare draft</button></form><p id="draft-status"></p><p id="draft-summary"></p><details id="draft-details"><summary>View proposed change</summary><pre id="draft-output" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details><h3>Saved code drafts</h3><button type="button" id="refresh-drafts">Refresh drafts</button><div id="saved-drafts"></div><h3>Project inspection</h3><button type="button" id="inspect">Inspect ORBIT</button><p id="inspect-status"></p><details id="inspect-details"><summary>View inspection report</summary><pre id="inspect-report" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details></section><section id="tab-testing" class="tab-panel"><h2>Testing</h2><h3>Project health</h3><button type="button" id="health-btn">Check project health</button><p id="health-result"></p><h3>Isolated test workspace</h3><button type="button" id="test-btn">Run safe baseline tests</button><p id="test-result"></p></section><section id="tab-approvals" class="tab-panel"><h2>Task inbox</h2><p><small>Queue safe work for Luna. While the server is running, the worker processes one job at a time.</small></p><form id="job-form"><select id="job-kind"><option value="project_health">Project health</option><option value="github_status">GitHub status</option><option value="readiness_check">System readiness</option><option value="maintenance_audit">Maintenance audit</option><option value="development_plan">Development plan</option><option value="self_improvement">Propose next self-improvement</option><option value="workshop_draft">Draft next roadmap improvement</option></select><input id="job-title" placeholder="Name this task" maxlength="120" required><button type="submit">Add task</button></form><p id="job-status"></p><button type="button" id="job-refresh">Refresh task inbox</button><div id="job-list"></div><h2>Autonomous maintenance</h2><p id="scheduler-status">Checking scheduler…</p><button type="button" id="scheduler-toggle">Loading…</button><p><small>Uses the same durable bounded autopilot as Overview. Read-only monitoring and planning routines keep their own fixed intervals; code application stays disabled.</small></p><h2>Routine tasks</h2><p><small>Luna can run these allowlisted read-only checks without changing source files.</small></p><button type="button" id="agent-run">Run routine maintenance</button><p id="agent-status"></p><h3>Recent activity</h3><div id="agent-history"></div><h2>Approvals</h2><h2>Autonomy · approval queue</h2><p><small>Tasks are proposals only. Approval records your choice; nothing runs automatically yet.</small></p><form id="plan-form"><input id="plan-goal" maxlength="1500" placeholder="What should Luna plan?" required><button type="submit">Create proposal</button></form><p id="plan-status"></p><div id="task-list"></div></section></main>
 <p><small>Local-only demo. Messages are saved on the host device. Conversations are saved locally. Cloud AI is optional; cloud memory is not configured.</small></p>
 <script>
 
@@ -130,7 +149,7 @@ document.querySelector('#bridge-new').onsubmit=async e=>{e.preventDefault();try{
 loadBridge();
 
 const controlGroups=[
-  {key:'requests',label:'Luna request',title:x=>x.title,body:x=>x.message+(x.context?'\\nContext: '+x.context:''),actions:[['Acknowledge','acknowledged'],['Dismiss','dismissed']],url:x=>'/control/requests/'+x.id+'/decision'},
+  {key:'requests',label:'Luna request',title:x=>x.title,body:x=>x.message+(x.context?'\\nContext: '+x.context:'')+(x.repeat_count>1?'\\nRepeated: '+x.repeat_count+' times':''),actions:[['Acknowledge','acknowledged'],['Dismiss','dismissed']],url:x=>'/control/requests/'+x.id+'/decision'},
 
   {key:'improvements',label:'Improvement',title:x=>x.title,body:x=>x.description,
    actions:[['Approve proposal','approved'],['Reject','rejected']],url:x=>'/control/improvements/'+x.id+'/decision'},
@@ -140,6 +159,8 @@ const controlGroups=[
    actions:[['Shortlist','shortlisted'],['Dismiss','dismissed']],url:x=>'/project/drafts/'+x.id+'/review'},
   {key:'notes',label:'Project note',title:x=>'Project note #'+x.id,body:x=>x.content,
    actions:[['Approve note','approved'],['Reject','rejected']],url:x=>'/project/notes/'+x.id+'/decision'},
+  {key:'continuity',label:'Conversation checkpoint',title:x=>'Continuity #'+x.id,body:x=>x.summary,
+   actions:[['Approve continuity','approved'],['Reject','rejected']],url:x=>'/continuity/summaries/'+x.id+'/decision'},
   {key:'memories',label:'Memory candidate',title:x=>'Memory #'+x.id,body:x=>x.content,
    actions:[['Approve memory','approved'],['Reject','rejected']],url:x=>'/memory/candidates/'+x.id+'/review?approve='+(x==='approved')}
 ];
@@ -147,8 +168,9 @@ async function controlDecision(group,item,decision,button){
   if(!window.confirm('Confirm '+decision.replaceAll('_',' ')+' for '+group.label.toLowerCase()+' #'+item.id+'?'))return;
   button.disabled=true;
   const url=group.key==='memories'?'/memory/candidates/'+item.id+'/review?approve='+(decision==='approved'):group.url(item);
+  const payload=group.key==='continuity'?{approve:decision==='approved'}:{decision};
   try{
-    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision})});
+    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     if(!r.ok)throw Error((await r.json()).detail||'Decision failed');
     await loadControl();
 async function loadAutopilot(){const b=document.querySelector('#control-autopilot');try{const r=await fetch('/control/autopilot');if(!r.ok)throw Error('Unavailable');const data=await r.json();b.dataset.enabled=String(data.enabled);b.textContent=data.enabled?'Pause independent work':'Resume independent work';b.title='Tier 1 only: predefined local checks and planning; no code changes or paid model calls.'}catch(e){b.textContent='Autopilot status unavailable';b.disabled=true}}
@@ -162,7 +184,7 @@ async function loadControl(){
   try{
     const r=await fetch('/control/overview');if(!r.ok)throw Error('Overview unavailable');
     const data=await r.json();metrics.replaceChildren();review.replaceChildren();inventory.replaceChildren();
-    for(const [key,label] of [['bridge','Bridge'],['requests','Luna requests'],['improvements','Improvements'],['tasks','Task approvals'],['drafts','Code drafts'],['memories','Memories'],['notes','Project notes'],['queued_jobs','Queued jobs'],['attention_jobs','Needs attention']]){
+    for(const [key,label] of [['bridge','Bridge'],['requests','Luna requests'],['improvements','Improvements'],['tasks','Task approvals'],['drafts','Code drafts'],['memories','Memories'],['continuity','Continuity'],['notes','Project notes'],['queued_jobs','Queued jobs'],['attention_jobs','Needs attention']]){
       const card=document.createElement('div');card.className='control-metric';
       const number=document.createElement('strong');number.textContent=String(data.counts[key]||0);
       const caption=document.createElement('span');caption.textContent=label;card.append(number,caption);metrics.append(card);
@@ -185,19 +207,104 @@ async function loadControl(){
     }
     if(!pending){const p=document.createElement('p');p.textContent='All caught up. Ask Luna for the next improvement when you are ready.';review.append(p)}
     const files=data.inventory.files||[];inventory.textContent=data.inventory.present_count+' of '+files.length+' known project files present (metadata only; tests not run).';
-    const alerts={bridge:[data.counts.bridge||0,'medium'],home:[pending+(data.counts.attention_jobs||0),'high'],memory:[data.counts.memories||0,'medium'],development:[(data.counts.improvements||0)+(data.counts.drafts||0),'medium'],testing:[data.counts.attention_jobs||0,'high'],approvals:[(data.counts.requests||0)+(data.counts.tasks||0)+(data.counts.notes||0)+(data.counts.memories||0),'high']};
+    const alerts={bridge:[data.counts.bridge||0,'medium'],home:[pending+(data.counts.attention_jobs||0),'high'],memory:[(data.counts.memories||0)+(data.counts.continuity||0),'medium'],development:[(data.counts.improvements||0)+(data.counts.drafts||0),'medium'],testing:[data.counts.attention_jobs||0,'high'],approvals:[(data.counts.requests||0)+(data.counts.tasks||0)+(data.counts.notes||0)+(data.counts.memories||0)+(data.counts.continuity||0),'high']};
     for(const [key,[count,priority]] of Object.entries(alerts)){const el=document.querySelector('[data-alert="'+key+'"]');if(!el)continue;el.hidden=!count;el.className='nav-attention priority-'+priority;el.textContent=count+' · '+(priority==='high'?'High':'Review');el.setAttribute('aria-label',count+' items needing '+priority+' priority attention')}
     status.textContent=pending+' item(s) awaiting review · no changes applied automatically';
   }catch(e){status.textContent='Could not load overview: '+e.message}
 }
+async function loadReadiness(){
+ const status=document.querySelector('#readiness-status'),target=document.querySelector('#readiness-list');
+ status.textContent='Checking readiness…';target.replaceChildren();
+ try{
+  const r=await fetch('/control/readiness',{cache:'no-store'});if(!r.ok)throw Error('Readiness unavailable');
+  const data=await r.json();
+  const lines=[
+   ['Dashboard core',data.ready_for_dashboard],
+   ['Model chat',data.ready_for_model_chat],
+   ['Background work',data.ready_for_background_work],
+   ['Isolated tests',data.ready_for_isolated_tests],
+   ['Database integrity',data.checks.database_integrity],
+   ['Trusted model endpoint',data.model.trusted_endpoint],
+   ['Background worker',data.checks.background_worker],
+   ['Container runtime',data.checks.container_runtime],
+   ['Approved test image',data.checks.approved_test_image],
+   ['Temporary test grant',data.checks.temporary_test_grant],
+   ['Validated local backup',data.checks.valid_local_backup],
+  ];
+  for(const [label,ok] of lines){const p=document.createElement('p');p.textContent=(ok?'✓ ':'○ ')+label;target.append(p)}
+  if(data.recommendations.length){
+   const h=document.createElement('strong');h.textContent='Recommended next actions';target.append(h);
+   for(const advice of data.recommendations){const p=document.createElement('p');p.textContent='• '+advice;target.append(p)}
+  }
+  const blocked=Object.entries(data.blocking).filter(([,items])=>items.length).map(([name,items])=>name+': '+items.join(', '));
+  status.textContent=blocked.length?('Readiness gaps · '+blocked.join(' | ')):'All readiness groups are clear.';
+ }catch(e){status.textContent=e.message}
+}
+async function loadMaintenanceAudit(){
+ const status=document.querySelector('#maintenance-status'),target=document.querySelector('#maintenance-list');
+ status.textContent='Checking maintenance state…';target.replaceChildren();
+ try{
+  const r=await fetch('/control/maintenance-audit',{cache:'no-store'});if(!r.ok)throw Error('Maintenance audit unavailable');
+  const data=await r.json();
+  if(!data.issues.length){status.textContent='No stale or inconsistent runtime metadata found.';return}
+  status.textContent=(data.status==='advisory'
+    ? data.issues.length+' low-priority advisory item(s); no immediate action required.'
+    : data.issues.length+' item(s) need attention.');
+  for(const item of data.issues){
+   const p=document.createElement('p');
+   p.textContent=item.severity.toUpperCase()+' · '+item.code.replaceAll('_',' ')+' · '+item.subject;
+   target.append(p);
+  }
+ }catch(e){status.textContent=e.message}
+}
+document.querySelector('#maintenance-refresh').onclick=loadMaintenanceAudit;
+loadMaintenanceAudit();
+
+document.querySelector('#readiness-refresh').onclick=loadReadiness;
+loadReadiness();
+
 document.querySelector('#control-diagnose').onclick=async()=>{const b=document.querySelector('#control-diagnose'),target=document.querySelector('#control-diagnostics');b.disabled=true;target.textContent='Running static checks…';try{const r=await fetch('/control/diagnostics');if(!r.ok)throw Error('Diagnostics unavailable');const d=await r.json();target.replaceChildren();const title=document.createElement('h4');title.textContent='Static health: '+d.health.passed+'/'+d.health.total+' checks passed';target.append(title);for(const item of d.health.checks){const p=document.createElement('p');p.textContent=(item.ok?'✓ ':'! ')+item.name+' — '+item.detail;target.append(p)}for(const advice of d.recommendations){const p=document.createElement('p');p.textContent='Next: '+advice;target.append(p)}const note=document.createElement('small');note.textContent='Read-only checks; automated tests not run and no files changed.';target.append(note)}catch(e){target.textContent=e.message}finally{b.disabled=false}};
-document.querySelector('#control-refresh').onclick=loadControl;
+async function refreshBackupStatus(){
+ const target=document.querySelector('#backup-status');
+ try{
+  const r=await fetch('/control/backups',{cache:'no-store'});if(!r.ok)throw Error('Backup status unavailable');
+  const data=await r.json();
+  target.textContent=data.backups.length
+   ? 'Local backups: '+data.backups.length+' · latest '+data.backups[0].filename+' · restore is owner-plan-only'
+   : 'No local backups yet · restore is owner-plan-only';
+ }catch(e){target.textContent=e.message}
+}
+document.querySelector('#control-backup').onclick=async()=>{
+ const b=document.querySelector('#control-backup'),target=document.querySelector('#backup-status');
+ b.disabled=true;target.textContent='Creating validated SQLite backup…';
+ try{
+  const r=await fetch('/control/backups',{method:'POST'});if(!r.ok)throw Error('Backup failed');
+  const data=await r.json();
+  target.textContent='Backup ready: '+data.filename+' · integrity '+data.integrity+' · live database unchanged';
+  await refreshBackupStatus();
+ }catch(e){target.textContent=e.message}finally{b.disabled=false}
+};
+document.querySelector('#control-support').onclick=async()=>{
+ const b=document.querySelector('#control-support'),status=document.querySelector('#control-status');
+ b.disabled=true;
+ try{
+  const r=await fetch('/control/support-snapshot',{cache:'no-store'});if(!r.ok)throw Error('Safe status unavailable');
+  const data=await r.json(),safeText=JSON.stringify(data,null,2);
+  try{await navigator.clipboard.writeText(safeText);status.textContent='Safe ORBIT status copied.'}
+  catch(_clipboardError){
+   let box=document.querySelector('#support-copy-box');
+   if(!box){box=document.createElement('textarea');box.id='support-copy-box';box.rows=10;box.readOnly=true;document.querySelector('#tab-home').append(box)}
+   box.value=safeText;box.select();status.textContent='Select and copy the safe status shown below.';
+  }
+ }catch(e){status.textContent=e.message}finally{b.disabled=false}
+};
+document.querySelector('#control-refresh').onclick=()=>{loadControl();refreshBackupStatus()};
 document.querySelector('#control-suggest').onclick=async()=>{
   const b=document.querySelector('#control-suggest');b.disabled=true;
   try{const r=await fetch('/control/suggest-next',{method:'POST'});if(!r.ok)throw Error('Request failed');const data=await r.json();await loadControl();if(!data.proposal)document.querySelector('#control-status').textContent='All fixed roadmap proposals have already been created.'}
   catch(e){document.querySelector('#control-status').textContent=e.message}finally{b.disabled=false}
 };
-loadControl();
+loadControl();refreshBackupStatus();
 document.querySelectorAll('[data-quick-tab]').forEach(b=>b.addEventListener('click',()=>{const tab=document.querySelector('#main-nav [data-tab="'+b.dataset.quickTab+'"]');if(tab)tab.click()}));
 
 document.querySelector('#luna-design-mission').onclick=async()=>{const btn=document.querySelector('#luna-design-mission'),status=document.querySelector('#luna-design-status');btn.disabled=true;status.textContent='Luna is studying her interface and designing a proposal…';try{const r=await fetch('/project/luna-design-mission',{method:'POST'});const data=await r.json();if(!r.ok)throw Error(data.detail||'Design studio unavailable');document.querySelector('#luna-design-output').textContent=data.draft;document.querySelector('#luna-design-details').open=true;status.textContent='Luna saved design proposal #'+data.draft_id+'. Review it below. No files were changed.';loadDrafts()}catch(e){status.textContent='Design mission could not finish: '+e.message}finally{btn.disabled=false}};
@@ -207,20 +314,133 @@ document.querySelector('#memory-suggestion-toggle').onclick=async()=>{const b=do
 async function refreshSuggestedMemories(){const target=document.querySelector('#memory-suggestion-list');try{const r=await fetch('/memory/candidates');if(!r.ok)throw Error('Memory list');const items=(await r.json()).filter(i=>i.status==='pending').slice(0,30);target.textContent='';if(!items.length){target.textContent='No pending suggestions.';return}for(const item of items){const p=document.createElement('p');p.textContent=item.content+' ';for(const [label,approve] of [['Remember',true],['Discard',false]]){const b=document.createElement('button');b.textContent=label;b.onclick=async()=>{const result=await fetch('/memory/candidates/'+item.id+'/review?approve='+approve,{method:'POST'});if(result.ok)refreshSuggestedMemories()};p.append(b)}target.append(p)}}catch(e){target.textContent='Memory suggestions unavailable'}}
 document.querySelector('#memory-review-refresh').onclick=refreshSuggestedMemories;refreshSuggestedMemories();
 
+async function refreshContinuity(){
+ const status=document.querySelector('#continuity-status'),target=document.querySelector('#continuity-list');
+ try{
+  const [stateRes,pendingRes,approvedRes]=await Promise.all([
+   fetch('/continuity/status',{cache:'no-store'}),
+   fetch('/continuity/summaries?status=pending',{cache:'no-store'}),
+   fetch('/continuity/summaries?status=approved',{cache:'no-store'})
+  ]);
+  if(!stateRes.ok||!pendingRes.ok||!approvedRes.ok)throw Error('Continuity unavailable');
+  const state=await stateRes.json(),pending=await pendingRes.json(),approved=await approvedRes.json();
+  status.textContent='Pending: '+state.pending+' · Approved: '+state.approved+' · Revoked: '+(state.revoked||0)+' · sensitive search results hidden';
+  target.replaceChildren();
+
+  const pendingTitle=document.createElement('h4');pendingTitle.textContent='Needs review';target.append(pendingTitle);
+  if(!pending.length){const p=document.createElement('p');p.textContent='No pending conversation checkpoints.';target.append(p)}
+  for(const item of pending){
+   const card=document.createElement('article');card.className='control-card';
+   const h=document.createElement('strong');h.textContent='Conversation checkpoint · '+item.source_message_count+' messages';
+   const p=document.createElement('p');p.textContent=item.summary;
+   const meta=document.createElement('small');meta.textContent=item.tags.length?'Tags: '+item.tags.join(', '):'No tags';
+   card.append(h,p,meta,document.createElement('br'));
+   for(const [label,approve] of [['Approve for Luna',true],['Reject',false]]){
+    const b=document.createElement('button');b.type='button';b.textContent=label;if(!approve)b.className='control-reject';
+    b.onclick=async()=>{b.disabled=true;try{const r=await fetch('/continuity/summaries/'+item.id+'/decision',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({approve})});if(!r.ok)throw Error('Decision failed');await refreshContinuity();await loadControl()}catch(e){status.textContent=e.message}finally{b.disabled=false}};
+    card.append(b);
+   }
+   target.append(card);
+  }
+
+  const approvedTitle=document.createElement('h4');approvedTitle.textContent='Approved for Luna';target.append(approvedTitle);
+  if(!approved.length){const p=document.createElement('p');p.textContent='No approved conversation summaries yet.';target.append(p)}
+  for(const item of approved){
+   const card=document.createElement('article');card.className='control-card';
+   const h=document.createElement('strong');h.textContent='Approved checkpoint';
+   const p=document.createElement('p');p.textContent=item.summary;
+   const meta=document.createElement('small');meta.textContent=item.tags.length?'Tags: '+item.tags.join(', '):'No tags';
+   const revoke=document.createElement('button');revoke.type='button';revoke.textContent='Revoke from Luna';revoke.className='control-reject';
+   revoke.onclick=async()=>{if(!confirm('Remove this summary from Luna\'s future context? The audit record will remain.'))return;revoke.disabled=true;try{const r=await fetch('/continuity/summaries/'+item.id+'/revoke',{method:'POST'});if(!r.ok)throw Error('Revoke failed');await refreshContinuity();await loadControl()}catch(e){status.textContent=e.message}finally{revoke.disabled=false}};
+   card.append(h,p,meta,document.createElement('br'),revoke);target.append(card);
+  }
+ }catch(e){status.textContent='Continuity unavailable: '+e.message}
+}
+document.querySelector('#continuity-refresh').onclick=refreshContinuity;
+
+document.querySelector('#continuity-search-form').onsubmit=async e=>{
+ e.preventDefault();
+ const q=document.querySelector('#continuity-search').value.trim(),target=document.querySelector('#continuity-search-results'),status=document.querySelector('#continuity-search-status');
+ target.replaceChildren();status.textContent='Searching locally…';
+ try{
+  const r=await fetch('/continuity/search?q='+encodeURIComponent(q),{cache:'no-store'});
+  if(!r.ok){let d={};try{d=await r.json()}catch(e){}throw Error(d.detail||'Search failed')}
+  const items=await r.json();status.textContent=items.length+' result(s) · sensitive matches hidden';
+  if(!items.length){target.textContent='No matching non-sensitive messages found.';return}
+  for(const item of items){
+   const card=document.createElement('article');card.className='control-card';
+   const head=document.createElement('strong');head.textContent=(item.role==='user'?'You':'Luna')+' · '+item.session.slice(0,8);
+   const body=document.createElement('p');body.textContent=item.snippet;
+   const open=document.createElement('button');open.type='button';open.textContent='Open conversation';
+   open.onclick=()=>{session=item.session;localStorage.setItem('luna-session',session);selector.value=session;loadHistory();loadSessions();selectTab('chat')};
+   card.append(head,body,open);target.append(card);
+  }
+ }catch(err){status.textContent=err.message}
+};
+refreshContinuity();
+
 async function refreshGoals(){const target=document.querySelector('#goals-list');try{const r=await fetch('/agent/goals');if(!r.ok)throw Error('goals');const goals=await r.json();target.textContent='';if(!goals.length){target.textContent='No goals yet.';return}for(const g of goals){const div=document.createElement('div');div.className='msg';const h=document.createElement('strong');h.textContent='#'+g.id+' '+g.objective+' ('+g.state+')';div.append(h);for(const s of g.steps){const p=document.createElement('p');p.textContent=(s.position+1)+'. '+s.kind+' — '+s.state;div.append(p)}if(g.state==='proposed'){for(const [label,approve] of [['Approve plan',true],['Reject',false]]){const b=document.createElement('button');b.textContent=label;b.onclick=async()=>{await fetch('/agent/goals/'+g.id+'/decision',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({approve})});refreshGoals()};div.append(b)}}target.append(div)}}catch(e){target.textContent='Goals unavailable'}}
 document.querySelector('#goals-refresh').onclick=refreshGoals;document.querySelector('#goal-form').onsubmit=async e=>{e.preventDefault();const objective=document.querySelector('#goal-objective').value.trim();const steps=[...document.querySelectorAll('.goal-step:checked')].map(x=>x.value);const status=document.querySelector('#goal-status');if(!steps.length){status.textContent='Select at least one safe step.';return}try{const r=await fetch('/agent/goals',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({objective,steps})});if(!r.ok)throw Error('Goal creation failed');status.textContent='Plan created. Approve it below to begin.';refreshGoals()}catch(e){status.textContent=e.message}};refreshGoals();setInterval(refreshGoals,10000);
-const tabs=['home','activity','chat','bridge','memory','goals','development','testing','approvals'];function selectTab(name){if(!tabs.includes(name))name='home';document.querySelectorAll('.tab-panel').forEach(el=>el.classList.toggle('active',el.id==='tab-'+name));document.querySelectorAll('#main-nav button').forEach(el=>el.classList.toggle('active',el.dataset.tab===name));localStorage.setItem('luna-active-tab',name)}document.querySelectorAll('#main-nav button').forEach(el=>el.onclick=()=>selectTab(el.dataset.tab));selectTab(localStorage.getItem('luna-active-tab')||'home');
+const tabs=['home','sprint','activity','chat','bridge','memory','goals','development','testing','approvals'];function selectTab(name){if(!tabs.includes(name))name='home';document.querySelectorAll('.tab-panel').forEach(el=>el.classList.toggle('active',el.id==='tab-'+name));document.querySelectorAll('#main-nav button').forEach(el=>el.classList.toggle('active',el.dataset.tab===name));localStorage.setItem('luna-active-tab',name)}document.querySelectorAll('#main-nav button').forEach(el=>el.onclick=()=>selectTab(el.dataset.tab));selectTab(localStorage.getItem('luna-active-tab')||'home');
+async function refreshSprint(){
+ const status=document.querySelector('#sprint-status'),stages=document.querySelector('#sprint-stages');
+ try{
+  const response=await fetch('/control/sprint',{cache:'no-store'});if(!response.ok)throw Error('HTTP '+response.status);
+  const data=await response.json();stages.replaceChildren();
+  for(const stage of data.sprint.stages){
+   const p=document.createElement('p');const title=document.createElement('strong');
+   title.textContent=stage.title+' · '+stage.status.replaceAll('_',' ');
+   const gate=document.createElement('div');gate.textContent=stage.gate;
+   p.append(title,gate);stages.append(p);
+  }
+  document.querySelector('#sprint-gates').textContent=JSON.stringify({
+   runner:data.runner,autonomous_code_apply_enabled:data.sprint.autonomous_code_apply_enabled,
+   max_repair_attempts:data.sprint.max_repair_attempts,
+   paid_actions_require_approval:data.sprint.paid_actions_require_approval},null,2);
+  status.textContent='Sprint roadmap loaded · '+data.sprint.stages.length+' milestones';
+ }catch(error){status.textContent='Sprint status unavailable: '+error.message}
+}
+async function searchSprintContext(){
+ const title=document.querySelector('#sprint-plan-title').value.trim();
+ const status=document.querySelector('#sprint-plan-status');
+ const results=document.querySelector('#sprint-plan-results');results.replaceChildren();
+ if(title.length<3){status.textContent='Enter at least three characters.';return}
+ try{
+  const response=await fetch('/development/planning-context?title='+encodeURIComponent(title),{cache:'no-store'});
+  if(!response.ok)throw Error('HTTP '+response.status);
+  const data=await response.json();
+  status.textContent=data.technical_decisions.length+' related technical decisions found.';
+  for(const decision of data.technical_decisions){
+   const item=document.createElement('p');const heading=document.createElement('strong');
+   heading.textContent=decision.topic+' ('+decision.source+')';
+   const detail=document.createElement('div');detail.textContent=decision.decision;
+   item.append(heading,detail);results.append(item);
+  }
+ }catch(error){status.textContent='Planning lookup failed: '+error.message}
+}
+document.querySelector('#sprint-plan-search').onclick=searchSprintContext;
+document.querySelector('#sprint-refresh').onclick=refreshSprint;refreshSprint();
 async function refreshActivity(){
  const state=document.querySelector('#activity-state'),feed=document.querySelector('#activity-feed'),
- history=document.querySelector('#activity-history'),nav=document.querySelector('#activity-nav-status');
+ history=document.querySelector('#activity-history'),nav=document.querySelector('#activity-nav-status'),
+ timelineTarget=document.querySelector('#activity-timeline'),nowTarget=document.querySelector('#activity-now'),
+ nowMeta=document.querySelector('#activity-now-meta');
  try{
-  const r=await fetch('/control/activity',{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);
-  const data=await r.json();
-  state.textContent='Luna: '+data.status;nav.textContent='· '+data.status;
+  const [jobsResponse,timelineResponse,nowResponse]=await Promise.all([
+   fetch('/control/activity',{cache:'no-store'}),
+   fetch('/control/timeline?limit=40',{cache:'no-store'}),
+   fetch('/control/now',{cache:'no-store'})
+  ]);
+  if(!jobsResponse.ok||!timelineResponse.ok||!nowResponse.ok)throw Error('Activity endpoint unavailable');
+  const data=await jobsResponse.json(),timeline=await timelineResponse.json(),now=await nowResponse.json();
+  state.textContent='Luna: '+now.status;nav.textContent='· '+now.status;
+  nowTarget.textContent=now.headline;
+  nowMeta.textContent='Active: '+now.counts.active+' · Needs attention: '+now.counts.attention+' · Completed: '+now.counts.completed;
   document.querySelector('#activity-counts').textContent=
-   'Working: '+data.counts.running+' · Queued: '+data.counts.queued+
-   ' · Needs attention: '+data.counts.attention+' · Completed: '+data.counts.completed;
-  const render=(target,items,detailed)=>{
+   'Jobs working: '+data.counts.running+' · Queued: '+data.counts.queued+
+   ' · Job attention: '+data.counts.attention+' · Job completed: '+data.counts.completed;
+
+  const renderJobs=(target,items,detailed)=>{
    target.replaceChildren();
    if(!items.length){target.textContent='No recorded jobs yet.';return}
    for(const job of items){
@@ -233,12 +453,29 @@ async function refreshActivity(){
     target.append(article);
    }
   };
-  render(feed,data.recent.slice(0,8),false);render(history,data.recent,true);
-  document.querySelector('#activity-updated').textContent='Last checked: '+new Date().toLocaleTimeString()+' · Showing '+data.recent.length+' most recent jobs.';
- }catch(e){state.textContent='Activity unavailable: '+e.message;nav.textContent='· Unknown'}
+  renderJobs(feed,data.recent.slice(0,8),false);renderJobs(history,data.recent,true);
+
+  timelineTarget.replaceChildren();
+  if(!timeline.events.length)timelineTarget.textContent='No recorded activity yet.';
+  for(const item of timeline.events.slice(0,20)){
+   const article=document.createElement('article');article.className='control-card';
+   const title=document.createElement('strong');title.textContent=item.label+' · '+item.state;
+   const meta=document.createElement('div');meta.textContent=item.kind+' · '+item.timestamp+(item.priority&&item.priority!=='normal'?' · '+item.priority+' priority':'');
+   article.append(title,meta);
+   if(item.detail){const detail=document.createElement('small');detail.textContent=item.detail;article.append(detail)}
+   if(item.needs_attention){const flag=document.createElement('div');flag.textContent='Needs attention';flag.className='control-kind';article.append(flag)}
+   timelineTarget.append(article);
+  }
+  document.querySelector('#activity-updated').textContent='Live local feed · last checked '+new Date().toLocaleTimeString();
+ }catch(e){
+  state.textContent='Activity unavailable: '+e.message;nav.textContent='· Unknown';
+  nowTarget.textContent='Could not read Luna activity.';
+ }
 }
 document.querySelector('#activity-refresh').onclick=refreshActivity;
-refreshActivity();setInterval(refreshActivity,10000);
+refreshActivity();
+const activityTimer=setInterval(()=>{if(!document.hidden)refreshActivity()},3000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshActivity()});
 const log=document.querySelector('#log'),form=document.querySelector('#form'),input=document.querySelector('#msg'),selector=document.querySelector('#sessions');
 let session=localStorage.getItem('luna-session')||crypto.randomUUID();
 localStorage.setItem('luna-session',session);
@@ -253,7 +490,7 @@ function setLunaMood(mood){
 }
 function show(role,content){const div=document.createElement('div');div.className='msg';const label=document.createElement('small');label.textContent=role+'\\n';div.append(label,document.createTextNode(content));log.append(div);log.scrollTop=log.scrollHeight}
 async function loadHistory(){log.textContent='';try{const r=await fetch('/history?session='+encodeURIComponent(session));if(!r.ok)throw Error('history');(await r.json()).forEach(m=>show(m.role,m.content))}catch(e){show('system','Could not load conversation history')}}
-async function loadSessions(){try{const r=await fetch('/sessions');if(!r.ok)throw Error('sessions');const items=await r.json();selector.textContent='';const ids=[session,...items.map(x=>x.session)].filter((v,i,a)=>a.indexOf(v)===i);ids.forEach((id,i)=>{const option=document.createElement('option');option.value=id;option.textContent=id===session?'Current conversation':('Previous chat '+(i+1));selector.append(option)});selector.value=session}catch(e){show('system','Could not load saved conversations')}}
+async function loadSessions(){try{const r=await fetch('/sessions');if(!r.ok)throw Error('sessions');const items=await r.json();selector.textContent='';const byId=new Map(items.map(x=>[x.session,x]));const ids=[session,...items.map(x=>x.session)].filter((v,i,a)=>a.indexOf(v)===i);ids.forEach((id,i)=>{const option=document.createElement('option');option.value=id;const item=byId.get(id);option.textContent=id===session?(item&&item.title?'Current · '+item.title:'Current conversation'):(item&&item.title?item.title:'Previous chat '+(i+1));selector.append(option)});selector.value=session}catch(e){show('system','Could not load saved conversations')}}
 selector.onchange=()=>{session=selector.value;localStorage.setItem('luna-session',session);loadHistory()};
 document.querySelector('#new-session').onclick=()=>{session=crypto.randomUUID();localStorage.setItem('luna-session',session);loadHistory();loadSessions()};
 form.onsubmit=async e=>{e.preventDefault();const message=input.value.trim();if(!message)return;input.value='';show('you',message);setLunaMood('thinking');try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session,message})});if(!r.ok)throw Error('chat');const data=await r.json();show('Luna',data.reply||'No response received');setLunaMood('happy');loadSessions()}catch(e){show('system','Connection failed; check Luna server');setLunaMood('concerned')}};loadHistory();loadSessions();loadTasks();
@@ -273,7 +510,7 @@ async function refreshScheduler(){try{const r=await fetch('/agent/scheduler');co
 async function loadAgentHistory(){const target=document.querySelector('#agent-history');try{const r=await fetch('/agent/runs');if(!r.ok)throw Error('Unavailable');const items=await r.json();target.textContent='';if(!items.length){target.textContent='No runs yet.';return}items.forEach(item=>{const p=document.createElement('p');p.textContent=item.created_at+' · '+item.status+' · '+item.summary;target.append(p)})}catch(e){target.textContent='Activity history unavailable'}};document.querySelector('#agent-run').onclick=async()=>{const status=document.querySelector('#agent-status');status.textContent='Running routine checks…';try{const r=await fetch('/agent/run-routine',{method:'POST'});const d=await r.json();status.textContent=d.summary||'Could not complete checks';loadAgentHistory()}catch(e){status.textContent='Routine checks unavailable'}};loadAgentHistory();
 async function loadDrafts(){try{const r=await fetch('/project/drafts');if(!r.ok)throw Error('Unavailable');const target=document.querySelector('#saved-drafts');target.textContent='';const drafts=await r.json();if(!drafts.length){target.textContent='No saved drafts yet.';return}drafts.forEach(d=>{const section=document.createElement('div');section.className='msg';const title=document.createElement('strong');title.textContent=d.goal+' ('+d.status+')';const summary=document.createElement('p');summary.textContent=d.summary;const details=document.createElement('details');const label=document.createElement('summary');label.textContent='Technical draft';const pre=document.createElement('pre');pre.style.whiteSpace='pre-wrap';pre.style.overflowWrap='anywhere';pre.textContent=d.content;details.append(label,pre);section.append(title,summary,details);const check=document.createElement('button');check.type='button';check.textContent='Review draft quality';check.onclick=async()=>{check.disabled=true;try{const r=await fetch('/project/drafts/'+d.id+'/quality');const data=await r.json();const p=document.createElement('p');p.textContent='Quality: '+data.status+' — '+[...data.blockers,...data.warnings].join(' | ')+' (No code applied or executed)';section.append(p)}catch(e){check.textContent='Review unavailable'}finally{check.disabled=false}};section.append(check);if(d.status==='draft'){[['Keep for later','shortlisted'],['Dismiss','dismissed']].forEach(([name,decision])=>{const b=document.createElement('button');b.type='button';b.textContent=name;b.onclick=async()=>{await fetch('/project/drafts/'+d.id+'/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision})});loadDrafts()};section.append(b,document.createTextNode(' '))})}target.append(section)})}catch(e){document.querySelector('#saved-drafts').textContent='Could not load saved drafts'}};document.querySelector('#refresh-drafts').onclick=loadDrafts;loadDrafts();
 async function loadTasks(){try{const r=await fetch('/autonomy/tasks');const tasks=await r.json();const panel=document.querySelector('#task-list');panel.textContent='';if(!tasks.length){panel.textContent='No proposed tasks yet.';return}tasks.forEach(t=>{const div=document.createElement('div');div.className='msg';const heading=document.createElement('strong');heading.textContent=t.title+' ('+t.status+')';const description=document.createElement('p');description.textContent=t.description;div.append(heading,description);if(t.status==='pending'){[['Approve','approved'],['Revise','revision_requested'],['Reject','rejected']].forEach(([label,decision])=>{const btn=document.createElement('button');btn.type='button';btn.textContent=label;btn.onclick=async()=>{await fetch('/autonomy/tasks/'+t.id+'/decision',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision})});loadTasks()};div.append(btn,document.createTextNode(' '))})}panel.append(div)})}catch(e){document.querySelector('#task-list').textContent='Could not load tasks'}}
-</script></html>"""
+</script></html>""".replace("__LUNA_VERSION__",VERSION)
 
 @app.get("/sessions")
 def get_sessions():
@@ -286,6 +523,15 @@ def get_history(session: str="default"):
 
 @app.post("/chat")
 async def chat(request:Chat):
+    from luna.sensitive_intake import screen
+    intake=screen(request.message)
+    if not intake["luna_may_receive"]:
+        return {
+            "reply":"That message looks like it may contain sensitive information. The owner-only vault intake is not operational yet, so I did not save it or send it to the model. Remove the sensitive value or wait until the private intake broker is enabled.",
+            "sensitive_intake":intake,
+            "stored":False,
+            "model_called":False,
+        }
     add_message(request.session,"user",request.message)
     suggest_from_user_message(request.message)
     routed=route_chat_job(request.message)
@@ -295,11 +541,64 @@ async def chat(request:Chat):
     else:
         reply=await respond(request.session,request.message)
     add_message(request.session,"assistant",reply)
-    return {"reply":reply}
+    from luna.continuity import maybe_checkpoint
+    try:
+        checkpoint=maybe_checkpoint(request.session)
+    except (ValueError,UnicodeError,OSError):
+        checkpoint={"created":False,"reason":"checkpoint_unavailable"}
+    return {"reply":reply,"stored":True,"continuity_checkpoint":checkpoint}
 
 @app.get("/memory/candidates")
 def list_candidates():
     return candidates()
+
+@app.get("/continuity/status")
+def continuity_status():
+    from luna.continuity import status
+    return status()
+
+@app.get("/continuity/sessions")
+def continuity_sessions():
+    from luna.continuity import session_cards
+    return session_cards()
+
+@app.get("/continuity/summaries")
+def continuity_summaries(status: str | None = None):
+    from luna.continuity import list_summaries
+    try:
+        return list_summaries(status=status)
+    except ValueError as exc:
+        raise HTTPException(400,str(exc)) from exc
+
+@app.post("/continuity/summaries")
+def continuity_propose(request: ContinuityProposal):
+    from luna.continuity import propose
+    try:
+        return propose(request.session,request.summary,request.tags)
+    except ValueError as exc:
+        raise HTTPException(400,str(exc)) from exc
+
+@app.post("/continuity/summaries/{summary_id}/decision")
+def continuity_decision(summary_id: int, request: ApprovalChoice):
+    from luna.continuity import decide
+    if not decide(summary_id,request.approve):
+        raise HTTPException(409,"Pending continuity summary not found")
+    return {"status":"approved" if request.approve else "rejected"}
+
+@app.post("/continuity/summaries/{summary_id}/revoke")
+def continuity_revoke(summary_id: int):
+    from luna.continuity import revoke
+    if not revoke(summary_id):
+        raise HTTPException(409,"Approved continuity summary not found")
+    return {"status":"revoked"}
+
+@app.get("/continuity/search")
+def continuity_search(q: str, limit: int = 20):
+    from luna.continuity import search_history
+    try:
+        return search_history(q,limit)
+    except ValueError as exc:
+        raise HTTPException(400,str(exc)) from exc
 
 @app.post("/memory/candidates")
 def create_candidate(candidate:Candidate):
@@ -397,51 +696,103 @@ class ChangeDraft(BaseModel):
 
 @app.post("/project/draft-change")
 async def draft_change(request:ChangeDraft):
-    """Create a text-only proposed change. No source files are written."""
+    """Create an unapplied proposal and optionally queue one bounded candidate for isolated validation."""
+    import hashlib
     from pathlib import Path
     from uuid import uuid4
+    from luna.patches import ALLOWED_PATHS,MAX_BYTES
+    from luna.candidate_format import parse as parse_candidate
+    from luna import development_candidates
+
     root=Path(__file__).resolve().parent
-    names=("app.py","luna/core.py","requirements.txt")
     source=[]
-    for name in names:
+    for name in sorted(ALLOWED_PATHS):
         path=root/name
-        if path.is_file() and not path.is_symlink():
-            source.append(name+"\n"+path.read_text(encoding="utf-8")[-12000:])
-    prompt=("Draft a small, precise, UNAPPLIED code change for ORBIT. "
-            "Use the actual source provided. Name the file and show the exact "
-            "replacement or patch. Explain the benefit in two simple sentences. "
-            "Do not claim it has been tested, committed, or applied. Goal: "
-            +request.goal+"\n\n"+"\n\n".join(source))
+        if path.is_file() and not path.is_symlink() and path.stat().st_size<=MAX_BYTES:
+            raw=path.read_bytes()
+            source.append(
+                "ALLOWED FILE: "+name+"\nBASE SHA256: "+hashlib.sha256(raw).hexdigest()+
+                "\nSOURCE:\n"+raw.decode("utf-8"))
+    if not source:
+        raise HTTPException(503,"No editable source is available")
+
+    prompt=(
+        "Draft a small, precise, UNAPPLIED code improvement for ORBIT using only the "
+        "allowlisted source files below. Do not edit app.py, policy, permissions, secrets, "
+        "security boundaries, deployment, networking, or dependencies. Explain the benefit "
+        "briefly. If a concrete source change is appropriate, end your response with exactly "
+        "one machine-readable candidate in this format:\n"
+        "ORBIT_CANDIDATE_START\n"
+        "path: <one ALLOWED FILE path>\n"
+        "base_sha256: <the exact provided BASE SHA256>\n"
+        "```python\n<the COMPLETE replacement file, not a diff>\n```\n"
+        "ORBIT_CANDIDATE_END\n"
+        "Use no other ORBIT_CANDIDATE markers. If you cannot safely produce a complete "
+        "replacement, omit the candidate block. Never claim tests passed, code was applied, "
+        "or a deployment occurred. Goal: "+request.goal+"\n\n" + "\n\n".join(source)
+    )
     session="draft-"+str(uuid4())
     add_message(session,"user",prompt)
     draft=await respond(session,prompt)
     if draft.startswith(("I couldn't reach","Cloud AI needs","Model endpoint blocked")):
         raise HTTPException(503,"Drafting unavailable")
-    summary=draft.split("**Patch",1)[0].split("Patch (",1)[0].strip()
+
+    summary=draft.split("ORBIT_CANDIDATE_START",1)[0].strip()
     if len(summary)>650:
         summary=summary[:647]+"..."
     review=quality_gate(request.goal,draft)
-    # One bounded revision attempt. Never execute or install model-produced text.
+
+    # One bounded revision attempt. Candidate text is still never executed directly.
     if review["status"]=="needs_revision":
         issues=(review["blockers"]+review["warnings"])[:8]
-        revision_prompt=("Revise this UNAPPLIED ORBIT code proposal. Address every issue, "
-                         "show a specific target file and reviewable patch. "
-                         "Do not claim tests passed or code was installed. "
-                         "Keep explicit user approval for permanent memories. "
-                         "Issues: "+repr(issues)+"\\nOriginal goal: "+request.goal+
-                         "\\nOriginal draft:\\n"+draft[:16000])
+        revision_prompt=(
+            "Revise this UNAPPLIED ORBIT code proposal. Address the listed review issues. "
+            "Preserve the exact ORBIT_CANDIDATE envelope format if you provide a candidate, "
+            "use only an allowed file and its supplied base SHA, and provide the complete "
+            "replacement file. Never claim tests passed or code was installed. "
+            "Issues: "+repr(issues)+"\nOriginal goal: "+request.goal+
+            "\nOriginal draft:\n"+draft[:24000])
         revision_session="revision-"+str(uuid4())
         add_message(revision_session,"user",revision_prompt)
-        candidate=await respond(revision_session,revision_prompt)
-        if candidate and not candidate.startswith(("I couldn't reach","Cloud AI needs","Model endpoint blocked")):
-            revised_review=quality_gate(request.goal,candidate)
-            if (len(revised_review["blockers"]),len(revised_review["warnings"])) < (len(review["blockers"]),len(review["warnings"])):
-                draft=candidate
+        revised=await respond(revision_session,revision_prompt)
+        if revised and not revised.startswith(("I couldn't reach","Cloud AI needs","Model endpoint blocked")):
+            revised_review=quality_gate(request.goal,revised)
+            if (len(revised_review["blockers"]),len(revised_review["warnings"])) < (
+                    len(review["blockers"]),len(review["warnings"])):
+                draft=revised
                 review=revised_review
-                summary=draft.split("**Patch",1)[0].split("Patch (",1)[0].strip()[:650]
+                summary=draft.split("ORBIT_CANDIDATE_START",1)[0].strip()[:650]
+
+    queued_candidate=None
+    candidate_rejected=False
+    if not review["blockers"]:
+        try:
+            parsed=parse_candidate(draft)
+            if parsed:
+                queued=development_candidates.create(
+                    root,parsed["path"],parsed["base_sha256"],parsed["replacement"])
+                queued_candidate={
+                    "id":queued["id"],
+                    "created":queued["created"],
+                    "path":parsed["path"],
+                    "validation_only":True,
+                }
+        except (ValueError,UnicodeError,OSError):
+            candidate_rejected=True
+
     task_id=propose_task("Draft change: "+request.goal[:80],draft[:3000])
     draft_id=save_code_draft(request.goal,summary,draft)
-    return {"draft":draft,"summary":summary,"task_id":task_id,"draft_id":draft_id,"quality_gate":review,"applied":False}
+    return {
+        "draft":draft,
+        "summary":summary,
+        "task_id":task_id,
+        "draft_id":draft_id,
+        "quality_gate":review,
+        "candidate":queued_candidate,
+        "candidate_rejected":candidate_rejected,
+        "applied":False,
+        "live_files_changed":False,
+    }
 
 @app.get("/project/health")
 def project_health():
@@ -617,69 +968,41 @@ def review_draft_syntax(draft_id:int):
         raise HTTPException(404,"Draft not found")
     return static_draft_report(draft["content"])
 
-# In-process scheduler: opt-in, bounded read-only checks, no code execution.
+# Compatibility scheduler API backed by the same durable autopilot configuration.
+# There is no second scheduler thread.
 import threading as _threading
-_scheduler_lock=_threading.Lock()
-_scheduler_stop=_threading.Event()
-_scheduler_enabled=False
-_scheduler_thread=None
-
-def _scheduled_checks():
-    global _scheduler_enabled
-    while not _scheduler_stop.wait(1800):
-        with _scheduler_lock:
-            enabled=_scheduler_enabled
-        if not enabled:
-            continue
-        try:
-            health=project_health()
-            try:
-                remote=github_checks()
-                latest=remote["runs"][0] if remote["runs"] else None
-                github_ok=bool(latest and latest["conclusion"]=="success")
-                github_summary=remote["summary"]
-            except Exception:
-                github_ok=False
-                github_summary="GitHub check unavailable"
-            passed=health["passed"]==health["total"] and github_ok
-            summary="Scheduled health "+str(health["passed"])+"/"+str(health["total"])+"; "+github_summary
-            record_agent_run("scheduled_checks","passed" if passed else "attention",summary)
-        except Exception:
-            try:
-                record_agent_run("scheduled_checks","attention","Scheduled check failed; inspect local logs")
-            except Exception:
-                pass
-
-@app.on_event("startup")
-def _start_scheduler():
-    global _scheduler_thread
-    with _scheduler_lock:
-        if _scheduler_thread is None or not _scheduler_thread.is_alive():
-            _scheduler_stop.clear()
-            _scheduler_thread=_threading.Thread(target=_scheduled_checks,daemon=True,name="orbit-maintenance")
-            _scheduler_thread.start()
-
-@app.on_event("shutdown")
-def _stop_scheduler():
-    _scheduler_stop.set()
 
 @app.get("/agent/scheduler")
 def scheduler_status():
-    with _scheduler_lock:
-        return {"enabled":_scheduler_enabled,"interval_minutes":30,
-                "scope":"read_only_health_and_github","persistent":False}
+    from luna import autopilot
+    data=autopilot.status()
+    return {
+        "enabled":data["enabled"],
+        "scope":data["scope"],
+        "persistent":True,
+        "routines":data["routines"],
+        "auto_apply":False,
+        "automatic_cloud_calls":False,
+    }
 
 class SchedulerChoice(BaseModel):
     enabled: bool
 
 @app.post("/agent/scheduler")
 def scheduler_choice(choice:SchedulerChoice):
-    global _scheduler_enabled
-    with _scheduler_lock:
-        _scheduler_enabled=choice.enabled
-    record_agent_run("scheduler_settings","enabled" if choice.enabled else "paused",
-                     "Automatic read-only maintenance "+("enabled" if choice.enabled else "paused"))
-    return scheduler_status()
+    from luna import autopilot
+    result=autopilot.configure(choice.enabled)
+    record_agent_run(
+        "scheduler_settings","enabled" if choice.enabled else "paused",
+        "Durable bounded autopilot "+("enabled" if choice.enabled else "paused"))
+    return {
+        "enabled":result["enabled"],
+        "scope":result["scope"],
+        "persistent":True,
+        "routines":result["routines"],
+        "auto_apply":False,
+        "automatic_cloud_calls":False,
+    }
 
 # Task inbox worker: predefined operations only, no arbitrary model instructions.
 class NewJob(BaseModel):
@@ -739,10 +1062,68 @@ def _process_job(job):
             return ok,result["summary"]
         except HTTPException:
             return False,"GitHub unavailable"
+    if kind=="readiness_check":
+        from pathlib import Path
+        from luna.readiness import snapshot as readiness_snapshot
+        data=readiness_snapshot(Path(__file__).resolve().parent)
+        ok=data["ready_for_dashboard"] and data["ready_for_background_work"]
+        summary=(
+            "Dashboard "+("ready" if data["ready_for_dashboard"] else "blocked")+
+            "; background "+("ready" if data["ready_for_background_work"] else "blocked")+
+            "; model chat "+("ready" if data["ready_for_model_chat"] else "blocked")+
+            "; isolated tests "+("ready" if data["ready_for_isolated_tests"] else "blocked")+
+            "; "+str(len(data["recommendations"]))+" recommendation(s)."
+        )
+        if not ok:
+            from luna.requests import create_request
+            create_request(
+                "issue","high","ORBIT readiness needs attention",
+                "A required local ORBIT readiness gate is blocked.",
+                "Blocked gates: "+", ".join(data["blockers"])[:1200])
+        return ok,summary
+    if kind=="maintenance_audit":
+        from luna.maintenance_audit import audit
+        data=audit()
+        ok=data["status"]!="attention"
+        counts=data["counts"]
+        summary=(
+            "Maintenance "+data["status"]+
+            "; stale running "+str(counts.get("stale_running_jobs",0))+
+            "; stale queued "+str(counts.get("stale_queued_jobs",0))+
+            "; expired grants "+str(counts.get("expired_active_grants",0))+
+            "; stuck dispatches "+str(counts["stuck_dispatches"])+
+            "; high-priority requests "+str(counts["high_priority_requests"])+
+            "; worker stale "+str(counts["worker_stale"])+"."
+        )
+        if not ok:
+            from luna.requests import create_request
+            issues=data.get("issues") or []
+            actionable=[item for item in issues
+                        if isinstance(item,dict) and item.get("code")!="high_priority_request"]
+            codes=sorted({item.get("code","unknown_issue") for item in actionable})
+            if not issues:
+                # Compatibility fallback for older/incomplete diagnostic producers.
+                codes=sorted(name for name,value in counts.items()
+                             if value and name!="high_priority_requests")
+            if codes:
+                priority=("high" if
+                          any(item.get("severity")=="high" for item in actionable)
+                          or counts.get("worker_stale",0)
+                          else "medium")
+                create_request(
+                    "issue",priority,"ORBIT maintenance needs attention",
+                    "Luna found stale or inconsistent local runtime metadata.",
+                    "Issue codes: "+", ".join(codes)[:1200])
+        return ok,summary
     if kind=="development_plan":
         return True,planning_report("DEV-003")
-    if kind=="workshop_draft":
+    if kind in ("workshop_draft","autonomous_draft"):
         import asyncio
+        if kind=="autonomous_draft":
+            from luna.model_autonomy import reserve_calls
+            reservation=reserve_calls(2)
+            if not reservation["allowed"]:
+                return False,"Automatic drafting blocked: "+reservation["reason"]
         proposals=list_improvements()
         if not proposals:
             return False,"Create a roadmap proposal first."
@@ -750,7 +1131,14 @@ def _process_job(job):
         goal=proposal["title"]+": "+proposal["description"]
         result=asyncio.run(draft_change(ChangeDraft(goal=goal[:1000])))
         review=result["quality_gate"]
-        return True,"Prepared unapplied draft #"+str(result["draft_id"])+" for "+proposal["title"]+". Quality: "+review["status"]+"; "+str(len(review["blockers"]))+" blockers, "+str(len(review["warnings"]))+" warnings. No code installed."
+        candidate=result.get("candidate")
+        candidate_note=(" Candidate #"+str(candidate["id"])+" queued for isolated validation."
+                        if candidate else " No structured candidate was queued.")
+        return True,("Prepared unapplied draft #"+str(result["draft_id"])+" for "+
+                     proposal["title"]+". Quality: "+review["status"]+"; "+
+                     str(len(review["blockers"]))+" blockers, "+
+                     str(len(review["warnings"]))+" warnings."+
+                     candidate_note+" No code installed.")
     if kind=="self_improvement":
         proposal=next_improvement()
         if proposal is None:
@@ -759,39 +1147,59 @@ def _process_job(job):
     return False,"Unsupported job"
 
 def _job_worker():
+    from pathlib import Path
     from luna import autopilot
+    from luna.development_worker import run_one as run_development_candidate
+    from luna.worker_heartbeat import beat as worker_beat
+    root=Path(__file__).resolve().parent
+    worker_beat("jobs","idle")
     while not _job_stop.wait(5):
         try:
+            worker_beat("jobs","idle")
             advance_goals()
             autopilot.tick()
             backlog.reconcile()
             backlog.tick()
             job=claim_next()
-            if job is None:
-                continue
-            try:
-                success,result=_process_job(job)
-            except Exception:
-                success,result=False,"Task failed; see server logs"
-            finish_job(job["id"],success,result)
-            record_agent_run("job:"+str(job["id"]),"passed" if success else "attention",result)
+            if job is not None:
+                worker_beat("jobs","working",job["kind"])
+                try:
+                    success,result=_process_job(job)
+                except Exception:
+                    success,result=False,"Task failed; see server logs"
+                finish_job(job["id"],success,result)
+                record_agent_run("job:"+str(job["id"]),"passed" if success else "attention",result)
+                worker_beat("jobs","idle")
+            candidate=run_development_candidate(root)
+            if candidate["state"]!="idle":
+                summary=("Candidate #"+str(candidate["candidate_id"])+" validation: "+
+                         candidate["state"]+"; live source unchanged")
+                record_agent_run("development_candidate",
+                                 "passed" if candidate["state"]=="passed" else "attention",
+                                 summary)
+                worker_beat("jobs","idle")
         except Exception:
+            worker_beat("jobs","attention")
             # Worker remains alive; no remote instructions are ever executed.
             continue
 
-@app.on_event("startup")
 def _start_job_worker():
     global _job_thread
     recover_interrupted()
+    from luna.development_candidates import recover_interrupted as recover_development_candidates
+    from luna.worker_heartbeat import beat as worker_beat
+    recover_development_candidates()
     backlog.reconcile()
     if _job_thread is None or not _job_thread.is_alive():
+        worker_beat("jobs","starting")
         _job_stop.clear()
         _job_thread=_threading.Thread(target=_job_worker,daemon=True,name="orbit-jobs")
         _job_thread.start()
 
-@app.on_event("shutdown")
 def _stop_job_worker():
+    from luna.worker_heartbeat import beat as worker_beat
     _job_stop.set()
+    worker_beat("jobs","stopped")
 
 class BridgeThreadPayload(BaseModel):
     title: str = Field(min_length=3,max_length=120)
@@ -884,6 +1292,55 @@ def control_request_decision(request_id: int, request: TaskDecision):
         raise HTTPException(409,"Request unavailable or decision unsupported")
     return {"status":request.decision,"executed":False}
 
+@app.get("/control/sprint")
+def control_sprint():
+    from luna.sprint import sprint_snapshot
+    from luna.runner_preflight import inspect_runner
+    from luna.isolation_policy import status as isolation_status
+    from luna.runner_activation import status as runner_activation_status
+    return {"sprint":sprint_snapshot(), "runner":inspect_runner(),
+            "isolation":isolation_status(),
+            "runner_activation":runner_activation_status()}
+
+@app.post("/development/autonomy-cycle")
+def development_autonomy_cycle():
+    """Run one bounded review-only Luna development cycle."""
+    tasks=normalize_tasks({"schema_version":1,"tasks":[
+        {"id":"DEV-002","title":"Draft validation","status":"ready",
+         "execution":"planning_only","instructions":""},
+        {"id":"DEV-003","title":"Bounded scheduler","status":"ready",
+         "execution":"planning_only","instructions":""},
+    ]})
+    eligible=[task for task in tasks if task["eligible"] and task["execution"] in ("read_only","planning_only")]
+    if not eligible:
+        return {"state":"waiting","reason":"no_eligible_task","authority":"review_only",
+                "may_apply_code":False,"may_merge":False,"may_expand_permissions":False}
+    task=sorted(eligible,key=lambda item:item["id"])[0]
+    work_product=planning_report(task["id"]) if task["execution"]=="planning_only" else "Read-only inspection selected."
+    return {"state":"prepared","task_id":task["id"],"execution":task["execution"],
+            "work_product":work_product,"requires_verification":True,"requires_review":True,
+            "authority":"review_only","may_apply_code":False,"may_merge":False,
+            "may_expand_permissions":False}
+
+@app.get("/development/apply-readiness")
+def development_apply_readiness():
+    from luna.apply_gate import evaluate
+    from luna.change_guard import prepare_checkpoint
+    from luna.repair import RepairState
+    checkpoint=prepare_checkpoint("luna/development.py","0"*64,"1"*64)
+    state=RepairState(attempts=1,status="ready_for_review",
+                      base_sha256="0"*64,candidate_sha256="1"*64)
+    return evaluate("luna/development.py",state,checkpoint,
+                    isolation_enabled=False,apply_permission=False)
+
+@app.get("/development/planning-context")
+def development_planning_context(title: str = ""):
+    from luna.self_improvement import planning_context
+    try:
+        return planning_context(title)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
 @app.get("/control/activity")
 def control_activity():
     """Read-only snapshot of durable jobs; HTTP polling is not counted as work."""
@@ -895,6 +1352,50 @@ def control_activity():
             "Queued" if counts["queued"] else "Idle")
     return {"status":status,"counts":counts,"recent":recent,
             "limited_to_recent":100,"source":"persisted_work_items"}
+
+@app.get("/control/timeline")
+def control_timeline(limit: int = 100):
+    from luna.activity_timeline import snapshot
+    try:
+        return snapshot(limit)
+    except ValueError as exc:
+        raise HTTPException(400,str(exc)) from exc
+
+@app.get("/control/now")
+def control_now():
+    from luna.activity_timeline import current
+    return current()
+
+@app.get("/control/backups")
+def control_backups():
+    from luna.backup import list_backups
+    return {
+        "backups":list_backups(),
+        "restore_available":False,
+        "restore_mode":"owner_plan_only",
+        "automatic_delete":False,
+    }
+
+@app.post("/control/backups")
+def control_create_backup():
+    from luna.backup import create
+    result=create()
+    return {
+        "filename":result["filename"],
+        "bytes":result["bytes"],
+        "tables":result["tables"],
+        "integrity":result["integrity"],
+        "live_database_modified":False,
+        "restore_performed":False,
+    }
+
+@app.get("/control/backups/{filename}/restore-plan")
+def control_restore_plan(filename: str):
+    from luna.backup import restore_plan
+    try:
+        return restore_plan(filename)
+    except (ValueError,OSError) as exc:
+        raise HTTPException(400,str(exc)) from exc
 
 @app.get("/control/autopilot")
 def control_autopilot_status():
@@ -919,6 +1420,8 @@ def control_overview():
     from luna.bridge import list_threads
     requests = list_requests(open_only=True)
     bridge_pending = [t for t in list_threads() if t["status"] in ("awaiting_relay","awaiting_reply")]
+    from luna.continuity import list_summaries as list_continuity_summaries
+    continuity_pending = list_continuity_summaries("pending")
     proposed = [x for x in list_improvements() if x["status"] == "proposed"]
     tasks = [x for x in list_tasks() if x["status"] == "pending"]
     memories = [x for x in candidates() if x["status"] == "pending"]
@@ -930,11 +1433,11 @@ def control_overview():
     inventory = project_inventory(Path(__file__).resolve().parent)
     return {
         "counts": {"bridge": len(bridge_pending), "requests": len(requests), "improvements": len(proposed), "tasks": len(tasks),
-                   "memories": len(memories), "notes": len(notes),
+                   "memories": len(memories), "continuity": len(continuity_pending), "notes": len(notes),
                    "drafts": len(drafts),
                    "queued_jobs": sum(x["state"] == "queued" for x in work),
                    "attention_jobs": sum(x["state"] == "attention" for x in work)},
-        "requests": requests, "improvements": proposed, "tasks": tasks, "memories": memories,
+        "requests": requests, "improvements": proposed, "tasks": tasks, "memories": memories, "continuity": continuity_pending,
         "notes": notes, "drafts": [
             {"id": d["id"], "goal": d["goal"], "summary": d["summary"],
              "status": d["status"]} for d in drafts],
@@ -993,6 +1496,26 @@ def development_inspect():
     from pathlib import Path
     from luna.development import inspect_source
     return inspect_source(Path(__file__).resolve().parent)
+
+@app.get("/control/readiness")
+def control_readiness():
+    from pathlib import Path
+    from luna.readiness import snapshot
+    try:
+        return snapshot(Path(__file__).resolve().parent)
+    except (ValueError,OSError) as exc:
+        raise HTTPException(500,"Readiness check unavailable") from exc
+
+@app.get("/control/support-snapshot")
+def control_support_snapshot():
+    from pathlib import Path
+    from luna.support_snapshot import build
+    return build(Path(__file__).resolve().parent)
+
+@app.get("/control/maintenance-audit")
+def control_maintenance_audit():
+    from luna.maintenance_audit import audit
+    return audit()
 
 @app.get("/control/diagnostics")
 def control_diagnostics():

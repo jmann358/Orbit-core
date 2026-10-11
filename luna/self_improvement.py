@@ -48,3 +48,22 @@ def decide_improvement(improvement_id, decision):
         cur = db.execute("UPDATE improvement_proposals SET status=? WHERE id=? AND status='proposed'",
                          (decision, improvement_id))
         return cur.rowcount == 1
+
+def planning_context(title, limit=5):
+    """Retrieve approved technical decisions relevant to a proposed improvement.
+
+    Returns supporting context only. Never changes a proposal, permission or source file.
+    """
+    from luna.technical_memory import search_decisions
+    if not isinstance(title,str) or not 3<=len(title.strip())<=120:
+        raise ValueError("Invalid planning title")
+    if type(limit) is not int or not 1<=limit<=10:
+        raise ValueError("Invalid context limit")
+    words=[w.strip(".,:;!?()[]") for w in title.split()]
+    words=[w for w in words if len(w)>=3]
+    matches={}
+    for word in words[:8]:
+        for item in search_decisions(word,limit=limit):
+            matches[item["id"]]=item
+    return {"title":title,"technical_decisions":list(matches.values())[:limit],
+            "source":"approved_technical_memory","automatic_actions":False}

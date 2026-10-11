@@ -44,3 +44,21 @@ def test_disabled_by_default_and_api():
             assert client.post("/agent/backlog",json={"title":"Unauthorized shell","owner":"luna","kind":"shell"}).status_code==400
             assert client.post("/agent/backlog",json={"title":"Check health","owner":"luna","kind":"project_health"}).status_code==200
             assert len(client.get("/agent/backlog").json()["tasks"])==1
+
+
+def test_monitoring_jobs_are_safe_delegation_kinds():
+    with tempfile.TemporaryDirectory() as folder:
+        with patch.object(core,"DB_PATH",Path(folder)/"test.db"):
+            first=backlog.add_task("Check readiness",1,"luna","readiness_check")
+            second=backlog.add_task("Audit maintenance",1,"luna","maintenance_audit")
+            items=backlog.tasks()
+            kinds={item["kind"] for item in items}
+            assert {"readiness_check","maintenance_audit"} <= kinds
+            assert first!=second
+
+def test_task_inbox_exposes_monitoring_jobs():
+    from fastapi.testclient import TestClient
+    from app import app
+    html=TestClient(app).get("/").text
+    assert '<option value="readiness_check">System readiness</option>' in html
+    assert '<option value="maintenance_audit">Maintenance audit</option>' in html

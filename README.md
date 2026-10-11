@@ -1,60 +1,72 @@
 # ORBIT · Luna
 
-ORBIT is a local-first, provider-independent assistant ecosystem. Luna is its conversational coordinator.
+ORBIT is a local-first, provider-independent AI assistant ecosystem. Luna is its central conversational coordinator. The authoritative build/version is stored in `VERSION`.
 
-## Luna 1.0 release candidate — agent core
+## What works now
+- Private localhost FastAPI dashboard with persistent SQLite conversations.
+- Optional replaceable local/cloud model endpoint configured outside the repository.
+- Approval-gated memory suggestions, project notes, technical decisions, and cross-session continuity summaries.
+- Automatic local conversation checkpoints for long chats; cross-session use still requires owner approval.
+- Local history search with sensitivity filtering.
+- Durable allowlisted job queue, goals, backlog, worker restart recovery, and worker heartbeat.
+- Read-only readiness doctor, maintenance audit, unified activity timeline, and sanitized Copy safe status support snapshot.
+- Validated local SQLite backups plus non-destructive restore planning.
+- GitHub Actions regression checks and reviewable sprint/PR workflow.
+- Narrow isolated Podman/Docker regression runner for two allowlisted development modules, with immutable local image ID, no network, read-only host mount, unprivileged user, bounded resources, fixed tests, and temporary test grants.
+- Two-attempt bounded repair validation. Passing tests means ready for review only.
 
-The **Goals** tab supports persisted objectives, owner-reviewed action plans, sequential execution of three allowlisted low-risk tools (local health, GitHub status, development plan), and progress recovery after a restart. Failed/interrupted steps stop the goal for attention; they are never automatically retried. This is a limited agent executor, not general-purpose autonomous computer control.
+## What Luna still cannot do automatically
+- Apply generated code to the live installation.
+- Merge pull requests or deploy production changes.
+- Change security policy, credentials, access, networking, or permissions.
+- Spend money or start paid provider usage.
+- Use arbitrary shell commands/tools selected by a model.
+- Expose ORBIT securely to phone/iPad over the internet.
+- Access an operational owner-only password vault or private watchdog; those require a separate OS-enforced boundary on the final host.
+- Maintain a truly autonomous background ChatGPT ↔ Luna conversation. The current bridge/relay remains bounded and user-mediated.
 
-## Luna’s Design Studio (first self-directed creative assignment)
-
-Open **Development → Luna’s Design Studio** and select **Let Luna redesign ORBIT**. With a configured model connection, Luna receives her current dashboard source and independently produces a saved, reviewable interface redesign proposal, including targeted code suggestions. The proposal is **not** installed or previewed, and no generated code executes. Review the draft before implementing anything. If the model is unavailable, the mission reports an error instead of pretending to finish.
-
-## Current capabilities
-
-- Private localhost FastAPI dashboard and persistent SQLite chat sessions.
-- Optional OpenAI-compatible model connection through environment variables.
-- Approval-gated memory candidates and project notes.
-- **Opt-in memory suggestions**: explicit user statements beginning with “Remember that…” can become pending suggestions; sensitive-looking strings are filtered, repeated suggestions are deduplicated, and approval is required before inclusion in Luna's context. This is a heuristic, not comprehensive privacy protection.
-- Durable allowlisted task inbox with a background worker and restart recovery.
-- Read-only health/GitHub status checks and self-improvement roadmap proposals.
-- Development workshop: drafts **unapplied** code proposals, runs conservative text screening, and can attempt one revision. Saved drafts can be reviewed but are never applied or executed by the workshop.
-- GitHub Actions regression checks.
-
-## Verified update and launch
-
-Stop the currently running server first. From the project directory run `bash scripts/verify_and_launch.sh`. The script pulls only fast-forward changes, backs up the default SQLite database, compiles Python files, runs regression tests, and starts Luna **only if the checks pass**. It requires `pytest` to be installed (`python -m pip install pytest`). If you configured `LUNA_DB_PATH` to a custom location, back up that database separately.
-
-## Start locally
-
-Use Python 3.11+ (GitHub CI tests 3.13).
+## Start safely
+Use Python 3.11+ (GitHub CI currently tests Python 3.13). From the repository:
 
 ```bash
 python -m pip install -r requirements.txt
-python -m pytest -q tests
-python -m uvicorn app:app --host 127.0.0.1 --port 8000
+source .venv/bin/activate
+bash scripts/verify_and_launch.sh
 ```
 
-Open http://127.0.0.1:8000 on the **same machine**. Keep the bind address at 127.0.0.1: there is **no authentication** for remote users yet.
+Then open `http://127.0.0.1:8000` on the same machine.
 
-Configure the model separately using `LUNA_MODEL_URL`, `LUNA_MODEL_NAME`, and `LUNA_API_KEY` in the local environment. Do not commit credentials. SQLite is stored in `luna_local.db` by default; back it up before migrating hosts.
+Useful local tools:
 
-## What is *not* implemented
+```bash
+python scripts/luna_doctor.py
+python scripts/bootstrap_safe_runner.py
+python scripts/watch_luna_activity.py
+```
 
-- Remote phone/iPad access with authentication.
-- Arbitrary agent tool use, model-selected actions, real sandboxed code execution, automated patch application or safe self-deployment.
-- Autonomous source code changes without review.
-- Verified semantic correctness of AI-generated patches.
-- Automatic identification of arbitrary conversational memories. Memory suggestions are intentionally narrow and opt-in.
+`bootstrap_safe_runner.py` requires Podman or Docker and grants only temporary isolated test authority. It does not enable code application or merging.
+
+## Security
+- Keep ORBIT bound to `127.0.0.1`; there is no authenticated remote-access layer yet.
+- Never commit API keys, passwords, or owner-vault material.
+- Sensitive-input screening is conservative but fallible; do not treat it as a password manager.
+- The owner-only vault/watchdog architecture in `SECURITY_BOUNDARIES.md` is a requirement specification, not an operational secure store.
+- Backups may contain private conversation data and should be protected accordingly.
+- Automatic code application remains disabled even when isolated tests pass.
 
 ## Development workflow
+Routine development should remain small, reviewable, and test-driven:
+1. inspect / plan;
+2. prepare bounded change;
+3. static validation;
+4. isolated tests when eligible;
+5. review;
+6. explicit application/merge only when separately authorized;
+7. verify after installation.
 
-Development proposals are drafts, not applied changes. The quality gate flags some common issues but **cannot** certify security, functionality, or syntax of unified diffs. GitHub CI validates repository code, not generated draft patches. Routine changes should be batched, reviewed and tested before installing locally.
-
-See [architecture](docs/ARCHITECTURE.md), [decisions](docs/DECISIONS.md), and [development policy](DEVELOPMENT_POLICY.md).
-
-## Development backlog and overnight delegation (foundation)
-
-The local API now has `GET/POST /agent/backlog` and `GET/POST /agent/overnight`. Backlog items have priority (1 essential, 2 next, 3 later), owner (human/assistant/luna), and an optional **allowlisted** job kind for Luna. Overnight delegation is **off by default**, persists in SQLite, dispatches at most the configured number of jobs per UTC day, and pauses at its configured model-token budget. The worker reconciles completed jobs and flags interrupted dispatches for attention.
-
-Example local-only calls: `POST /agent/backlog` with `{"title":"Check project health","priority":1,"owner":"luna","kind":"project_health"}`; `POST /agent/overnight` with `{"enabled":true,"max_jobs":3,"max_model_tokens":0}`. Zero token cap currently means no token-budget enforcement, **not** zero AI usage. **Model token accounting is not yet connected to provider responses**; do not enable AI-generating unattended jobs until real accounting and request limits are implemented. Current unattended kinds are read-only checks and proposal generation, not code execution or deployment. This is an initial foundation, not an isolated code-writing sandbox, secrets vault, or full overnight autonomous coding agent. Keep the device awake and the worker running.
+Current project references:
+- `docs/ARCHITECTURE.md` — implemented boundaries and future deployment model.
+- `docs/RUN.md` — local launch, doctor, runner, activity feed, and security rules.
+- `SPRINT_PLAN.md` — current safe-development status and gates.
+- `DEVELOPMENT_POLICY.md` — owner-approved development decision boundaries.
+- `SECURITY_BOUNDARIES.md` — future vault/watchdog threat model and sensitive intake requirements.

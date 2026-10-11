@@ -1,0 +1,9 @@
+FROM python:3.13-slim
+
+RUN python -m pip install --no-cache-dir \
+    "fastapi>=0.115,<1" \
+    "uvicorn>=0.30,<1" \
+    "httpx>=0.27,<1" \
+    pytest
+
+WORKDIR /workspace

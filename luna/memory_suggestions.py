@@ -1,9 +1,10 @@
 """Privacy-first, optional memory suggestions. No model calls or auto-approval."""
 import re
 from luna import core
+from luna.sensitivity_policy import classify
 
 BLOCKED = re.compile(r"(?i)\b(?:password|passcode|api[_ -]?key|secret token|social security|ssn|credit card|bank account|medical diagnosis|medication|suicid|self.harm)\b|\b(?:\d[ -]*?){13,19}\b|[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")
-CUE = re.compile(r"(?i)^\s*(?:please\s+)?(?:remember(?:\s+that)?|keep in mind(?:\s+that)?|for future reference[, :]*)\s*[:,-]?\s*(.+)$", re.S)
+CUE = re.compile(r"(?i)^\s*(?:please\s+)?(?:remember(?:\s+that)?|keep in mind(?:\s+that)?|for future reference[, :]*)\s*[:,]?\s*(.+)$", re.S)
 
 def enabled():
     with core.connect() as db:
@@ -21,11 +22,15 @@ def suggest_from_user_message(message):
     """Only explicit user requests, and only with prior opt-in; returns pending id or None."""
     if not enabled() or not isinstance(message,str) or len(message)>600:
         return None
+    if classify(message)["sensitive"]:
+        return None
     match=CUE.match(message.strip())
     if not match:
         return None
     candidate=match.group(1).strip().rstrip(".")
     if len(candidate)<12 or len(candidate)>350 or BLOCKED.search(candidate):
+        return None
+    if classify(candidate)["sensitive"]:
         return None
     with core.connect() as db:
         row=db.execute("SELECT id FROM memory_candidates WHERE lower(content)=lower(?) LIMIT 1",(candidate,)).fetchone()

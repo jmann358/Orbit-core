@@ -1,32 +1,71 @@
-# Running Luna 0.1 locally (Mac or computer with Python 3.10+)
+# Running ORBIT · Luna locally
 
-This phase stores code in GitHub only. Running it requires a Python environment. It does **not** run inside the GitHub iPad app.
+The current build is a local-first development system. The authoritative version is stored in the repository `VERSION` file.
 
-1. Clone the repository and open a terminal in the project directory.
-2. Create and activate a Python virtual environment: `python3 -m venv .venv && source .venv/bin/activate`
-3. Install dependencies: `pip install -r requirements.txt`
-4. Start Luna: `uvicorn app:app --host 127.0.0.1 --port 8000`
-5. On that same computer, open `http://127.0.0.1:8000`.
-
-Without a model configured, Luna responds with a setup notice. To connect a **local** OpenAI-compatible model endpoint, set `LUNA_MODEL_URL` (including /v1) and `LUNA_MODEL_NAME` before launching.
-
-**Security:** This is a local development prototype with no authentication. Never expose port 8000 publicly, use port forwarding, or bind to 0.0.0.0. Cloud memory and remote access are not yet implemented. Do not put secrets or personal conversation data into GitHub.
-
-## Optional cloud AI (opt-in)
-
-Cloud AI is not enabled automatically. A supported provider is needed, and free-tier limits and availability vary. Start with Groq if its free developer tier is available to your account. Sign up directly at https://console.groq.com/keys and create an API key. Never paste the key into chat or commit it to GitHub.
-
-On Linux, from the Orbit-core folder with the virtual environment activated:
+## Recommended verified launch
+From the repository directory:
 
 ```bash
-git pull
-export LUNA_MODEL_URL="https://api.groq.com/openai/v1"
-export LUNA_MODEL_NAME="YOUR_AVAILABLE_GROQ_MODEL_ID"
-read -rsp "Paste your API key (hidden): " LUNA_API_KEY; echo
-export LUNA_API_KEY
-uvicorn app:app --host 127.0.0.1 --port 8000
+source .venv/bin/activate
+bash scripts/verify_and_launch.sh
 ```
 
-Replace YOUR_AVAILABLE_GROQ_MODEL_ID with a currently available chat model ID listed in your provider dashboard. These environment variables apply only to this terminal session; the key is not written to a file or GitHub. Cloud model requests transmit up to 20 recent messages from the current session to the chosen provider. Review the provider's privacy and retention policies before sending sensitive information. Never expose this unauthenticated prototype to the public internet. The database remains local, not in the cloud.
+The verified launcher refuses dirty tracked source, pulls only fast-forward changes, creates a local database backup when applicable, compiles Python, runs the regression suite, and starts Luna on `127.0.0.1:8000` only if verification succeeds.
 
-Other supported OpenAI-compatible HTTPS endpoints include api.openai.com, api.together.xyz, and openrouter.ai, subject to their own accounts, pricing, API paths and model IDs. Free use is not guaranteed. Local HTTP models on localhost remain supported.
+Open `http://127.0.0.1:8000` on the same computer.
+
+## Read-only readiness doctor
+To see what is ready or blocked without changing anything:
+
+```bash
+source .venv/bin/activate
+python scripts/luna_doctor.py
+```
+
+Use `python scripts/luna_doctor.py --json` for the safe machine-readable form. The doctor reports capability state, not credentials.
+
+## Isolated regression runner
+The narrow Luna code-validation runner uses a locally built immutable container image and a temporary `run_tests` grant. Podman is the preferred current runtime.
+
+After installing Podman once, bootstrap/re-verify the isolated runner with:
+
+```bash
+source .venv/bin/activate
+python scripts/bootstrap_safe_runner.py
+```
+
+A successful result must report a passed smoke test, `live_files_changed: false`, `auto_apply: false`, and `merge_allowed: false`.
+
+## Optional terminal activity feed
+While the ORBIT server is running:
+
+```bash
+python scripts/watch_luna_activity.py
+```
+
+This polls only the localhost sanitized activity timeline. It does not expose conversation bodies, code candidate contents, credentials, vault data, or private watchdog data.
+
+## Dashboard tools
+- Overview: readiness, maintenance audit, validated local backup controls, pending decisions, and Copy safe status.
+- Activity: current worker state and privacy-filtered durable activity metadata.
+- Memory: approval-gated memory suggestions plus reviewable conversation-continuity checkpoints and local history search.
+- Sprint/Development: technical planning context, bounded draft review, GitHub checks, and isolated validation status.
+- Testing: local health and fixed-scope regression checks.
+
+## Model configuration
+Without a model configured, persistence, readiness, memory review, local diagnostics, and other deterministic tools still work.
+
+For a local OpenAI-compatible endpoint, set `LUNA_MODEL_URL` and `LUNA_MODEL_NAME` before launch. Localhost HTTP is allowed by policy. For a supported HTTPS cloud provider, also provide `LUNA_API_KEY` in the local environment; never commit it or paste it into project memory.
+
+Unattended model drafting is separately gated and local-endpoint-only. Automatic cloud model calls are not authorized by that gate.
+
+## Security rules
+- Keep the server bound to `127.0.0.1`; authenticated remote phone/iPad access is not implemented yet.
+- Do not port-forward or publicly expose this dashboard.
+- Sensitive-looking chat payloads are blocked before ordinary Luna persistence/model handling where the current classifier detects them, but classification is not perfect.
+- The owner-only credential/sensitive-information vault is **not operational yet**. Do not use the repository or Luna SQLite database as a password manager.
+- The private watchdog contract exists, but true Luna-blind storage still requires OS-level isolation on the final host.
+- Generated code may be drafted and narrowly validated, but automatic live-source application and automatic merge remain disabled.
+
+## Local backups
+The dashboard/launcher can create validated local SQLite backups. Restore is planning-only: do not overwrite the live database while Luna is running. Keep backup storage private because it may contain conversation data.

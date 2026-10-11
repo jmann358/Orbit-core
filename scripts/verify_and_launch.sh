@@ -9,9 +9,8 @@ fi
 git pull --ff-only
 mkdir -p backups
 if [ -f luna_local.db ]; then
-  stamp="$(date -u +%Y%m%dT%H%M%SZ)"
-  cp -p luna_local.db "backups/luna_local-$stamp.db"
-  echo "Backed up local database."
+  backup_name="$(python scripts/backup_luna.py --quiet)"
+  echo "Validated local database backup: $backup_name"
 fi
 python -m compileall -q app.py luna tests
 if ! python -m pytest -q -p no:cacheprovider tests; then

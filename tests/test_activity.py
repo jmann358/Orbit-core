@@ -33,4 +33,6 @@ def test_activity_page_contains_all_three_views():
     assert 'id="activity-nav-status"' in html
     assert 'id="activity-feed"' in html
     assert 'id="activity-history"' in html
-    assert "setInterval(refreshActivity,10000)" in html
+    assert 'id="activity-now"' in html
+    assert "/control/now" in html
+    assert "setInterval(()=>{if(!document.hidden)refreshActivity()},3000)" in html
