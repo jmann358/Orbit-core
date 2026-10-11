@@ -268,3 +268,15 @@ def test_long_chat_messages_do_not_break_enabled_recall():
                     httpx.AsyncClient, "post", fake_post):
                 set_settings(True, False)
                 assert asyncio.run(core.respond("current", long_message)) == "Still here"
+
+
+def test_internal_agent_sessions_are_not_recalled_as_user_history():
+    with tempfile.TemporaryDirectory() as folder:
+        db = Path(folder) / "luna.db"
+        with patch.object(core, "DB_PATH", db):
+            core.add_message("plan-task-example", "user", "internal telescope command")
+            core.add_message("luna-design-example", "assistant", "internal telescope output")
+            core.add_message("real-chat", "user", "I like telescope diagrams")
+            found = recall(db, "real-chat", "telescope")
+            assert len(found) == 1
+            assert found[0]["session"] == "real-chat"
