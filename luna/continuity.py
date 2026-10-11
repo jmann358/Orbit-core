@@ -15,6 +15,7 @@ STOP = frozenset(
 MAX_SCAN = 2000
 MAX_EXCERPT = 700
 MAX_CHARS = 3500
+INTERNAL_SESSION_PREFIXES = ("plan-", "draft-", "revision-", "review-", "luna-design-")
 
 
 def _terms(text):
@@ -57,6 +58,8 @@ def recall(db_path, session, query, limit=5, *, exclude_ids=(), other_sessions=T
             ).fetchall()
     found = []
     for ident, origin, role, content, created in rows:
+        if origin.startswith(INTERNAL_SESSION_PREFIXES):
+            continue
         if ident in skipped:
             continue
         fragment = content[:MAX_EXCERPT]
