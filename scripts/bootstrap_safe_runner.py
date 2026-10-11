@@ -11,14 +11,18 @@ import os
 import shutil
 import subprocess
 import tempfile
+import sys
 from pathlib import Path
+
+ROOT=Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0,str(ROOT))
 
 from luna.permissions import grant
 from luna.runner_config import approve_image
 from luna.runner_executor import run_fixed
 from luna.runner_preflight import inspect_runner
 
-ROOT=Path(__file__).resolve().parents[1]
 TAG="orbit-luna-test:local"
 REMOTE_ENV=("DOCKER_HOST","DOCKER_CONTEXT","CONTAINER_HOST","CONTAINER_CONNECTION")
 
