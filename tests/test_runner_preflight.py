@@ -4,6 +4,8 @@ def test_runner_preflight_is_fail_closed():
     result=inspect_runner()
     assert result["isolated_tests_enabled"] is False
     assert result["draft_execution_enabled"] is False
+    assert result["runner"]=="container"
+    assert result["runtime_candidates"]==["podman","docker"]
     assert result["network_policy"].startswith("deny")
     assert "disposable writable workspace" in result["filesystem_policy"]
     assert result["time_limit_seconds"]==30
