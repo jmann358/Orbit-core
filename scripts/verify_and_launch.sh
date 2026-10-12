@@ -14,7 +14,7 @@ if [ "$(git branch --show-current)" != "main" ]; then
   exit 1
 fi
 verify_ci_commit() {
-  ORBIT_EXPECTED_SHA="$1" python - <<'PY'
+  ORBIT_EXPECTED_SHA="$1" python -I - <<'PY'
 import json
 import os
 import sys
@@ -52,6 +52,13 @@ PY
 }
 verify_ci_commit "$(git rev-parse HEAD)"
 
+# FETCH ONLY: this never checks out or executes newly fetched source.
+# Pin the exact remote main revision before inspecting its existing CI
+# evidence; do not check out a SHA that has not passed isolated CI.
+git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+verified_target="$(git rev-parse refs/remotes/origin/main)"
+verify_ci_commit "$verified_target"
+
 # This backup must run with the previously reviewed and CI-verified source.
 # Never import newly pulled, unverified application modules while the
 # owner's memory database is accessible.
@@ -67,9 +74,14 @@ else:
     print("No existing database to back up.")
 PY
 
-# Newly pulled tests run in isolated GitHub Actions, NOT on the owner's host
-# with live memory, GitHub permissions or model credentials.
-git pull --ff-only
+# Advance only to the pinned SHA whose successful CI was checked above.
+# Never use git pull to check out a moving remote before verification.
+# Generated tests are run in isolated GitHub Actions, not with owner secrets.
+git merge --ff-only "$verified_target"
+if [ "$(git rev-parse HEAD)" != "$verified_target" ]; then
+  echo "Checked-out revision changed unexpectedly; refusing launch." >&2
+  exit 1
+fi
 verify_ci_commit "$(git rev-parse HEAD)"
 echo "Starting Luna on localhost only."
 exec python -m uvicorn app:app --host 127.0.0.1 --port 8000
