@@ -277,11 +277,14 @@ def status():
     agents = list_agents()
     tasks = list_tasks()
     from luna.developer_model import configuration
+    from luna import helper_consent
     model = configuration()
     return {
         "agents": agents, "tasks": tasks,
         "model_ready_unverified": model["ready"],
         "model_transport": model["transport"],
+        "model_option": helper_consent.provider(),
+        "task_model_consent_ids": helper_consent.approved_task_ids(),
         "worker_runs_inside_luna": True,
         "arbitrary_tools": False,
         "automatic_model_budget_daily": MODEL_CALLS_PER_DAY,
@@ -317,16 +320,25 @@ def _claim():
                            "result='Agent permissions no longer match task',updated_at=? "
                            "WHERE id=?", (_now(), ident))
                 continue
+            oneoff = False
             if kind in MODEL_TASKS:
-                if budget >= MODEL_CALLS_PER_DAY or not _model_ready():
+                if budget >= MODEL_CALLS_PER_DAY:
                     continue
-                # Charge before the call. A crash cannot silently replay it.
+                if not _model_ready():
+                    from luna import helper_consent
+                    if not helper_consent.eligible_in_db(db, ident):
+                        continue
+                    # Reserve this single previously-approved call in the same
+                    # claim transaction. A crash must never silently retry it.
+                    helper_consent.consume_in_db(db, ident)
+                    oneoff = True
                 db.execute("UPDATE custom_agent_budget SET used=used+1 WHERE id=1")
                 budget += 1
             db.execute("UPDATE custom_agent_tasks SET status='running',updated_at=? "
                        "WHERE id=? AND status='queued'", (_now(), ident))
             return {"id": ident, "agent_id": agent_id, "kind": kind,
-                    "instruction": instruction, "template": template}
+                    "instruction": instruction, "template": template,
+                    "oneoff": oneoff}
     return None
 
 
@@ -359,8 +371,13 @@ def run_one():
         else:
             from luna.custom_agent_model import ask_agent
             import asyncio
-            result = asyncio.run(ask_agent(claimed["template"], claimed["kind"],
-                                           claimed["instruction"]))
+            if claimed["oneoff"]:
+                result = asyncio.run(ask_agent(
+                    claimed["template"], claimed["kind"], claimed["instruction"],
+                    approved_task_id=claimed["id"]))
+            else:
+                result = asyncio.run(ask_agent(
+                    claimed["template"], claimed["kind"], claimed["instruction"]))
             success = True
     except Exception:
         # Never log raw provider errors, secrets, or file content.
