@@ -119,6 +119,7 @@ def pending():
                   ]))
 
     model_choice = mission_consent.snapshot()
+    dev_model_enabled = developer_agent.status(core.DB_PATH)["model"]["ready"]
     for mission in developer_agent.list_missions():
         if mission["state"] == "review":
             add(_item("code_review", mission["id"],
@@ -126,7 +127,7 @@ def pending():
                       mission["summary"] or mission["path"], "major",
                       [_link("Inspect diff (unapplied)", "/agent/studio")]))
         elif (mission["state"] == "queued" and mission["source"] == "owner"
-              and not developer_agent.status(core.DB_PATH)["model"]["ready"]):
+              and not dev_model_enabled):
             consent = mission_consent.info(core.DB_PATH, mission["id"])
             if not consent["recorded"] and model_choice["available"]:
                 add(_item("development_model", mission["id"],
