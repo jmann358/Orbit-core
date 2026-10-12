@@ -28,7 +28,7 @@ SYSTEM = (
 )
 
 
-async def ask_agent(template, kind, instruction):
+async def ask_agent(template, kind, instruction, *, approved_task_id=None):
     if template not in TEMPLATES or kind not in MODEL_TASKS:
         raise ValueError("Unsupported helper task.")
     if kind not in TEMPLATES[template]["capabilities"]:
@@ -37,7 +37,23 @@ async def ask_agent(template, kind, instruction):
         raise ValueError("Instruction is too long.")
     cfg = configuration()
     if not cfg["ready"]:
-        raise RuntimeError("Model not explicitly enabled.")
+        # An owner may authorize exactly one helper model request using
+        # Luna's existing chat connection, without global cloud opt-in.
+        from luna import helper_consent
+        from luna.mission_consent import snapshot
+        if (type(approved_task_id) is not int
+                or not helper_consent.permitted_running(approved_task_id)):
+            raise RuntimeError("Model not explicitly enabled for this helper task.")
+        allowed = snapshot()
+        if not allowed["available"]:
+            raise RuntimeError("Approved helper model is unavailable.")
+        cfg = {
+            "ready": True, "transport": allowed["transport"],
+            "gemini_native": (
+                allowed["provider"] == "generativelanguage.googleapis.com"
+                and allowed["endpoint"].endswith("/v1beta")
+            ),
+        }
     if kind == "code_review":
         try:
             source = SOURCE_PATH.read_text(encoding="utf-8")[:MAX_INPUT]
