@@ -1,10 +1,15 @@
-## Current Luna version: pojo.1
+## Current Luna version: pojo.2
 
-The application identifier shown in Luna's dashboard, browser title, and
-`/version` endpoint is **pojo.1**. This is an owner-chosen label, not a
-semantic-version number; it does not change any runtime permissions,
-capabilities, model settings, or deployment status. The earlier proposed
-`1.1.2.3` identifier was superseded.
+Luna uses the owner's sequential release labels: **pojo.1 → pojo.2 → pojo.3**.
+The current, published app label is **pojo.2**; **pojo.3** is reserved for
+the next deliberately approved release, not automatically assigned to a
+random Git commit. See `docs/LUNA_RELEASES.md` for the actual release history.
+
+Update the single `VERSION` value in `luna/release.py` when intentionally
+cutting a new release. The dashboard, browser title, and `/version` API
+read that same value so they cannot drift. The earlier proposed
+`1.1.2.3` naming scheme was superseded. Changing the version label
+alone does not grant permissions, deploy software, or add capabilities.
 
 ## Approve one AI code draft from Luna, not another terminal session
 
