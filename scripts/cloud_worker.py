@@ -56,28 +56,37 @@ def handlers():
 
 
 _next_backup_check = 0.0
+_backup_blocked = False
 
 
 def _service_backup_tick():
-    """Keep private recovery snapshots current even with no browser open."""
-    global _next_backup_check
+    """Stop unattended work until a required recovery snapshot succeeds."""
+    global _next_backup_check, _backup_blocked
     if os.environ.get("LUNA_SERVICE_MODE") != "1":
-        return
+        return True
     now = time.monotonic()
     if now < _next_backup_check:
-        return
-    _next_backup_check = now + 3600
+        return not _backup_blocked
     try:
         from luna.backup_schedule import maybe_backup
-        maybe_backup(db_path(), root=ROOT)
+        result = maybe_backup(db_path(), root=ROOT)
     except (ValueError, OSError):
-        # Never print source database paths or private records into service logs.
-        print("Luna's local automatic backup needs attention.", file=sys.stderr,
-              flush=True)
+        # Do not run model tasks or alter the queue after a backup failure.
+        _backup_blocked = True
+        _next_backup_check = now + 60
+        print("Luna's private local backup failed; worker suspended.",
+              file=sys.stderr, flush=True)
+        return False
+    _backup_blocked = False
+    _next_backup_check = now + (
+        60 if result.get("reason") == "new_database" else 3600
+    )
+    return True
 
 
 def run_once():
-    _service_backup_tick()
+    if not _service_backup_tick():
+        return None
     maybe_queue_automatic(db_path())
     return process_one(db_path(), handlers())
 
