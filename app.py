@@ -391,7 +391,12 @@ async function refreshGoals(){
      const summary=document.createElement('summary');summary.textContent='Progress, outcomes and audit';
      const content=document.createElement('div');details.append(summary,content);
      details.addEventListener('toggle',()=>{if(details.open)renderGoalDetails(g,content)});
-     card.append(details);target.append(card);
+     card.append(details);
+     const receiptLink=document.createElement('a');
+     receiptLink.href='/agent/goals/'+g.id+'/receipt';
+     receiptLink.textContent='Open saved goal receipt #'+g.id;
+     receiptLink.setAttribute('aria-label','Open goal '+g.id+' result and audit receipt');
+     card.append(receiptLink);target.append(card);
      if(expanded.has(String(g.id))){details.open=true}
    }
  }catch(e){target.textContent='Goals unavailable: '+e.message}
@@ -760,6 +765,13 @@ form.onsubmit=async event=>{
    }else{
     show('Luna',result.reply||'No response received');
     setLunaMood('happy');status.textContent='Reply saved to this conversation.';
+    if(result.job_id && result.receipt_url){
+     const item=document.createElement('p');
+     const link=document.createElement('a');
+     link.href=result.receipt_url;
+     link.textContent='Open task #'+result.job_id+' live result and audit trail';
+     item.append(link);log.append(item);
+    }
     if(result.mission_id){
      const missionId=result.mission_id;
      const item=document.createElement('p');
@@ -1055,7 +1067,7 @@ async def chat(request:Chat):
         work_result = handle_workflow(workflow)
         reply = work_result["reply"]
         kind = work_result["kind"]
-        action_metadata = {k: work_result[k] for k in ("mission_id", "job_id")
+        action_metadata = {k: work_result[k] for k in ("mission_id", "job_id", "receipt_url")
                            if k in work_result}
     else:
         routed=route_chat_job(request.message)
@@ -1063,6 +1075,8 @@ async def chat(request:Chat):
             job_id=create_job(routed["kind"],routed["title"])
             reply="I queued "+routed["title"]+" as task #"+str(job_id)+". My worker will process it shortly. Check Approvals → Task inbox for the result."
             kind="queued_task"
+            action_metadata = {"job_id":job_id,
+                               "receipt_url":"/agent/jobs/"+str(job_id)+"/receipt"}
         else:
             reply=await respond(request.session,request.message)
             from luna.model_connection import is_operational_notice
@@ -1507,6 +1521,15 @@ def agent_job_events(job_id:int):
     if get_job(job_id) is None:
         raise HTTPException(404, "Job not found")
     return {"id":job_id,"events":list_events(job_id),"read_only":True}
+
+
+@app.get("/agent/jobs/{job_id}/receipt")
+def agent_job_receipt(job_id:int):
+    from luna.receipts import job_receipt
+    receipt=job_receipt(job_id)
+    if receipt is None:
+        raise HTTPException(404,"Job not found")
+    return receipt
 
 
 @app.post("/agent/jobs/{job_id}/retry")
@@ -2014,6 +2037,15 @@ def agent_goal_report(goal_id:int):
     if report is None:
         raise HTTPException(404,"Goal not found")
     return report
+
+
+@app.get("/agent/goals/{goal_id}/receipt")
+def agent_goal_receipt(goal_id:int):
+    from luna.receipts import goal_receipt
+    receipt=goal_receipt(goal_id)
+    if receipt is None:
+        raise HTTPException(404,"Goal not found")
+    return receipt
 
 
 class AgentGoalControl(BaseModel):
