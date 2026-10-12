@@ -25,6 +25,8 @@ from luna.visual_studio_api import router as visual_studio_router
 app.include_router(visual_studio_router)
 from luna.custom_agent_api import router as custom_agent_router
 app.include_router(custom_agent_router)
+from luna.approval_center_api import router as approval_center_router
+app.include_router(approval_center_router)
 
 class Chat(BaseModel):
     session: str = Field(default="default",max_length=100)

@@ -165,8 +165,7 @@ def style_for(value):
 html.visual-focus:not(.visual-show-all) #main-nav button[data-tab="bridge"],
 html.visual-focus:not(.visual-show-all) #main-nav button[data-tab="ecosystem"],
 html.visual-focus:not(.visual-show-all) #main-nav button[data-tab="development"],
-html.visual-focus:not(.visual-show-all) #main-nav button[data-tab="testing"],
-html.visual-focus:not(.visual-show-all) #main-nav button[data-tab="approvals"]{display:none!important}"""
+html.visual-focus:not(.visual-show-all) #main-nav button[data-tab="testing"]{display:none!important}"""
     return f"""
 :root{{--ink:{c['text']};--muted:{c['muted']};--line:{c['border']};--paper:{c['surface']};--accent:{c['accent']}}}
 html body{{background:{c['background']};color:{c['text']};max-width:{d['max_width']}px;padding:16px}}

@@ -100,7 +100,8 @@ def test_dashboard_opens_on_focus_and_retains_all_original_controls():
         with patch.object(core, "DB_PATH", Path(folder) / "db.sqlite"):
             client = TestClient(app)
             html = client.get("/").text
-            assert "One thing at a time." in html
+            assert "<h2>Overview</h2>" in html
+            assert "Pending approvals" in html
             assert 'id="focus-primary"' in html
             assert 'id="focus-why"' in html
             assert 'title="Why Luna recommends this"' in html
@@ -165,8 +166,8 @@ def test_frontend_uses_text_content_no_generated_html_injection():
     assert "innerHTML" not in FOCUS_SCRIPT
     assert ".textContent" in FOCUS_SCRIPT
     assert "next.why" in FOCUS_SCRIPT
-    assert "focus-target-review" in FOCUS_SCRIPT
-    assert "await loadControl()" in FOCUS_SCRIPT
+    assert "openLunaApprovals" in FOCUS_SCRIPT
+    assert "selectTab('approvals')" in FOCUS_SCRIPT
 
 
 def test_embedded_focus_javascript_is_parseable_when_node_available():
