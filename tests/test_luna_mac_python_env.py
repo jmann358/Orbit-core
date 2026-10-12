@@ -43,4 +43,4 @@ def test_existing_supported_venv_may_install_project_dependencies():
              patch.object(setup, "run") as install:
             assert setup.prepare_python() == python
             assert install.call_args.args[0] == str(python)
-            assert install.call_args.args[0][2:4] == ("pip", "install")
+            assert install.call_args.args[2:4] == ("pip", "install")
