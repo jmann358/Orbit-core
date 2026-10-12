@@ -320,10 +320,17 @@ async def respond(session, message):
                           "contents": contents},
                 )
                 response.raise_for_status()
-                parts = response.json()["candidates"][0]["content"]["parts"]
+                data = response.json()
+                parts = data["candidates"][0]["content"]["parts"]
                 answer = "".join(part.get("text", "") for part in parts)
                 if not answer:
                     raise ValueError("Empty Gemini response")
+                try:
+                    from luna.model_usage import record
+                    record(parsed.hostname, model, "cloud", data, "gemini")
+                except Exception:
+                    # Telemetry must never block an otherwise successful reply.
+                    pass
                 return answer
             response = await client.post(
                 endpoint + "/chat/completions",
@@ -331,7 +338,17 @@ async def respond(session, message):
                 json={"model": model, "messages": messages, "stream": False},
             )
             response.raise_for_status()
-            return response.json()["choices"][0]["message"]["content"]
+            data = response.json()
+            answer = data["choices"][0]["message"]["content"]
+            try:
+                from luna.model_usage import record
+                record(parsed.hostname, model, "cloud" if cloud else "local",
+                       data, "openai_compatible")
+            except Exception:
+                # Unknown usage is not treated as free, and logging never
+                # changes a successful model response into an error.
+                pass
+            return answer
     except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as exc:
         journal("Model request failed: " + type(exc).__name__)
         return "I couldn't reach my configured AI model. Check the provider, model, key, and free-tier limits."
