@@ -1602,23 +1602,40 @@ def _process_job(job):
 def _job_worker():
     from luna import autopilot, jobs
     from luna.job_operations import run_once
-    while not _job_stop.wait(5):
-        try:
-            # The persisted pause switch covers both automatic scheduling
-            # and execution of queued work. It never stops a running handler.
-            if not jobs.worker_status()["enabled"]:
+    from luna.worker_heartbeat import beat
+    # Heartbeats only record execution metadata from the actual worker
+    # thread. They do not prove real-world work or grant extra authority.
+    try:
+        beat("starting")
+        while not _job_stop.wait(5):
+            try:
+                # A disabled worker is alive but deliberately paused.
+                if not jobs.worker_status()["enabled"]:
+                    beat("paused")
+                    continue
+                beat("working")
+                advance_goals()
+                autopilot.tick()
+                backlog.reconcile()
+                backlog.tick()
+                run_once(_process_job)
+                # Route stopped goals to the local approval inbox once.
+                from luna.goal_escalations import tick as escalate_goals
+                escalate_goals()
+                beat("idle")
+            except Exception:
+                # Existing conservative policy: do not execute remote fixes
+                # or invent a success receipt after an interrupted cycle.
+                try:
+                    beat("attention")
+                except Exception:
+                    pass
                 continue
-            advance_goals()
-            autopilot.tick()
-            backlog.reconcile()
-            backlog.tick()
-            run_once(_process_job)
-            # Route stopped goals to the local approval inbox once.
-            from luna.goal_escalations import tick as escalate_goals
-            escalate_goals()
+    finally:
+        try:
+            beat("stopped")
         except Exception:
-            # Worker remains alive; no remote instructions are ever executed.
-            continue
+            pass
 
 @app.on_event("startup")
 def _start_job_worker():
