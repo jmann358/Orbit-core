@@ -48,5 +48,5 @@ def test_dashboard_starts_with_only_one_visible_panel():
     from fastapi.testclient import TestClient
     from app import app
     html = TestClient(app).get("/").text
-    assert 'id="tab-chat" class="tab-panel active"' in html
+    assert 'id="tab-home" class="tab-panel active"' in html
     assert html.count('class="tab-panel active"') == 1
