@@ -222,7 +222,7 @@ def main(argv=None):
             )
             print("LaunchAgent registered:", registered)
             print("Process and worker health: unverified by this registration "
-                  "check; inspect Luna\'s dashboard and recent worker activity.")
+                  "check; inspect Luna's dashboard and recent worker activity.")
     except (ValueError, OSError, subprocess.TimeoutExpired) as exc:
         print(str(exc), file=sys.stderr)
         return 1
