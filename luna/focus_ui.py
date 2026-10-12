@@ -5,9 +5,7 @@ Only changes browser presentation; no backend permissions or job execution.
 """
 
 FOCUS_HOME = """<div class="focus-top">
-  <p class="focus-eyebrow">LUNA / YOUR CONTROL ROOM</p>
-  <h2>One thing at a time.</h2>
-  <p>See what Luna needs, what she's working on, and what you both decided.</p>
+  <h2>Overview</h2>
 </div>
 <section id="focus-hero" aria-labelledby="focus-title">
   <div class="focus-heading"><span id="focus-label">Checking what matters most…</span>
@@ -37,23 +35,24 @@ FOCUS_HOME = """<div class="focus-top">
 <nav class="focus-shortcuts" aria-label="Everyday actions">
   <button id="focus-talk" type="button" class="focus-secondary"
     title="Open your saved conversations with Luna">Talk to Luna</button>
-  <a href="/agents" title="Approve Luna's helpers and review the tasks they really completed">My agents</a>
+  <button id="focus-approvals" type="button" class="focus-secondary"
+    title="Review saved decisions by risk level">Approvals</button>
+  <a href="/agents" title="View saved helper tasks and actual results">My agents</a>
   <a href="/design" title="Ask Luna for a new appearance, preview it, then approve it">Change her look</a>
   <a href="/agent/studio" title="Inspect development tasks and review Luna's code proposals">Agent Studio</a>
 </nav>
 <p id="focus-error" role="alert"></p>
 <details id="focus-advanced">
   <summary>All decisions and advanced tools</summary>
-  <p><small>These are the same full ORBIT controls, kept here when you need the details.
-  Approving a plan does not automatically install code.</small></p>
-  <h2>ORBIT command center</h2>
+  <h2>Advanced controls</h2>
 """
 
 
 FOCUS_STYLE = """<style id="focus-home-style">
 /* Focused first-run interface. Existing tabs and controls stay present. */
-#main-nav button[data-tab]:not([data-tab="home"]):not([data-tab="chat"]){display:none!important}
-html.orbit-more-open #main-nav button[data-tab]{display:inline-flex!important}
+#main-nav button[data-tab]:not([data-tab="home"]):not([data-tab="chat"]):not([data-tab="approvals"]){display:none!important}
+/* Higher specificity than the collapsed selector makes More tools actually reveal tabs. */
+html.orbit-more-open #main-nav button[data-tab]:not([data-tab="home"]):not([data-tab="chat"]):not([data-tab="approvals"]){display:inline-flex!important}
 #main-nav{align-items:center;flex-wrap:wrap}
 #focus-tools-toggle{display:inline-flex;align-items:center;padding:8px 12px;
  border-radius:9px;background:var(--paper,#fff);color:var(--ink,#25324a)!important;
@@ -112,7 +111,8 @@ body #design-home-link{display:none!important}
 @media(max-width:740px){.focus-columns{grid-template-columns:1fr}
  #focus-hero{margin:14px 0}#focus-primary{width:100%}
  .focus-shortcuts{gap:7px}.focus-shortcuts a,.focus-shortcuts button{flex:1 1 44%;text-align:center}
- #main-nav{flex-wrap:nowrap!important;overflow-x:auto!important}}
+ #main-nav{flex-wrap:nowrap!important;overflow-x:auto!important}
+ html.orbit-more-open #main-nav{flex-wrap:wrap!important;overflow-x:visible!important}}
 @media(prefers-reduced-motion:reduce){#focus-hero,#focus-primary{transition:none}}
 </style>
 """
@@ -129,6 +129,8 @@ FOCUS_SCRIPT = r"""
   html.classList.toggle('visual-show-all',expanded);
   toggle.setAttribute('aria-expanded',String(expanded));
   toggle.textContent=expanded?'Fewer tools':'More tools';
+  const advanced=byId('focus-advanced');
+  if(advanced)advanced.open=expanded;
  }
  toggle.addEventListener('click',function(event){
   event.preventDefault();
@@ -136,17 +138,8 @@ FOCUS_SCRIPT = r"""
  });
  async function navigate(action,item){
   if(action==='review'){
-   selectTab('home');
-   const details=byId('focus-advanced');details.open=true;
-   await loadControl();
-   const kinds={request:'requests',task:'tasks',improvement:'improvements',
-    draft:'drafts',note:'notes',memory:'memories'};
-   const group=item&&kinds[item.kind];
-   const card=group?Array.from(document.querySelectorAll('#control-review .control-card'))
-    .find(el=>el.dataset.reviewKind===group && el.dataset.reviewId===String(item.id)):null;
-   if(card){card.classList.add('focus-target-review');card.setAttribute('tabindex','-1');
-    card.focus();card.scrollIntoView({block:'center'});}
-   else byId('control-review').scrollIntoView({block:'start'});
+   selectTab('approvals');
+   if(window.openLunaApprovals)window.openLunaApprovals(item?item.kind+':'+item.id:null);
   }else if(action==='agents'){
    window.location.assign('/agents');
   }else if(action==='developer'){
@@ -246,6 +239,7 @@ FOCUS_SCRIPT = r"""
  }
  byId('focus-refresh').addEventListener('click',refresh);
  byId('focus-talk').addEventListener('click',()=>navigate('chat'));
+ byId('focus-approvals').addEventListener('click',()=>navigate('review'));
  refresh();
  window.addEventListener('focus',refresh);
  window.setInterval(function(){
@@ -270,6 +264,31 @@ def enhance_home(html):
     if html.count(closing) != 1:
         raise ValueError("Unexpected dashboard template: home panel boundary not found.")
     html = html.replace(closing, '</details></section><section id="tab-activity"', 1)
+    owner_inbox = '<section id="tab-approvals" class="tab-panel"><h2>Task inbox</h2>'
+    if html.count(owner_inbox) != 1:
+        raise ValueError("Unexpected approval-tab layout.")
+    inbox_start = (
+        '<section id="tab-approvals" class="tab-panel">'
+        '<h2>Pending approvals</h2>'
+        '<p id="approval-inbox-status" role="status">Loading saved decisions…</p>'
+        '<label for="approval-inbox-filter">Show</label> '
+        '<select id="approval-inbox-filter">'
+        '<option value="all">All pending</option>'
+        '<option value="major">Major: sensitive or model cost</option>'
+        '<option value="moderate">Moderate: projects and agents</option>'
+        '<option value="minor">Minor: routine proposals</option>'
+        '<option value="blocked">Blocked: needs configuration</option></select>'
+        '<button id="approval-inbox-refresh" type="button">Refresh</button>'
+        '<div id="approval-inbox" aria-live="polite"></div>'
+        '<details id="approval-advanced">'
+        '<summary>Worker settings and advanced task tools</summary>'
+        '<h2>Task inbox</h2>'
+    )
+    html = html.replace(owner_inbox, inbox_start, 1)
+    inbox_end = '<div id="task-list"></div></section></main>'
+    if html.count(inbox_end) != 1:
+        raise ValueError("Unexpected approval-tab ending.")
+    html = html.replace(inbox_end, '<div id="task-list"></div></details></section></main>', 1)
     target = '<button type="button" data-tab="chat" class="active">Chat</button>'
     if html.count(target) != 1:
         raise ValueError("Unexpected dashboard navigation.")
@@ -286,7 +305,7 @@ def enhance_home(html):
     marker = '</script></html>'
     if html.count(marker) != 1:
         raise ValueError("Unexpected dashboard script ending.")
-    html = html.replace(marker, FOCUS_SCRIPT + marker, 1)
+    html = html.replace(marker, FOCUS_SCRIPT + APPROVALS_SCRIPT + marker, 1)
     header = '</style><header>'
     if html.count(header) != 1:
         raise ValueError("Unexpected dashboard style ending.")
