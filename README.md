@@ -2,6 +2,81 @@
 
 ORBIT is a local-first, provider-independent assistant ecosystem. Luna is its conversational coordinator.
 
+## Luna chat + independent agent (integrated preview)
+
+Run both the conversational app and the persistent background worker with one local command:
+
+```bash
+cd ~/Orbit-core
+source .venv/bin/activate
+python scripts/start_luna_agent.py --check
+python scripts/start_luna_agent.py
+```
+
+Talk to Luna at `http://127.0.0.1:8000`; inspect her real development
+missions at `http://127.0.0.1:8000/agent/studio`. Model use requires an
+explicit local configuration. Proposals are saved for review, not executed.
+Nothing in this repository is a running cloud deployment. See
+[Agent documentation](docs/LUNA_DEVELOPER_AGENT.md) and
+[Cloud readiness](docs/CLOUD_FIRST_FOUNDATION.md).
+
+## Start Luna now (local preview)
+
+On the computer where the repo is checked out, activate its Python virtual environment and run:
+
+```bash
+cd ~/Orbit-core
+source .venv/bin/activate
+python scripts/start_luna.py --check
+python scripts/start_luna.py
+```
+
+Then open **http://127.0.0.1:8000** on that computer. The check reports missing packages and whether model configuration is present **without displaying keys**. Install missing packages with `python -m pip install -r requirements.txt` if necessary. The launcher doesn't pull code, install anything, start cloud calls, or change network access. It launches the existing dashboard; it is **not** authenticated iPhone/iPad access. Chat model-backed replies still require a configured working provider, and local-only access must remain on `127.0.0.1`.
+
+## Luna local release: what is actually usable
+
+The localhost preview opens on Luna's **Chat** screen. A read-only connection
+banner makes it clear whether a model is configured; this is not a live
+provider health check. Full chat transcripts remain in local SQLite, while
+model prompt history is deliberately bounded. Saved conversations display a
+recognizable preview instead of an anonymous number. Setup and transport
+errors are shown as notices, not model-authored assistant messages.
+
+**Launch on the computer, not the iPhone:**
+
+```bash
+cd ~/Orbit-core
+source .venv/bin/activate
+python scripts/start_luna.py --check
+python scripts/start_luna.py
+```
+
+Open http://127.0.0.1:8000 on that same computer. This launches the UI only;
+a model-backed reply requires a separately configured model, and the
+connection indicator only verifies settings, not provider uptime.
+
+For an **already-running local OpenAI-compatible server** on the same
+computer, configure its real model name and endpoint before launching Luna.
+For example, if an Ollama-compatible server is already running on loopback:
+
+```bash
+export LUNA_MODEL_URL=http://127.0.0.1:11434/v1
+export LUNA_MODEL_NAME=YOUR_INSTALLED_MODEL_NAME
+python scripts/start_luna.py
+```
+
+No local model is installed by this launcher. An HTTPS model requires a
+supported provider and an API key set locally, not in GitHub. Cloud models
+may incur charges, and personal chat text is sent to the selected provider
+when you use one. Do not connect paid services without approval.
+
+**Release verification:** GitHub Actions tests the chat API, simulated local
+model round trips, history persistence across reopened clients, configuration
+safety, and Python syntax. Actual on-device launch, working model connection,
+and full iPhone access remain unverified until tested on those devices. This
+release does **not** enable remote access, microphone, external accounts,
+autonomous code deployment, or provider spending.
+
 ## Priorities 6–14: local-first foundations (under development)
 
 The next milestone adds review-only chat memory extraction, traceable

@@ -17,3 +17,66 @@ Ask before major architecture changes, external deployment, account creation, fi
 
 ## Not yet decided
 Specific model providers, authentication scheme, retention policy, and deployment method. Do not infer these choices.
+
+## 2026-10-12 — verified product baseline before more capabilities
+
+**Decision:** Preserve the existing FastAPI dashboard, SQLite state, Luna
+modules, and approval/allowlist boundaries. Complete repository-wide inspection
+and existing tests before implementation; prioritize ordinary conversations
+and persistent approved memory over additional planning or autonomy features.
+
+**Evidence:** All 83 tracked files were inspected at upstream revision
+`a5eb41a898c250736d760d13cc412f19442f1158`. The unchanged suite passed
+182 tests with 9 warnings in 8.68 seconds using a documented external
+test-process event-loop scheduling workaround. See `AUDIT.md` for the timeout
+reproduction, dependency provenance, inventory, and limits of this evidence.
+
+**Consequence:** No rewrite, completion percentages, or unverified product
+claims. `ROADMAP.md` defines acceptance checks; `PROGRESS.md` records results.
+
+## 2026-10-12 — first change: validate model replies and configuration
+
+**Decision:** Repair the existing response adapter before introducing a new
+provider abstraction. Reject null, empty, whitespace, and non-string response
+content, and handle malformed URL/port configuration as a readable failure.
+Add regression evidence for conversation persistence and subsequent recovery.
+
+**Reason:** Invalid provider content currently can violate SQLite constraints
+and fail chat; malformed endpoint configuration can raise before the request
+error handler. These prevent ordinary Luna use and can be fixed reversibly
+without a new dependency or access change.
+
+**Boundary:** Do not relax endpoint restrictions, activate a provider, spend
+money, change memory consent, merge to `main`, or deploy. Explicit response
+outcomes and separate adapters follow once the narrow fix is verified.
+
+## 2026-10-12 — coordinate existing work; gate remote access
+
+**Decision:** Inspect and coordinate open PRs #12 (launcher), #3 (diagnostics),
+#2 (syntax screening), and #1 (sprint work) before overlapping implementations.
+Keep the app local while Mac/iPhone security and deployment choices remain
+undecided.
+
+**Consequence:** Future device work starts with a concrete owner-reviewed
+authentication, pairing, transport, revocation, and retention design. Existing
+readiness reports and permission-policy records are not remote authentication.
+Routine authorized source work proceeds on focused branches and PRs; sensitive
+actions and merging require the applicable explicit owner approval.
+
+## 2026-10-12 — first implementation verified and submitted
+
+**Outcome:** PR #13 preserves the existing adapters and chat API while rejecting
+malformed URL configuration, invalid reply shapes, empty text, and Unicode that
+SQLite cannot encode. A later valid reply succeeds; approved memory and chat
+history survive provider changes and reopening SQLite in a fresh interpreter.
+
+**Evidence:** 219 local tests passed, including 37 new regressions, with the
+documented workspace scheduling adjustment. GitHub CI at implementation commit
+`6ea197fbd9f8b6b101fced3522ff7cb8fef10eed` independently passed ordinary
+Linux/Python 3.13 compilation and all 219 tests (9 warnings, 5.63 seconds).
+See [PR #13](https://github.com/jmann358/Orbit-core/pull/13) and
+[CI run 38191640970](https://github.com/jmann358/Orbit-core/actions/runs/38191640970).
+
+**Next:** Verify and fix pending-send/session-switch behavior before expanding
+the interface. Live inference, browser usage, Mac installation, and iPhone
+access remain unverified. The PR is open; no merge or deployment occurred.

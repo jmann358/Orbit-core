@@ -15,8 +15,6 @@ from luna.core import record_shared_task, list_shared_task_results, add_message,
 VERSION = "1.0.0-rc.1"
 
 app=FastAPI(title="ORBIT · Luna " + VERSION, docs_url=None, redoc_url=None, openapi_url=None)
-# Cloud mode is disabled by default; when explicitly enabled, every route
-# requires the owner gate. No proxy, account, or deployment is provisioned.
 from luna.cloud_security import CloudOwnerGate
 app.add_middleware(CloudOwnerGate)
 from luna.developer_api import router as developer_agent_router
@@ -95,7 +93,7 @@ a{color:#394db1!important}details{border:1px solid var(--line);border-radius:12p
 .luna-face[data-mood="listening"] .luna-eyes i{height:17px}
 .luna-companion select{padding:6px;font-size:13px}.luna-companion p{margin:4px 0;font-size:14px}
 @media(prefers-reduced-motion:reduce){.luna-face,.luna-eyes i{transition:none}}
-</style><header><h1>☾ Luna</h1><small>v1.0.0-rc.1 · Agent Core</small></header><nav id="main-nav" class="orbit-banner" aria-label="ORBIT categories"><button type="button" data-tab="home" class="active">Overview <span class="nav-attention" data-alert="home" hidden></span></button><button type="button" data-tab="activity">Activity <span id="activity-nav-status" aria-live="polite">· Checking</span></button><button type="button" data-tab="chat">Chat</button><button type="button" data-tab="bridge">Bridge <span class="nav-attention" data-alert="bridge" hidden></span></button><button type="button" data-tab="memory">Memory <span class="nav-attention" data-alert="memory" hidden></span></button><button type="button" data-tab="goals">Goals</button><button type="button" data-tab="ecosystem">Ecosystem</button><button type="button" data-tab="development">Development <span class="nav-attention" data-alert="development" hidden></span></button><button type="button" data-tab="testing">Testing <span class="nav-attention" data-alert="testing" hidden></span></button><button type="button" data-tab="approvals">Approvals <span class="nav-attention" data-alert="approvals" hidden></span></button></nav><main><section id="tab-home" class="tab-panel active"><h2>ORBIT command center</h2><p>One place to see priorities and review Luna's proposals. Approvals never deploy code.</p><div class="orbit-actions"><button type="button" id="control-refresh">Refresh overview</button><button type="button" id="control-diagnose">Run safe diagnostics</button><button type="button" id="control-suggest">Ask Luna for next improvement</button><button type="button" id="control-autopilot">Pause independent work</button></div><p id="control-status" role="status">Loading project overview…</p><div id="control-metrics" class="control-metrics"></div><h3>Needs your decision</h3><div id="control-review"></div><h3>Project inventory</h3><div id="control-inventory"></div><div id="control-diagnostics" role="status"></div></section><section id="tab-activity" class="tab-panel"><h2>Luna activity</h2><p>Recorded work only. Ordinary browser requests are not counted as tasks.</p><p id="activity-state" role="status">Checking activity…</p><p id="activity-counts"></p><h3>Live activity feed</h3><div id="activity-feed" aria-live="polite">Loading…</div><details><summary>Detailed job history and results</summary><div id="activity-history"></div></details><button type="button" id="activity-refresh">Refresh activity</button><p id="activity-updated"></p></section><section id="tab-bridge" class="tab-panel"><h2>Luna ↔ ChatGPT Bridge</h2><p>Visible, user-mediated conversations. Copy Luna's message here, send it in ChatGPT, then paste the reply below. Nothing is sent automatically.</p><button type="button" id="bridge-refresh">Refresh bridge</button><form id="bridge-new"><label for="bridge-title">Subject</label><input id="bridge-title" required minlength="3" maxlength="120" placeholder="What should Luna ask?"><label for="bridge-priority">Priority</label><select id="bridge-priority"><option value="medium">Medium</option><option value="high">High</option><option value="low">Low</option></select><textarea id="bridge-question" required minlength="5" maxlength="6000" rows="3" placeholder="Luna's question or technical request"></textarea><button type="submit">Create Luna request</button></form><p id="bridge-status" role="status"></p><div id="bridge-list"></div></section><section id="tab-chat" class="tab-panel active"><h2>Chat</h2><div class="luna-companion"><div class="luna-face" id="luna-face" data-mood="idle" role="img" aria-label="Luna's ghost-like avatar, resting"><div class="luna-eyes"><i></i><i></i></div><div class="luna-mouth"></div></div><div><strong>Luna</strong><p id="luna-expression" role="status">Here and listening.</p><label for="luna-expressions">Expression style</label> <select id="luna-expressions"><option value="expressive">Expressive</option><option value="subtle">Subtle</option><option value="still">Still</option></select><p><small>Visual reactions are interface cues, not a claim about feelings.</small></p></div></div><label for="sessions">Conversation:</label> <select id="sessions"></select> <button type="button" id="new-session">New chat</button><button type="button" id="load-older-history" hidden>Load earlier messages</button><div id="log"></div><form id="form"><input id="msg" placeholder="Talk to Luna…" maxlength="12000" required autocomplete="off"><button>Send</button></form></section><section id="tab-memory" class="tab-panel"><h2>Memory</h2>
+</style><header><h1>☾ Luna</h1><small>v1.0.0-rc.1 · Agent Core</small></header><nav id="main-nav" class="orbit-banner" aria-label="ORBIT categories"><button type="button" data-tab="home">Overview <span class="nav-attention" data-alert="home" hidden></span></button><button type="button" data-tab="activity">Activity <span id="activity-nav-status" aria-live="polite">· Checking</span></button><button type="button" data-tab="chat" class="active">Chat</button><button type="button" data-tab="bridge">Bridge <span class="nav-attention" data-alert="bridge" hidden></span></button><button type="button" data-tab="memory">Memory <span class="nav-attention" data-alert="memory" hidden></span></button><button type="button" data-tab="goals">Goals</button><button type="button" data-tab="ecosystem">Ecosystem</button><button type="button" data-tab="development">Development <span class="nav-attention" data-alert="development" hidden></span></button><button type="button" data-tab="testing">Testing <span class="nav-attention" data-alert="testing" hidden></span></button><button type="button" data-tab="approvals">Approvals <span class="nav-attention" data-alert="approvals" hidden></span></button></nav><main><section id="tab-home" class="tab-panel"><h2>ORBIT command center</h2><p>One place to see priorities and review Luna's proposals. Approvals never deploy code.</p><div class="orbit-actions"><button type="button" id="control-refresh">Refresh overview</button><button type="button" id="control-diagnose">Run safe diagnostics</button><button type="button" id="control-suggest">Ask Luna for next improvement</button><button type="button" id="control-autopilot">Pause independent work</button></div><p id="control-status" role="status">Loading project overview…</p><div id="control-metrics" class="control-metrics"></div><h3>Needs your decision</h3><div id="control-review"></div><h3>Project inventory</h3><div id="control-inventory"></div><div id="control-diagnostics" role="status"></div></section><section id="tab-activity" class="tab-panel"><h2>Luna activity</h2><p>Recorded work only. Ordinary browser requests are not counted as tasks.</p><p id="activity-state" role="status">Checking activity…</p><p id="activity-counts"></p><h3>Live activity feed</h3><div id="activity-feed" aria-live="polite">Loading…</div><details><summary>Detailed job history and results</summary><div id="activity-history"></div></details><button type="button" id="activity-refresh">Refresh activity</button><p id="activity-updated"></p></section><section id="tab-bridge" class="tab-panel"><h2>Luna ↔ ChatGPT Bridge</h2><p>Visible, user-mediated conversations. Copy Luna's message here, send it in ChatGPT, then paste the reply below. Nothing is sent automatically.</p><button type="button" id="bridge-refresh">Refresh bridge</button><form id="bridge-new"><label for="bridge-title">Subject</label><input id="bridge-title" required minlength="3" maxlength="120" placeholder="What should Luna ask?"><label for="bridge-priority">Priority</label><select id="bridge-priority"><option value="medium">Medium</option><option value="high">High</option><option value="low">Low</option></select><textarea id="bridge-question" required minlength="5" maxlength="6000" rows="3" placeholder="Luna's question or technical request"></textarea><button type="submit">Create Luna request</button></form><p id="bridge-status" role="status"></p><div id="bridge-list"></div></section><section id="tab-chat" class="tab-panel active"><h2>Talk to Luna</h2><p id="chat-connectivity" role="status">Checking AI model configuration…</p><button type="button" id="chat-readiness-refresh">Check connection</button><div class="luna-companion"><div class="luna-face" id="luna-face" data-mood="idle" role="img" aria-label="Luna's ghost-like avatar, resting"><div class="luna-eyes"><i></i><i></i></div><div class="luna-mouth"></div></div><div><strong>Luna</strong><p id="luna-expression" role="status">Here and listening.</p><label for="luna-expressions">Expression style</label> <select id="luna-expressions"><option value="expressive">Expressive</option><option value="subtle">Subtle</option><option value="still">Still</option></select><p><small>Visual reactions are interface cues, not a claim about feelings.</small></p></div></div><label for="sessions">Conversation:</label> <select id="sessions"></select> <button type="button" id="new-session">New chat</button><button type="button" id="load-older-history" hidden>Load earlier messages</button><div id="log"></div><form id="form"><input id="msg" placeholder="Talk to Luna…" maxlength="12000" required autocomplete="off"><button type="submit" id="chat-send">Send</button></form><p id="chat-send-status" role="status"></p></section><section id="tab-memory" class="tab-panel"><h2>Memory</h2>
 <h3>Conversation continuity</h3>
 <p><small>Search saved chats locally. Using older messages in Luna responses requires opt-in. Sending older excerpts to a cloud model requires a separate opt-in; these are never approved memories.</small></p>
 <button type="button" id="continuity-toggle">Checking continuity…</button>
@@ -546,7 +544,7 @@ document.querySelector('#memory-learning-preview').onclick=previewSessionMemorie
 document.querySelector('#ecosystem-refresh').onclick=refreshEcosystem;
 document.querySelector('#ecosystem-suggestions-refresh').onclick=refreshEcosystemSuggestions;
 refreshEcosystem();loadPresentation();refreshEcosystemSuggestions();
-const tabs=['home','activity','chat','bridge','memory','goals','ecosystem','development','testing','approvals'];function selectTab(name){if(!tabs.includes(name))name='home';document.querySelectorAll('.tab-panel').forEach(el=>el.classList.toggle('active',el.id==='tab-'+name));document.querySelectorAll('#main-nav button').forEach(el=>el.classList.toggle('active',el.dataset.tab===name));localStorage.setItem('luna-active-tab',name)}document.querySelectorAll('#main-nav button').forEach(el=>el.onclick=()=>selectTab(el.dataset.tab));selectTab(localStorage.getItem('luna-active-tab')||'home');
+const tabs=['home','activity','chat','bridge','memory','goals','ecosystem','development','testing','approvals'];function selectTab(name){if(!tabs.includes(name))name='home';document.querySelectorAll('.tab-panel').forEach(el=>el.classList.toggle('active',el.id==='tab-'+name));document.querySelectorAll('#main-nav button').forEach(el=>el.classList.toggle('active',el.dataset.tab===name));localStorage.setItem('luna-active-tab',name)}document.querySelectorAll('#main-nav button').forEach(el=>el.onclick=()=>selectTab(el.dataset.tab));selectTab(localStorage.getItem('luna-active-tab')||'chat');
 async function refreshActivity(){
  const state=document.querySelector('#activity-state'),feed=document.querySelector('#activity-feed'),
  history=document.querySelector('#activity-history'),nav=document.querySelector('#activity-nav-status');
@@ -577,6 +575,17 @@ async function refreshActivity(){
 document.querySelector('#activity-refresh').onclick=refreshActivity;
 refreshActivity();setInterval(refreshActivity,10000);
 const log=document.querySelector('#log'),form=document.querySelector('#form'),input=document.querySelector('#msg'),selector=document.querySelector('#sessions');
+async function refreshChatReadiness(){
+ const label=document.querySelector('#chat-connectivity');
+ try{
+  const r=await fetch('/chat/readiness',{cache:'no-store'});
+  if(!r.ok)throw Error('Local status check failed');
+  const status=await r.json();
+  label.textContent=status.detail+(status.state==='configured_unverified'?' Send a message to test it.':'');
+ }catch(error){label.textContent='Cannot check Luna model settings: '+error.message}
+}
+document.querySelector('#chat-readiness-refresh').onclick=refreshChatReadiness;
+refreshChatReadiness();
 let session=localStorage.getItem('luna-session')||crypto.randomUUID();
 localStorage.setItem('luna-session',session);
 
@@ -702,10 +711,62 @@ earlierButton.onclick=async()=>{
  }catch(error){earlierButton.textContent='Older messages unavailable'}
  finally{earlierButton.disabled=false}
 };
-async function loadSessions(){try{const r=await fetch('/sessions');if(!r.ok)throw Error('sessions');const items=await r.json();selector.textContent='';const ids=[session,...items.map(x=>x.session)].filter((v,i,a)=>a.indexOf(v)===i);ids.forEach((id,i)=>{const option=document.createElement('option');option.value=id;option.textContent=id===session?'Current conversation':('Previous chat '+(i+1));selector.append(option)});selector.value=session}catch(e){show('system','Could not load saved conversations')}}
-selector.onchange=()=>{session=selector.value;localStorage.setItem('luna-session',session);loadHistory()};
+async function loadSessions(){
+ try{
+  const r=await fetch('/sessions');if(!r.ok)throw Error('sessions');
+  const items=await r.json(),saved=new Map(items.map(item=>[item.session,item]));
+  selector.textContent='';
+  const ids=[session,...items.map(item=>item.session)].filter((id,i,a)=>a.indexOf(id)===i);
+  ids.forEach(id=>{
+   const option=document.createElement('option'),entry=saved.get(id);
+   const preview=entry&&entry.preview?entry.preview:'Empty conversation';
+   option.value=id;
+   option.textContent=(id===session?'Current: ':'Saved: ')+preview;
+   selector.append(option);
+  });
+  selector.value=session;
+ }catch(error){show('system','Could not load saved conversations')}
+}
+selector.onchange=()=>{session=selector.value;localStorage.setItem('luna-session',session);loadHistory();loadSessions()};
 document.querySelector('#new-session').onclick=()=>{session=crypto.randomUUID();localStorage.setItem('luna-session',session);loadHistory();loadSessions()};
-form.onsubmit=async e=>{e.preventDefault();const message=input.value.trim();if(!message)return;input.value='';show('you',message);setLunaMood('thinking');try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session,message})});if(!r.ok)throw Error('chat');const data=await r.json();show('Luna',data.reply||'No response received');setLunaMood('happy');loadSessions()}catch(e){show('system','Connection failed; check Luna server');setLunaMood('concerned')}};loadHistory();loadSessions();loadTasks();
+let chatSending=false;
+form.onsubmit=async event=>{
+ event.preventDefault();
+ if(chatSending)return;
+ const message=input.value.trim();if(!message)return;
+ const requestSession=session,sendButton=document.querySelector('#chat-send');
+ const status=document.querySelector('#chat-send-status');
+ chatSending=true;sendButton.disabled=true;input.value='';
+ show('you',message);setLunaMood('thinking');
+ status.textContent='Sending to Luna…';
+ try{
+  const response=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({session:requestSession,message})});
+  if(!response.ok)throw Error('HTTP '+response.status);
+  const result=await response.json();
+  if(requestSession===session){
+   if(result.kind==='notice'){
+    show('system',result.reply||'Model connection unavailable');
+    setLunaMood('concerned');
+    status.textContent='Luna needs model setup or connection help.';
+   }else{
+    show('Luna',result.reply||'No response received');
+    setLunaMood('happy');status.textContent='Reply saved to this conversation.';
+   }
+  }
+  await loadSessions();
+ }catch(error){
+  if(requestSession===session){
+   await loadHistory();
+   show('system','Connection interrupted. Your message may already be saved. Check the conversation before resending.');
+   setLunaMood('concerned');
+   status.textContent='Connection interrupted; check saved history before retrying.';
+  }
+ }finally{
+  chatSending=false;sendButton.disabled=false;refreshChatReadiness();
+ }
+};
+loadHistory();loadSessions();loadTasks();
 document.querySelector("#plan-form").onsubmit=async e=>{e.preventDefault();const goal=document.querySelector("#plan-goal").value.trim();if(!goal)return;const status=document.querySelector("#plan-status");status.textContent="Preparing proposal…";try{const r=await fetch("/autonomy/plan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({goal})});if(!r.ok)throw Error("Planning unavailable");status.textContent="Proposal ready for review. No actions executed.";loadTasks()}catch(e){status.textContent=e.message}};
 document.querySelector('#inspect').onclick=async()=>{const status=document.querySelector('#inspect-status');status.textContent='Reviewing project files…';try{const r=await fetch('/project/inspect',{method:'POST'});if(!r.ok)throw Error('Inspection unavailable');const data=await r.json();document.querySelector('#inspect-report').textContent=data.report;document.querySelector('#inspect-details').open=true;status.textContent='Inspection complete. No files changed.'}catch(e){status.textContent=e.message}};
 document.querySelector('#note-form').onsubmit=async e=>{e.preventDefault();const input=document.querySelector('#note-text');const content=input.value.trim();if(!content)return;const r=await fetch('/project/notes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content})});if(r.ok){input.value='';loadNotes()}};
@@ -807,6 +868,13 @@ async function loadDrafts(){try{const r=await fetch('/project/drafts');if(!r.ok)
 async function loadTasks(){try{const r=await fetch('/autonomy/tasks');const tasks=await r.json();const panel=document.querySelector('#task-list');panel.textContent='';if(!tasks.length){panel.textContent='No proposed tasks yet.';return}tasks.forEach(t=>{const div=document.createElement('div');div.className='msg';const heading=document.createElement('strong');heading.textContent=t.title+' ('+t.status+')';const description=document.createElement('p');description.textContent=t.description;div.append(heading,description);if(t.status==='pending'){[['Approve','approved'],['Revise','revision_requested'],['Reject','rejected']].forEach(([label,decision])=>{const btn=document.createElement('button');btn.type='button';btn.textContent=label;btn.onclick=async()=>{await fetch('/autonomy/tasks/'+t.id+'/decision',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision})});loadTasks()};div.append(btn,document.createTextNode(' '))})}panel.append(div)})}catch(e){document.querySelector('#task-list').textContent='Could not load tasks'}}
 </script></html>"""
 
+@app.get("/chat/readiness")
+def chat_readiness():
+    """Read-only model configuration, without calling any provider or exposing keys."""
+    from luna.model_connection import inspect_model_configuration
+    return inspect_model_configuration()
+
+
 @app.get("/sessions")
 def get_sessions():
     return sessions(30)
@@ -899,10 +967,14 @@ async def chat(request:Chat):
     if routed:
         job_id=create_job(routed["kind"],routed["title"])
         reply="I queued "+routed["title"]+" as task #"+str(job_id)+". My worker will process it shortly. Check Approvals → Task inbox for the result."
+        kind="queued_task"
     else:
         reply=await respond(request.session,request.message)
-    add_message(request.session,"assistant",reply)
-    return {"reply":reply}
+        from luna.model_connection import is_operational_notice
+        kind="notice" if is_operational_notice(reply) else "reply"
+    # An outage/setup notice is not speech generated by the AI model.
+    add_message(request.session,"system" if kind=="notice" else "assistant",reply)
+    return {"reply":reply,"kind":kind}
 
 @app.get("/memory/candidates")
 def list_candidates():
