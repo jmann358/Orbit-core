@@ -1,3 +1,5 @@
+> **Continuing ORBIT/Luna in a new ChatGPT session?** Say **POJO RESUME** and use the [live GitHub session-recovery issue #52](https://github.com/jmann358/Orbit-core/issues/52). Recheck actual `main`, open stacked PRs, exact SHA CI and host evidence. The issue is the handoff index, not a guarantee that a new chat has GitHub access or that draft code is installed. Device-specific codes are indexed there; do not merge overlapping drafts twice. No release or private memory migration is implied.
+
 ## Current Luna version: pojo.2
 
 Luna uses the owner's sequential release labels: **pojo.1 → pojo.2 → pojo.3**.

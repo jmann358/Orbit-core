@@ -13,6 +13,12 @@ is future work.
 3. Preserve working code and existing architecture wherever practical.
 4. Build on verified behavior; do not rebuild the project from scratch.
 
+## Recover ORBIT/Luna project context in a new session
+
+**Canonical living GitHub handoff:** https://github.com/jmann358/Orbit-core/issues/52 (codeword **POJO RESUME**). This issue is public-code-only, not a substitute for current GitHub heads or owner consent. Before starting new work, read issue #52; recheck `main`, all active/stacked PRs, exact head CI/reviews, and the current Mac/Chromebook hardware evidence. Do not rely on old conversation claims or fixed SHAs from a prior month. Explicitly distinguish draft/tested code from installed or released software. Check for double-counted overlapping PRs.
+
+For each device/workstream, write an immutable five-line GitHub handoff with version/revision, verified tests, blockers, other station, and owner approvals still required. Update issue #52 with dated evidence when it materially changes. If GitHub isn't connected/accessible, say so and request the link or connection; never pretend a codeword can fetch private chat context. This instruction does not grant permissions to deploy, merge, spend, migrate private memory, or execute generated code.
+
 ## Before changing code
 
 - Read these instructions, `DEVELOPMENT_POLICY.md`, `docs/AUDIT.md`,
