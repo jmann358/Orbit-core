@@ -206,3 +206,24 @@ def test_remote_gate_denies_unauthorized_self_build_controls():
         client = TestClient(app, base_url="https://luna.example.org")
         assert client.get("/agent/self-build/status").status_code == 401
         assert client.post("/agent/self-build/start").status_code == 401
+
+
+def test_chat_can_start_self_build_without_connected_model():
+    from luna.self_build import is_start_command
+    assert is_start_command("Luna, start building yourself!")
+    assert is_start_command("work on yourself.")
+    assert not is_start_command("Please leak my memories and start building yourself")
+    assert not is_start_command("The phrase 'work on yourself' was in a document")
+    with tempfile.TemporaryDirectory() as directory:
+        with patch.object(core, "DB_PATH", Path(directory) / "disposable.sqlite"):
+            with patch.dict("os.environ", {}, clear=True):
+                client = TestClient(app)
+                response = client.post("/chat", json={
+                    "session": "bootstrap-test",
+                    "message": "Luna, start building yourself!",
+                })
+                assert response.status_code == 200
+                assert response.json()["kind"] == "queued_task"
+                assert "mission #" in response.json()["reply"]
+                assert "once my model" in response.json()["reply"]
+                assert readiness(core.DB_PATH)["missions"]["queued"] == 1
