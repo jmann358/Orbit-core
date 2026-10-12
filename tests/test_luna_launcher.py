@@ -41,3 +41,11 @@ def test_readiness_is_non_mutating(tmp_path, capsys):
     assert report["missing_dependencies"] == []
     assert report["dashboard_url"] == "http://127.0.0.1:8000"
     assert list(tmp_path.iterdir()) == []
+
+
+def test_dashboard_starts_with_only_one_visible_panel():
+    from fastapi.testclient import TestClient
+    from app import app
+    html = TestClient(app).get("/").text
+    assert 'id="tab-home" class="tab-panel active"' in html
+    assert html.count('class="tab-panel active"') == 1
