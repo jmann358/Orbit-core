@@ -31,16 +31,20 @@ never means "safe" or "correct". Luna cannot change her own permissions.
 
 ## Safe local preview
 
-Use the already established project virtual environment and start the web
-server via the standard Uvicorn command on loopback:
+Use the existing project virtual environment. This launches both the
+Luna web interface and her independent worker with one command, on loopback:
 
 ```bash
 cd ~/Orbit-core
 source .venv/bin/activate
-python -m uvicorn app:app --host 127.0.0.1 --port 8000
+python scripts/start_luna_agent.py --check
+python scripts/start_luna_agent.py
 ```
 
 Visit `http://127.0.0.1:8000/agent/studio` on that same computer.
+The launcher starts **no external provider or paid call**, and its worker
+does not auto-draft until a model is explicitly configured and approved.
+The local launcher is not an internet-facing cloud deployment.
 
 A model-free diagnostic checks the worker without starting it or touching
 the database:
@@ -65,7 +69,7 @@ export LUNA_MODEL_NAME=YOUR_INSTALLED_MODEL_NAME
 export LUNA_AGENT_MODEL_ENABLED=1
 export LUNA_AGENT_AUTO_ENABLED=1
 export LUNA_WORKER_ENABLED=1
-python scripts/cloud_worker.py
+python scripts/start_luna_agent.py --auto-drafts
 ```
 
 The cloud worker will queue at most one curated improvement per UTC day.
