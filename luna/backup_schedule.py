@@ -38,7 +38,9 @@ def backup_due(root, *, now=None):
                     # truncated file. Never count it as a recovery point.
                     try:
                         checked = verify(entry)
-                        if checked["integrity_ok"]:
+                        if (checked["integrity_ok"]
+                                and checked["tables"] >= 1
+                                and entry.stat().st_size >= 100):
                             return False
                     except (OSError, sqlite3.Error, ValueError):
                         continue
