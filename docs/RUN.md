@@ -1,10 +1,10 @@
-# Running Luna 0.1 locally (Mac or computer with Python 3.10+)
+# Running Luna locally (Python 3.11+; Mac runtime verification pending)
 
 This phase stores code in GitHub only. Running it requires a Python environment. It does **not** run inside the GitHub iPad app.
 
 1. Clone the repository and open a terminal in the project directory.
 2. Create and activate a Python virtual environment: `python3 -m venv .venv && source .venv/bin/activate`
-3. Install dependencies: `pip install -r requirements.txt`
+3. Install runtime and regression-test dependencies: `python -m pip install -r requirements-dev.txt`
 4. Start Luna: `uvicorn app:app --host 127.0.0.1 --port 8000`
 5. On that same computer, open `http://127.0.0.1:8000`.
 
@@ -27,6 +27,6 @@ export LUNA_API_KEY
 uvicorn app:app --host 127.0.0.1 --port 8000
 ```
 
-Replace YOUR_AVAILABLE_GROQ_MODEL_ID with a currently available chat model ID listed in your provider dashboard. These environment variables apply only to this terminal session; the key is not written to a file or GitHub. Cloud model requests transmit up to 20 recent messages from the current session to the chosen provider. Review the provider's privacy and retention policies before sending sensitive information. Never expose this unauthenticated prototype to the public internet. The database remains local, not in the cloud.
+Replace YOUR_AVAILABLE_GROQ_MODEL_ID with a currently available chat model ID listed in your provider dashboard. These environment variables apply only to this terminal session; the key is not written to a file or GitHub. Cloud model requests transmit up to 30 recent messages from the current session, the built-in system instructions, and approved memories/project notes to the chosen provider. Additional historical excerpts require the separate cloud-continuity opt-in. Review the provider's privacy and retention policies before sending sensitive information. Never expose this unauthenticated prototype to the public internet. The database remains local, not in the cloud.
 
 Other supported OpenAI-compatible HTTPS endpoints include api.openai.com, api.together.xyz, and openrouter.ai, subject to their own accounts, pricing, API paths and model IDs. Free use is not guaranteed. Local HTTP models on localhost remain supported.

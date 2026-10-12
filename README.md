@@ -66,7 +66,7 @@ Stop the currently running server first. From the project directory run `bash sc
 Use Python 3.11+ (GitHub CI tests 3.13).
 
 ```bash
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 python -m pytest -q tests
 python -m uvicorn app:app --host 127.0.0.1 --port 8000
 ```

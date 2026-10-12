@@ -1,0 +1,28 @@
+"""Run genuine upstream pytest with an external asyncio scheduling workaround.
+
+The restricted execution environment hangs even a bare FastAPI TestClient:
+its portal loop waits in select() while the caller waits on a future. Keeping
+the selector timeout bounded permits thread-scheduled work to proceed without
+changing the product, test cases, TestClient, network permissions, or assertions.
+"""
+import asyncio
+import sys
+
+
+class PollingPolicy(asyncio.DefaultEventLoopPolicy):
+    def new_event_loop(self):
+        loop = super().new_event_loop()
+
+        def tick():
+            if not loop.is_closed():
+                loop.call_later(0.02, tick)
+
+        loop.call_later(0.02, tick)
+        return loop
+
+
+asyncio.set_event_loop_policy(PollingPolicy())
+
+import pytest
+
+raise SystemExit(pytest.main(sys.argv[1:]))
