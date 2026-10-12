@@ -332,6 +332,15 @@ def _claim():
 
 def run_one():
     """Run at most one real task from the approved agent queue."""
+    # Respect the existing Mac service backup gate before unattended work.
+    import os
+    if os.environ.get("LUNA_SERVICE_MODE") == "1":
+        from luna.backup_schedule import maybe_backup
+        from pathlib import Path
+        try:
+            maybe_backup(core.DB_PATH, root=Path(__file__).resolve().parents[1])
+        except (OSError, ValueError):
+            return None
     claimed = _claim()
     if claimed is None:
         return None
