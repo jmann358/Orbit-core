@@ -184,14 +184,20 @@ def test_live_multistep_goal_runs_only_after_approval_and_survives_restart():
             assert events.count("dispatched") == 2
             assert events.count("step_completed") == 2
             assert events.count("completed") == 1
-            assert len(_get_json(url + "/agent/jobs")) == 2
+            # Other explicitly configured schedulers may create their own
+            # routine jobs. Only assert this goal owns exactly its two steps.
+            all_ids = [item["id"] for item in _get_json(url + "/agent/jobs")]
+            assert all(all_ids.count(goal_job) == 1 for goal_job in ids)
 
         with running_luna(port, db_file) as url:
             again = _get_json(url + receipt_url)
             assert again["state"] == "completed"
             assert [s["job_id"] for s in again["steps"]] == ids
             assert again["events"] == done["events"]
-            assert len(_get_json(url + "/agent/jobs")) == 2
+            # Other explicitly configured schedulers may create their own
+            # routine jobs. Only assert this goal owns exactly its two steps.
+            all_ids = [item["id"] for item in _get_json(url + "/agent/jobs")]
+            assert all(all_ids.count(goal_job) == 1 for goal_job in ids)
             denied = Request(
                 url + f"/agent/goals/{goal_id}/decision",
                 data=json.dumps({"approve": True}).encode(),
