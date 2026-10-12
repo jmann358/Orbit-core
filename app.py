@@ -1758,19 +1758,25 @@ def control_autopilot_choice(choice: AutopilotChoice):
 @app.get("/focus/summary")
 def focus_summary():
     """One read-only, truthful view of owner decisions and Luna's recorded work."""
-    from luna import core, developer_agent, visual_studio, custom_agents
+    from luna import core, developer_agent, visual_studio, custom_agents, mission_consent
     from luna.developer_model import configuration as development_model_settings
     from luna.attention_feed import summarize
     from luna.model_connection import inspect_model_configuration
+    missions = developer_agent.list_missions(core.DB_PATH)
+    approved_oneoffs = {
+        item["id"] for item in missions
+        if item["state"] == "queued" and mission_consent.eligible(core.DB_PATH, item["id"])
+    }
     return summarize(
         control_overview(),
         control_activity(),
         inspect_model_configuration(),
-        developer_agent.list_missions(core.DB_PATH),
+        missions,
         visual_studio.proposals(),
         custom_agents.list_agents(),
         custom_agents.list_tasks(),
         developer_model=development_model_settings(),
+        authorized_missions=approved_oneoffs,
     )
 
 
