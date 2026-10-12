@@ -220,7 +220,11 @@ def model_history(session, limit=30):
             break
         recent.append(turn)
         remaining -= size
-    return list(reversed(recent))
+    result = list(reversed(recent))
+    # Do not start a truncated provider transcript with an orphaned AI reply.
+    while result and result[0]["role"] == "assistant":
+        result.pop(0)
+    return result
 
 
 def add_candidate(content):
