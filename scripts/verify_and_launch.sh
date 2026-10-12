@@ -24,8 +24,7 @@ from urllib.error import HTTPError, URLError
 commit = os.environ["ORBIT_EXPECTED_SHA"]
 # Pin to the trusted workflow *file*, not its non-unique display name.
 # A different workflow also called 'ORBIT checks' is not sufficient evidence.
-url = ("https://api.github.com/repos/jmann358/Orbit-core/"
-       "actions/workflows/orbit-checks.yml/runs?"
+url = ("https://api.github.com/repos/jmann358/Orbit-core/actions/runs?"
        "head_sha=" + commit + "&event=push&per_page=25")
 request = urllib.request.Request(
     url,
