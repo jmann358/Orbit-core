@@ -8,7 +8,7 @@ import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-ALLOWED_KINDS = frozenset(("heartbeat", "project_health"))
+ALLOWED_KINDS = frozenset(("heartbeat", "project_health", "development_draft"))
 MAX_ATTEMPTS = 3
 LEASE_SECONDS = 90
 
@@ -29,14 +29,24 @@ def connect(path):
         updated_at TEXT NOT NULL,
         available_at TEXT NOT NULL,
         lease_until TEXT,
-        result TEXT NOT NULL DEFAULT ''
+        result TEXT NOT NULL DEFAULT '',
+        payload TEXT NOT NULL DEFAULT ''
     )""")
+    columns = {r[1] for r in db.execute("PRAGMA table_info(cloud_jobs)")}
+    if "payload" not in columns:
+        db.execute("ALTER TABLE cloud_jobs ADD COLUMN payload TEXT NOT NULL DEFAULT ''")
     return db
 
 
-def enqueue(path, kind, *, now=None):
+def enqueue(path, kind, *, now=None, payload=""):
     if kind not in ALLOWED_KINDS:
         raise ValueError("Job kind not allowlisted")
+    if kind == "development_draft":
+        # Developer jobs are created with their mission atomically by
+        # luna.developer_agent.queue_mission, not through this generic API.
+        raise ValueError("Use queue_mission for supervised development tasks")
+    if payload:
+        raise ValueError("Only pre-approved mission IDs may have a payload")
     instant = (now or utcnow()).isoformat()
     with connect(path) as db:
         cursor = db.execute(
@@ -52,30 +62,49 @@ def claim(path, *, now=None):
     until = (now + timedelta(seconds=LEASE_SECONDS)).isoformat()
     with connect(path) as db:
         db.execute("BEGIN IMMEDIATE")
+        # Never silently replay a potentially billable model call after a
+        # worker crash or lease expiration.
+        db.execute(
+            "UPDATE cloud_jobs SET status='attention', lease_until=NULL "
+            "WHERE kind='development_draft' AND status='running' "
+            "AND lease_until<=?", (stamp,),
+        )
         db.execute(
             "UPDATE cloud_jobs SET status='queued', lease_until=NULL "
-            "WHERE status='running' AND lease_until<=? AND attempts<?",
-            (stamp, MAX_ATTEMPTS),
+            "WHERE kind!='development_draft' AND status='running' "
+            "AND lease_until<=? AND attempts<?", (stamp, MAX_ATTEMPTS),
         )
         db.execute(
             "UPDATE cloud_jobs SET status='attention', lease_until=NULL "
             "WHERE status='running' AND lease_until<=? AND attempts>=?",
             (stamp, MAX_ATTEMPTS),
         )
+        # An owner pause stops new development claims, not existing safe
+        # heartbeat or health jobs.
+        control_exists = db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' "
+            "AND name='developer_control'"
+        ).fetchone()
+        paused = bool(db.execute(
+            "SELECT paused FROM developer_control WHERE id=1"
+        ).fetchone()[0]) if control_exists else False
         row = db.execute(
-            "SELECT id,kind,attempts FROM cloud_jobs "
-            "WHERE status='queued' AND available_at<=? ORDER BY id LIMIT 1",
+            "SELECT id,kind,attempts,payload FROM cloud_jobs "
+            "WHERE status='queued' AND available_at<=? "
+            + ("AND kind!='development_draft' " if paused else "")
+            + "ORDER BY id LIMIT 1",
             (stamp,),
         ).fetchone()
         if row is None:
             return None
-        job_id, kind, attempts = row
+        job_id, kind, attempts, payload = row
         db.execute(
             "UPDATE cloud_jobs SET status='running', attempts=attempts+1, "
             "lease_until=?, updated_at=? WHERE id=?",
             (until, stamp, job_id),
         )
-        return {"id": job_id, "kind": kind, "attempt": attempts + 1}
+        return {"id": job_id, "kind": kind, "attempt": attempts + 1,
+                "payload": payload}
 
 
 def finish(path, job_id, attempt, *, result="", error=None, now=None):
@@ -83,13 +112,13 @@ def finish(path, job_id, attempt, *, result="", error=None, now=None):
     with connect(path) as db:
         db.execute("BEGIN IMMEDIATE")
         row = db.execute(
-            "SELECT attempts,status FROM cloud_jobs WHERE id=?", (job_id,),
+            "SELECT attempts,status,kind FROM cloud_jobs WHERE id=?", (job_id,),
         ).fetchone()
-        if row != (attempt, "running"):
+        if row is None or row[:2] != (attempt, "running"):
             return False
         if error is None:
             status, delay = "done", stamp
-        elif attempt >= MAX_ATTEMPTS:
+        elif attempt >= MAX_ATTEMPTS or row[2] == "development_draft":
             status, delay = "attention", stamp
         else:
             status = "queued"
@@ -108,7 +137,8 @@ def process_one(path, handlers, *, now=None):
         return None
     try:
         handler = handlers[job["kind"]]
-        result = handler()
+        result = (handler(job["payload"]) if job["kind"] == "development_draft"
+                  else handler())
     except Exception as exc:
         # Never persist exception text, which might contain credentials.
         finish(path, job["id"], job["attempt"], error="Handler failed", now=now)
