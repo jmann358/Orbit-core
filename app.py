@@ -21,6 +21,8 @@ from luna.developer_api import router as developer_agent_router
 app.include_router(developer_agent_router)
 from luna.self_build_api import router as self_build_router
 app.include_router(self_build_router)
+from luna.visual_studio_api import router as visual_studio_router
+app.include_router(visual_studio_router)
 
 class Chat(BaseModel):
     session: str = Field(default="default",max_length=100)
@@ -40,8 +42,8 @@ class Candidate(BaseModel):
     content: str = Field(min_length=1,max_length=3000)
 
 @app.get("/",response_class=HTMLResponse)
-def home():
-    return r"""<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Luna v1.0.0-rc.1 · ORBIT</title>
+def home(design_preview: int | None = None):
+    html = r"""<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Luna v1.0.0-rc.1 · ORBIT</title>
 <style>body{font:16px system-ui;background:#101321;color:#f4f1ff;max-width:760px;margin:30px auto;padding:18px}h1{color:#d9b9ff}#log{height:58vh;overflow:auto;border:1px solid #45415b;padding:15px;border-radius:14px;white-space:pre-wrap}.msg{margin:12px 0}small{color:#b6a3d3}input,button{font:inherit;padding:12px;border-radius:9px}input{width:65%;background:#26283c;color:white;border:1px solid #777}button{background:#bfa0f5;border:0;cursor:pointer}header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}header h1{margin-bottom:8px}#main-nav{display:flex;gap:7px;overflow-x:auto;padding:14px 0;position:sticky;top:0;background:#101321;z-index:2}#main-nav button{white-space:nowrap;background:#292c44;color:#f4f1ff;padding:11px 14px}#main-nav button.active{background:#bfa0f5;color:#151124;font-weight:700}.tab-panel{display:none}.tab-panel.active{display:block}.tab-panel h2{margin-top:12px}main{min-height:55vh}#log{height:48vh}input{max-width:100%;box-sizing:border-box}pre{max-width:100%;overflow-x:auto}button{margin:3px 0}@media(max-width:550px){body{margin:0;padding:12px}#main-nav button{padding:10px}input{width:100%;margin:5px 0}#form button{width:100%}}
 /* ORBIT light control center: additive styling, existing IDs and handlers intact */
 :root{color-scheme:light;--ink:#25324a;--muted:#64748b;--line:#dce5ef;--paper:#fff;--accent:#5264c9}
@@ -869,6 +871,8 @@ async function loadAgentHistory(){const target=document.querySelector('#agent-hi
 async function loadDrafts(){try{const r=await fetch('/project/drafts');if(!r.ok)throw Error('Unavailable');const target=document.querySelector('#saved-drafts');target.textContent='';const drafts=await r.json();if(!drafts.length){target.textContent='No saved drafts yet.';return}drafts.forEach(d=>{const section=document.createElement('div');section.className='msg';const title=document.createElement('strong');title.textContent=d.goal+' ('+d.status+')';const summary=document.createElement('p');summary.textContent=d.summary;const details=document.createElement('details');const label=document.createElement('summary');label.textContent='Technical draft';const pre=document.createElement('pre');pre.style.whiteSpace='pre-wrap';pre.style.overflowWrap='anywhere';pre.textContent=d.content;details.append(label,pre);section.append(title,summary,details);const check=document.createElement('button');check.type='button';check.textContent='Review draft quality';check.onclick=async()=>{check.disabled=true;try{const r=await fetch('/project/drafts/'+d.id+'/quality');const data=await r.json();const p=document.createElement('p');p.textContent='Quality: '+data.status+' — '+[...data.blockers,...data.warnings].join(' | ')+' (No code applied or executed)';section.append(p)}catch(e){check.textContent='Review unavailable'}finally{check.disabled=false}};section.append(check);if(d.status==='draft'){[['Keep for later','shortlisted'],['Dismiss','dismissed']].forEach(([name,decision])=>{const b=document.createElement('button');b.type='button';b.textContent=name;b.onclick=async()=>{await fetch('/project/drafts/'+d.id+'/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision})});loadDrafts()};section.append(b,document.createTextNode(' '))})}target.append(section)})}catch(e){document.querySelector('#saved-drafts').textContent='Could not load saved drafts'}};document.querySelector('#refresh-drafts').onclick=loadDrafts;loadDrafts();
 async function loadTasks(){try{const r=await fetch('/autonomy/tasks');const tasks=await r.json();const panel=document.querySelector('#task-list');panel.textContent='';if(!tasks.length){panel.textContent='No proposed tasks yet.';return}tasks.forEach(t=>{const div=document.createElement('div');div.className='msg';const heading=document.createElement('strong');heading.textContent=t.title+' ('+t.status+')';const description=document.createElement('p');description.textContent=t.description;div.append(heading,description);if(t.status==='pending'){[['Approve','approved'],['Revise','revision_requested'],['Reject','rejected']].forEach(([label,decision])=>{const btn=document.createElement('button');btn.type='button';btn.textContent=label;btn.onclick=async()=>{await fetch('/autonomy/tasks/'+t.id+'/decision',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision})});loadTasks()};div.append(btn,document.createTextNode(' '))})}panel.append(div)})}catch(e){document.querySelector('#task-list').textContent='Could not load tasks'}}
 </script></html>"""
+    from luna import visual_studio
+    return visual_studio.decorate_home(html, design_preview)
 
 @app.get("/chat/readiness")
 def chat_readiness():
@@ -1904,7 +1908,7 @@ async def luna_design_mission():
     from uuid import uuid4
     root=Path(__file__).resolve().parent
     source=(root/"app.py").read_text(encoding="utf-8")
-    start=source.find('return r"""<!doctype html>')
+    start=source.find('html = r"""<!doctype html>')
     end=source.find('</html>"""',start)
     if start<0:
         raise HTTPException(500,"Dashboard source unavailable")
