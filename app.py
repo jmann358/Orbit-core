@@ -19,6 +19,8 @@ from luna.cloud_security import CloudOwnerGate
 app.add_middleware(CloudOwnerGate)
 from luna.developer_api import router as developer_agent_router
 app.include_router(developer_agent_router)
+from luna.self_build_api import router as self_build_router
+app.include_router(self_build_router)
 
 class Chat(BaseModel):
     session: str = Field(default="default",max_length=100)
