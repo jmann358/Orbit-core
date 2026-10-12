@@ -11,7 +11,7 @@ def _short(value, limit=260):
     return " ".join(value.split())[:limit]
 
 
-def summarize(overview, activity, model, missions=(), designs=()):
+def summarize(overview, activity, model, missions=(), designs=(), agents=(), agent_tasks=()):
     """Prioritize visible owner actions without inventing permissions or progress."""
     candidates = []
 
@@ -32,6 +32,9 @@ def summarize(overview, activity, model, missions=(), designs=()):
     dev_attention = [mission for mission in missions if mission.get("state") == "attention"]
     dev_reviews = [mission for mission in missions if mission.get("state") == "review"]
     pending_designs = [design for design in designs if design.get("status") == "pending"]
+    agent_names = {agent.get("id"): agent.get("name", "Helper") for agent in agents}
+    pending_agents = [agent for agent in agents if agent.get("status") == "pending"]
+    agent_attention = [task for task in agent_tasks if task.get("status") == "attention"]
 
     for job in failed_jobs:
         offer("work", "A Luna task needs attention",
@@ -43,6 +46,16 @@ def summarize(overview, activity, model, missions=(), designs=()):
               _short(mission.get("summary") or mission.get("error_code") or "Luna could not finish a draft."),
               "A saved development mission stopped. Agent Studio shows its actual reason and does not install code.",
               "developer", "Inspect development task", 102, mission.get("id"))
+    for task in agent_attention:
+        offer("helper_attention", agent_names.get(task.get("agent_id"), "Helper") +
+              " needs attention", task.get("result") or "An agent task did not complete.",
+              "This is a real saved task outcome, not a claim of successful work. Inspect it before trying again.",
+              "agents", "Review agent task", 103, task.get("id"))
+    for agent in pending_agents:
+        offer("agent_proposal", "Approve " + agent.get("name", "new helper"),
+              agent.get("purpose") or "Luna has proposed a specialist to help with routine work.",
+              "Review the proposed capabilities. Approval creates an active agent and queues its first tasks. It cannot install code, access credentials, expand permissions or spend without prior model opt-in.",
+              "agents", "Review new agent", 96, agent.get("id"))
     for request in overview.get("requests", ()):
         high = request.get("priority") == "high"
         offer("request", request.get("title") or "Luna has a question",
@@ -120,6 +133,15 @@ def summarize(overview, activity, model, missions=(), designs=()):
             "action": "activity",
             "sort_key": job.get("updated_at") or job.get("created_at") or "",
         })
+    for task in list(agent_tasks)[:12]:
+        recent.append({
+            "kind": "agent", "state": task.get("status", "unknown"),
+            "title": agent_names.get(task.get("agent_id"), "Helper") +
+                     " · " + task.get("kind", "task").replace("_", " "),
+            "detail": _short(task.get("result") or "", 140),
+            "action": "agents",
+            "sort_key": task.get("updated_at") or task.get("created_at") or "",
+        })
     recent.sort(key=lambda item: item["sort_key"], reverse=True)
     for item in recent:
         item.pop("sort_key", None)
@@ -129,11 +151,11 @@ def summarize(overview, activity, model, missions=(), designs=()):
         "more_waiting": max(0, len(waiting) - 12) + hidden_bridge_count,
         "waiting_count": len(waiting) + hidden_bridge_count,
         "work": {
-            "queued": max(counts.get("queued_jobs", 0), len(queued_jobs)) + sum(m.get("state") == "queued" for m in active_missions),
-            "running": len(working_jobs) + sum(m.get("state") == "working" for m in active_missions),
-            "attention": len(failed_jobs) + len(dev_attention),
+            "queued": max(counts.get("queued_jobs", 0), len(queued_jobs)) + sum(m.get("state") == "queued" for m in active_missions) + sum(t.get("status") == "queued" for t in agent_tasks),
+            "running": len(working_jobs) + sum(m.get("state") == "working" for m in active_missions) + sum(t.get("status") == "running" for t in agent_tasks),
+            "attention": len(failed_jobs) + len(dev_attention) + len(agent_attention),
             "recent": recent[:8],
-            "completed_recent": len(done_jobs),
+            "completed_recent": len(done_jobs) + sum(t.get("status") == "completed" for t in agent_tasks),
         },
         "model": {"state": model_state, "detail": model.get("detail", ""),
                   "verified": False},

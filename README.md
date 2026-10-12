@@ -1,3 +1,58 @@
+## Let Luna create her own helpers
+
+With the current version running on your Chromebook or Mac, open Luna's
+**Chat** and say:
+
+```text
+Luna, create a second agent to help you code.
+```
+
+Luna will **propose** an actual persisted helper with an explicit, limited
+role and show you an **Approve this agent** button inside the conversation.
+Approval is not automatic. Once approved, the agent is active and Luna
+queues its first real tasks. Go to **My agents** at
+`http://127.0.0.1:8000/agents` or say **List my agents** to inspect
+what it actually did, its pending tasks, results, and errors.
+
+You can also say **Approve agent 1**, **Pause agent 1**, **Resume agent 1**,
+or **Ask Patch to review code** when an agent named Patch is active.
+On the **My agents** screen, Luna can make another helper, and you can
+approve, reject, pause, resume and assign bounded tasks without opening
+GitHub or copying prompts to ChatGPT.
+
+The first supported specialist roles are:
+
+- **Development Helper**: independently performs local project health
+  checks and, when a separately enabled agent model is available,
+  a real *read-only* code review of an approved ORBIT source module.
+- **Project Inspector**: independently checks the project locally,
+  without requiring any AI model.
+- **Planning Assistant**: uses an explicitly enabled model to produce
+  a reviewable development plan. Plans are **not applied or executed**.
+
+The worker processes approved tasks while Luna's local app is running.
+Agent definitions, queued tasks, and results are saved in the existing
+SQLite database, survive normal restarts, and appear in Luna's
+**Waiting for you** and **Luna's work** panels. Pausing the main worker
+pauses new helper task claims. Model requests are bounded to four total
+per UTC day across these helpers, have no silent retry, and are blocked
+until `LUNA_AGENT_MODEL_ENABLED=1` plus a configured model are present.
+Cloud model use additionally requires the existing explicit
+`LUNA_AGENT_ALLOW_CLOUD=1` setting; no new paid service is enabled.
+
+**What this does not do:** helpers cannot write or install code, access
+a terminal or external accounts, provision cloud services, browse the
+web, unlock new permissions or run arbitrary model-authored tools.
+The existing independent development worker can still prepare bounded
+review-only code drafts, but merging and deployment need distinct
+permissions. A helper is an isolated task role with real results,
+not a separate autonomous computer or a general-purpose
+self-modifying agent. The existing localhost-only security requirements
+still apply. A Mac backup safety gate also applies to unattended
+helper tasks in service mode. No one else's assistance is required for
+creating and running these initially supported helper roles, assuming
+Luna and the necessary existing AI model are operating locally.
+
 ## Start Luna on a Chromebook (simple owner screen)
 
 On the Chromebook where ORBIT is already checked out, **stop any previous

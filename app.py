@@ -23,6 +23,8 @@ from luna.self_build_api import router as self_build_router
 app.include_router(self_build_router)
 from luna.visual_studio_api import router as visual_studio_router
 app.include_router(visual_studio_router)
+from luna.custom_agent_api import router as custom_agent_router
+app.include_router(custom_agent_router)
 
 class Chat(BaseModel):
     session: str = Field(default="default",max_length=100)
@@ -97,7 +99,7 @@ a{color:#394db1!important}details{border:1px solid var(--line);border-radius:12p
 .luna-face[data-mood="listening"] .luna-eyes i{height:17px}
 .luna-companion select{padding:6px;font-size:13px}.luna-companion p{margin:4px 0;font-size:14px}
 @media(prefers-reduced-motion:reduce){.luna-face,.luna-eyes i{transition:none}}
-</style><header><h1>☾ Luna</h1><small>v1.0.0-rc.1 · Agent Core</small></header><nav id="main-nav" class="orbit-banner" aria-label="ORBIT categories"><button type="button" data-tab="home">Overview <span class="nav-attention" data-alert="home" hidden></span></button><button type="button" data-tab="activity">Activity <span id="activity-nav-status" aria-live="polite">· Checking</span></button><button type="button" data-tab="chat" class="active">Chat</button><button type="button" data-tab="bridge">Bridge <span class="nav-attention" data-alert="bridge" hidden></span></button><button type="button" data-tab="memory">Memory <span class="nav-attention" data-alert="memory" hidden></span></button><button type="button" data-tab="goals">Goals</button><button type="button" data-tab="ecosystem">Ecosystem</button><button type="button" data-tab="development">Development <span class="nav-attention" data-alert="development" hidden></span></button><button type="button" data-tab="testing">Testing <span class="nav-attention" data-alert="testing" hidden></span></button><button type="button" data-tab="approvals">Approvals <span class="nav-attention" data-alert="approvals" hidden></span></button></nav><main><section id="tab-home" class="tab-panel"><h2>ORBIT command center</h2><p>One place to see priorities and review Luna's proposals. Approvals never deploy code.</p><div class="orbit-actions"><button type="button" id="control-refresh">Refresh overview</button><button type="button" id="control-diagnose">Run safe diagnostics</button><button type="button" id="control-suggest">Ask Luna for next improvement</button><button type="button" id="control-autopilot">Pause independent work</button></div><p id="control-status" role="status">Loading project overview…</p><div id="control-metrics" class="control-metrics"></div><h3>Needs your decision</h3><div id="control-review"></div><h3>Project inventory</h3><div id="control-inventory"></div><div id="control-diagnostics" role="status"></div></section><section id="tab-activity" class="tab-panel"><h2>Luna activity</h2><p>Recorded work only. Ordinary browser requests are not counted as tasks.</p><p id="activity-state" role="status">Checking activity…</p><p id="activity-counts"></p><h3>Live activity feed</h3><div id="activity-feed" aria-live="polite">Loading…</div><details><summary>Detailed job history and results</summary><div id="activity-history"></div></details><button type="button" id="activity-refresh">Refresh activity</button><p id="activity-updated"></p></section><section id="tab-bridge" class="tab-panel"><h2>Luna ↔ ChatGPT Bridge</h2><p>Visible, user-mediated conversations. Copy Luna's message here, send it in ChatGPT, then paste the reply below. Nothing is sent automatically.</p><button type="button" id="bridge-refresh">Refresh bridge</button><form id="bridge-new"><label for="bridge-title">Subject</label><input id="bridge-title" required minlength="3" maxlength="120" placeholder="What should Luna ask?"><label for="bridge-priority">Priority</label><select id="bridge-priority"><option value="medium">Medium</option><option value="high">High</option><option value="low">Low</option></select><textarea id="bridge-question" required minlength="5" maxlength="6000" rows="3" placeholder="Luna's question or technical request"></textarea><button type="submit">Create Luna request</button></form><p id="bridge-status" role="status"></p><div id="bridge-list"></div></section><section id="tab-chat" class="tab-panel active"><h2>Talk to Luna</h2><p id="chat-connectivity" role="status">Checking AI model configuration…</p><button type="button" id="chat-readiness-refresh">Check connection</button><div class="luna-companion"><div class="luna-face" id="luna-face" data-mood="idle" role="img" aria-label="Luna's ghost-like avatar, resting"><div class="luna-eyes"><i></i><i></i></div><div class="luna-mouth"></div></div><div><strong>Luna</strong><p id="luna-expression" role="status">Here and listening.</p><label for="luna-expressions">Expression style</label> <select id="luna-expressions"><option value="expressive">Expressive</option><option value="subtle">Subtle</option><option value="still">Still</option></select><p><small>Visual reactions are interface cues, not a claim about feelings.</small></p></div></div><label for="sessions">Conversation:</label> <select id="sessions"></select> <button type="button" id="new-session">New chat</button><button type="button" id="load-older-history" hidden>Load earlier messages</button><div id="log"></div><form id="form"><input id="msg" placeholder="Talk to Luna…" maxlength="12000" required autocomplete="off"><button type="submit" id="chat-send">Send</button></form><p id="chat-send-status" role="status"></p></section><section id="tab-memory" class="tab-panel"><h2>Memory</h2>
+</style><header><h1>☾ Luna</h1><small>v1.0.0-rc.1 · Agent Core</small></header><nav id="main-nav" class="orbit-banner" aria-label="ORBIT categories"><button type="button" data-tab="home">Overview <span class="nav-attention" data-alert="home" hidden></span></button><button type="button" data-tab="activity">Activity <span id="activity-nav-status" aria-live="polite">· Checking</span></button><button type="button" data-tab="chat" class="active">Chat</button><button type="button" data-tab="bridge">Bridge <span class="nav-attention" data-alert="bridge" hidden></span></button><button type="button" data-tab="memory">Memory <span class="nav-attention" data-alert="memory" hidden></span></button><button type="button" data-tab="goals">Goals</button><button type="button" data-tab="ecosystem">Ecosystem</button><button type="button" data-tab="development">Development <span class="nav-attention" data-alert="development" hidden></span></button><button type="button" data-tab="testing">Testing <span class="nav-attention" data-alert="testing" hidden></span></button><button type="button" data-tab="approvals">Approvals <span class="nav-attention" data-alert="approvals" hidden></span></button></nav><main><section id="tab-home" class="tab-panel"><h2>ORBIT command center</h2><p>One place to see priorities and review Luna's proposals. Approvals never deploy code.</p><div class="orbit-actions"><button type="button" id="control-refresh">Refresh overview</button><button type="button" id="control-diagnose">Run safe diagnostics</button><button type="button" id="control-suggest">Ask Luna for next improvement</button><button type="button" id="control-autopilot">Pause independent work</button></div><p id="control-status" role="status">Loading project overview…</p><div id="control-metrics" class="control-metrics"></div><h3>Needs your decision</h3><div id="control-review"></div><h3>Project inventory</h3><div id="control-inventory"></div><div id="control-diagnostics" role="status"></div></section><section id="tab-activity" class="tab-panel"><h2>Luna activity</h2><p>Recorded work only. Ordinary browser requests are not counted as tasks.</p><p id="activity-state" role="status">Checking activity…</p><p id="activity-counts"></p><h3>Live activity feed</h3><div id="activity-feed" aria-live="polite">Loading…</div><details><summary>Detailed job history and results</summary><div id="activity-history"></div></details><button type="button" id="activity-refresh">Refresh activity</button><p id="activity-updated"></p></section><section id="tab-bridge" class="tab-panel"><h2>Luna ↔ ChatGPT Bridge</h2><p>Visible, user-mediated conversations. Copy Luna's message here, send it in ChatGPT, then paste the reply below. Nothing is sent automatically.</p><button type="button" id="bridge-refresh">Refresh bridge</button><form id="bridge-new"><label for="bridge-title">Subject</label><input id="bridge-title" required minlength="3" maxlength="120" placeholder="What should Luna ask?"><label for="bridge-priority">Priority</label><select id="bridge-priority"><option value="medium">Medium</option><option value="high">High</option><option value="low">Low</option></select><textarea id="bridge-question" required minlength="5" maxlength="6000" rows="3" placeholder="Luna's question or technical request"></textarea><button type="submit">Create Luna request</button></form><p id="bridge-status" role="status"></p><div id="bridge-list"></div></section><section id="tab-chat" class="tab-panel active"><h2>Talk to Luna</h2><p id="chat-connectivity" role="status">Checking AI model configuration…</p><button type="button" id="chat-readiness-refresh">Check connection</button><div class="luna-companion"><div class="luna-face" id="luna-face" data-mood="idle" role="img" aria-label="Luna's ghost-like avatar, resting"><div class="luna-eyes"><i></i><i></i></div><div class="luna-mouth"></div></div><div><strong>Luna</strong><p id="luna-expression" role="status">Here and listening.</p><label for="luna-expressions">Expression style</label> <select id="luna-expressions"><option value="expressive">Expressive</option><option value="subtle">Subtle</option><option value="still">Still</option></select><p><small>Visual reactions are interface cues, not a claim about feelings.</small></p></div></div><label for="sessions">Conversation:</label> <select id="sessions"></select> <button type="button" id="new-session">New chat</button><button type="button" id="load-older-history" hidden>Load earlier messages</button><div id="log"></div><p><a href="/agents" id="chat-my-agents">My agents: create, approve and see results</a></p><form id="form"><input id="msg" placeholder="Talk to Luna…" maxlength="12000" required autocomplete="off"><button type="submit" id="chat-send">Send</button></form><p id="chat-send-status" role="status"></p></section><section id="tab-memory" class="tab-panel"><h2>Memory</h2>
 <h3>Conversation continuity</h3>
 <p><small>Search saved chats locally. Using older messages in Luna responses requires opt-in. Sending older excerpts to a cloud model requires a separate opt-in; these are never approved memories.</small></p>
 <button type="button" id="continuity-toggle">Checking continuity…</button>
@@ -756,6 +758,28 @@ form.onsubmit=async event=>{
    }else{
     show('Luna',result.reply||'No response received');
     setLunaMood('happy');status.textContent='Reply saved to this conversation.';
+
+   if(result.kind==='agent_proposal' && result.agent_id){
+    const id=result.agent_id;
+    const wrap=document.createElement('div');
+    const approve=document.createElement('button');approve.type='button';
+    approve.textContent='Approve this agent';
+    const details=document.createElement('a');details.href='/agents';
+    details.textContent='Review details and other agents';
+    approve.onclick=async()=>{
+     approve.disabled=true;status.textContent='Activating your approved helper…';
+     try{
+      const response=await fetch('/agents/'+id+'/approve',{method:'POST'});
+      const data=await response.json();
+      if(!response.ok)throw Error(data.detail||'Approval failed');
+      approve.textContent='Agent approved';
+      show('Luna','Agent #'+id+' is active and starter tasks are queued. Open My agents to see real results.');
+      status.textContent='Agent activated with your approval.';
+     }catch(e){status.textContent=e.message;approve.disabled=false}
+    };
+    wrap.append(approve,document.createTextNode(' '),details);
+    document.querySelector('#log').append(wrap);
+   }
    }
   }
   await loadSessions();
@@ -971,7 +995,16 @@ async def chat(request:Chat):
     add_message(request.session,"user",request.message)
     suggest_from_user_message(request.message)
     from luna import self_build, core
-    if self_build.is_start_command(request.message):
+    from luna.custom_agent_chat import parse as parse_agent_chat, handle as handle_agent_chat
+    agent_command = parse_agent_chat(request.message)
+    agent_metadata = {}
+    if agent_command is not None:
+        agent_result = handle_agent_chat(agent_command)
+        reply = agent_result["reply"]
+        kind = agent_result["kind"]
+        agent_metadata = {k: agent_result[k] for k in ("agent_id", "task_id")
+                          if k in agent_result}
+    elif self_build.is_start_command(request.message):
         try:
             started = self_build.start(core.DB_PATH)
             reply = ("I queued my next code improvement, mission #" +
@@ -994,7 +1027,7 @@ async def chat(request:Chat):
             kind="notice" if is_operational_notice(reply) else "reply"
     # An outage/setup notice is not speech generated by the AI model.
     add_message(request.session,"system" if kind=="notice" else "assistant",reply)
-    return {"reply":reply,"kind":kind}
+    return {"reply":reply,"kind":kind,**agent_metadata}
 
 @app.get("/memory/candidates")
 def list_candidates():
@@ -1535,6 +1568,34 @@ def _start_job_worker():
 def _stop_job_worker():
     _job_stop.set()
 
+# Bounded helpers execute as a separate supervised background loop. No model
+# task retries after failures or restarts. Pausing the usual worker pauses them.
+_custom_agent_stop = _threading.Event()
+_custom_agent_thread = None
+
+def _run_custom_agent_worker():
+    from luna import custom_agents
+    while not _custom_agent_stop.wait(5):
+        try:
+            custom_agents.run_one()
+        except Exception:
+            continue
+
+@app.on_event("startup")
+def _start_custom_agents():
+    global _custom_agent_thread
+    from luna import custom_agents
+    custom_agents.recover_interrupted()
+    if _custom_agent_thread is None or not _custom_agent_thread.is_alive():
+        _custom_agent_stop.clear()
+        _custom_agent_thread = _threading.Thread(
+            target=_run_custom_agent_worker, daemon=True, name="orbit-helpers")
+        _custom_agent_thread.start()
+
+@app.on_event("shutdown")
+def _stop_custom_agents():
+    _custom_agent_stop.set()
+
 class BridgeThreadPayload(BaseModel):
     title: str = Field(min_length=3,max_length=120)
     priority: str = "medium"
@@ -1657,7 +1718,7 @@ def control_autopilot_choice(choice: AutopilotChoice):
 @app.get("/focus/summary")
 def focus_summary():
     """One read-only, truthful view of owner decisions and Luna's recorded work."""
-    from luna import core, developer_agent, visual_studio
+    from luna import core, developer_agent, visual_studio, custom_agents
     from luna.attention_feed import summarize
     from luna.model_connection import inspect_model_configuration
     return summarize(
@@ -1666,6 +1727,8 @@ def focus_summary():
         inspect_model_configuration(),
         developer_agent.list_missions(core.DB_PATH),
         visual_studio.proposals(),
+        custom_agents.list_agents(),
+        custom_agents.list_tasks(),
     )
 
 
