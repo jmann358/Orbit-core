@@ -1,3 +1,5 @@
+> **Integration update (2026-10-11):** The detailed audit below reports an earlier source snapshot, not the latest integrated build. PRs #16–#19 merged with CI evidence; see [master-plan reconciliation](MASTER_PLAN_RECONCILIATION.md). No live provider, Mac M4, iPhone or continuously hosted deployment has been verified.
+
 # Development progress
 
 ## 2026-10-12 — complete audit and tested conversation reliability slice
