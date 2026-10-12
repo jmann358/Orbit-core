@@ -84,3 +84,7 @@ def test_existing_worker_api_distinguishes_enabled_and_heartbeat(tmp_path):
         result = client.get("/agent/worker").json()
         assert result["enabled"] is False
         assert result["heartbeat"]["state"] == "paused"
+        home = client.get("/").text
+        assert 'id="focus-worker-observation"' in home
+        assert "Worker activity unverified:" in home
+        assert "A heartbeat is not proof that work has completed." in home
