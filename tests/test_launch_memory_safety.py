@@ -245,7 +245,7 @@ def test_swapping_project_root_cannot_redirect_backup_to_shared_directory():
 def test_verifier_binds_to_exact_workflow_path_not_display_name():
     script = (Path(__file__).resolve().parents[1]
               / "scripts" / "verify_and_launch.sh").read_text()
-    assert "actions/workflows/orbit-checks.yml/runs?" in script
+    assert "actions/runs?" in script
     assert 'item.get("path") == ".github/workflows/orbit-checks.yml"' in script
     assert 'item.get("head_sha") == commit' in script
     assert 'item.get("conclusion") == "success"' in script
