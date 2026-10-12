@@ -85,6 +85,15 @@ She cannot commit, install, deploy, buy services or approve her own changes.</p>
 </div>
 </article>
 <article>
+<h2>Let Luna start self-building</h2>
+<p>One click queues her next bounded improvement. After a model and worker are
+explicitly configured, she drafts and validates it independently. With
+separate opt-in GitHub publishing, she can open a draft pull request for
+your review. She cannot approve, merge, deploy or spend money.</p>
+<button id="self-build-start">Start Luna's next improvement</button>
+<p id="self-build-state" role="status">Checking readiness…</p>
+</article>
+<article>
 <h2>Give Luna a development task</h2>
 <p>These are Luna's currently approved source targets. Her own daily task
 selection uses the same limits.</p>
@@ -170,6 +179,29 @@ document.querySelector('#assign').onclick=async()=>{
  }catch(error){out.textContent=error.message}
  finally{button.disabled=false}
 };
+async function refreshSelfBuild(){
+ const output=document.querySelector('#self-build-state');
+ try{
+  const state=await req('/agent/self-build/status');
+  const items=state.blockers.length
+   ? ('Waiting for: '+state.blockers.join(', ').replaceAll('_',' '))
+   : 'Configuration flags ready (actual server/model still unverified)';
+  output.textContent=items+' · Cloud host: not provisioned · Owner reviews PRs.';
+ }catch(error){output.textContent=error.message}
+}
+document.querySelector('#self-build-start').onclick=async()=>{
+ const button=document.querySelector('#self-build-start');
+ const output=document.querySelector('#self-build-state');
+ button.disabled=true;
+ try{
+  const result=await req('/agent/self-build/start',{method:'POST'});
+  output.textContent='Luna queued mission #'+result.mission_id+
+   (result.waiting_for_model?' · Waiting for a model connection':' · Ready for worker');
+  await refresh();
+ }catch(error){output.textContent=error.message}
+ finally{button.disabled=false}
+};
+refreshSelfBuild();
 refresh();
 </script></html>"""
 
