@@ -1055,6 +1055,19 @@ def get_history(session: str="default"):
 
 @app.post("/chat")
 async def chat(request:Chat):
+    # Screen before *any* SQLite write, task routing or provider call.
+    # Positive matches are neither stored nor forwarded; this is only a
+    # conservative first barrier, not a comprehensive secrets vault.
+    from luna.sensitive_intake import screen
+    intake = screen(request.message)
+    if intake["decision"] != "allow":
+        return {
+            "reply": "Sensitive-looking credentials or identifiers were detected. "
+                     "This message was not saved or sent to a model. "
+                     "Remove those values and try again.",
+            "kind": "notice", "stored": False, "model_called": False,
+            "sensitive_intake": intake,
+        }
     add_message(request.session,"user",request.message)
     suggest_from_user_message(request.message)
     from luna.custom_agent_chat import parse as parse_agent_chat, handle as handle_agent_chat
@@ -1662,16 +1675,26 @@ def _job_worker():
 @app.on_event("startup")
 def _start_job_worker():
     global _job_thread
+    # Do not recover/requeue work while a previous worker is still writing.
+    if _job_thread is not None and _job_thread.is_alive():
+        if _job_stop.is_set():
+            raise RuntimeError("Previous Luna job worker is still shutting down")
+        return
     recover_interrupted()
     backlog.reconcile()
-    if _job_thread is None or not _job_thread.is_alive():
-        _job_stop.clear()
-        _job_thread=_threading.Thread(target=_job_worker,daemon=True,name="orbit-jobs")
-        _job_thread.start()
+    _job_stop.clear()
+    _job_thread=_threading.Thread(target=_job_worker,daemon=True,name="orbit-jobs")
+    _job_thread.start()
 
 @app.on_event("shutdown")
 def _stop_job_worker():
+    global _job_thread
     _job_stop.set()
+    if _job_thread is not None:
+        _job_thread.join(timeout=15)
+        if _job_thread.is_alive():
+            raise RuntimeError("Luna job worker failed to stop cleanly")
+        _job_thread = None
 
 # Bounded helpers execute as a separate supervised background loop. No model
 # task retries after failures or restarts. Pausing the usual worker pauses them.
@@ -1689,17 +1712,26 @@ def _run_custom_agent_worker():
 @app.on_event("startup")
 def _start_custom_agents():
     global _custom_agent_thread
+    if _custom_agent_thread is not None and _custom_agent_thread.is_alive():
+        if _custom_agent_stop.is_set():
+            raise RuntimeError("Previous Luna helper worker is still shutting down")
+        return
     from luna import custom_agents
     custom_agents.recover_interrupted()
-    if _custom_agent_thread is None or not _custom_agent_thread.is_alive():
-        _custom_agent_stop.clear()
-        _custom_agent_thread = _threading.Thread(
-            target=_run_custom_agent_worker, daemon=True, name="orbit-helpers")
-        _custom_agent_thread.start()
+    _custom_agent_stop.clear()
+    _custom_agent_thread = _threading.Thread(
+        target=_run_custom_agent_worker, daemon=True, name="orbit-helpers")
+    _custom_agent_thread.start()
 
 @app.on_event("shutdown")
 def _stop_custom_agents():
+    global _custom_agent_thread
     _custom_agent_stop.set()
+    if _custom_agent_thread is not None:
+        _custom_agent_thread.join(timeout=15)
+        if _custom_agent_thread.is_alive():
+            raise RuntimeError("Luna helper worker failed to stop cleanly")
+        _custom_agent_thread = None
 
 class BridgeThreadPayload(BaseModel):
     title: str = Field(min_length=3,max_length=120)
