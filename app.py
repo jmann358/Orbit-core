@@ -1273,18 +1273,19 @@ def test_baseline():
                 shutil.copytree(src,workspace/folder,ignore=shutil.ignore_patterns("__pycache__",".pytest_cache","*.pyc"))
         test_file=workspace/"tests"/"test_core.py"
         if not test_file.is_file():
-            return {"passed":False,"summary":"No test file found","isolated":True}
-        env=os.environ.copy()
-        env["PYTHONDONTWRITEBYTECODE"]="1"
-        env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"]="1"
+            return {"passed":False,"summary":"No test file found","isolated":True,"sandboxed":False}
+        # Never hand test subprocesses the owner's keys, model settings, or
+        # actual LUNA_DB_PATH. A temporary copy is NOT an OS security sandbox.
+        from luna.baseline_env import trusted_baseline_env
+        env=trusted_baseline_env(workspace)
         try:
             result=subprocess.run([sys.executable,"-m","pytest","-q","-p","no:cacheprovider","tests"],
                                   cwd=workspace,env=env,capture_output=True,text=True,timeout=20)
         except subprocess.TimeoutExpired:
-            return {"passed":False,"summary":"Tests timed out after 20 seconds","isolated":True}
+            return {"passed":False,"summary":"Tests timed out after 20 seconds","isolated":True,"sandboxed":False}
         output=(result.stdout+"\n"+result.stderr).strip()
         return {"passed":result.returncode==0,"summary":output[-900:] or "No test output",
-                "isolated":True,"draft_applied":False}
+                "isolated":True,"sandboxed":False,"draft_applied":False}
 
 @app.post("/agent/run-routine")
 def run_routine():
