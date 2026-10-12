@@ -43,6 +43,7 @@ def plist_config(root=ROOT, home=None):
         "EnvironmentVariables": {
             "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin",
             "PYTHONUNBUFFERED": "1",
+            "LUNA_SERVICE_MODE": "1",
         },
     }
 
