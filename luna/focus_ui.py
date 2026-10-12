@@ -37,6 +37,7 @@ FOCUS_HOME = """<div class="focus-top">
       <button id="focus-refresh" class="focus-link-button" type="button"
         title="Recheck saved local tasks without starting new work">Refresh</button></div>
     <p id="focus-work-summary" role="status">Reading Luna's saved work history…</p>
+    <p id="focus-worker-observation" role="status">Worker activity not yet checked.</p>
     <div id="focus-recent"></div>
   </section>
 </div>
@@ -272,6 +273,20 @@ FOCUS_SCRIPT = r"""
   }
  }
  byId('focus-goal-refresh').addEventListener('click',refreshFocusedGoal);
+ async function refreshWorkerObservation(){
+  const target=byId('focus-worker-observation');
+  try{
+   const response=await fetch('/agent/worker',{cache:'no-store'});
+   if(!response.ok)throw Error('worker status unavailable');
+   const state=await response.json();
+   const pulse=state.heartbeat||{};
+   const observation=pulse.recently_observed
+    ?'Last observed: '+pulse.state+' · '+pulse.age_seconds+' seconds ago.'
+    :'No recent worker heartbeat detected.';
+   target.textContent='Worker '+(state.enabled?'enabled':'paused by owner')+
+      '. '+observation+' A heartbeat is not proof that work has completed.';
+  }catch(error){target.textContent='Worker activity unverified: '+error.message}
+ }
  function fillWork(work){
   const holder=byId('focus-recent');holder.replaceChildren();
   byId('focus-work-summary').textContent=
@@ -311,7 +326,7 @@ FOCUS_SCRIPT = r"""
    byId('focus-waiting-count').textContent=String(data.waiting_count);
    fillWaiting(data.waiting,data.more_waiting);
    fillWork(data.work);
-   await refreshFocusedGoal();
+   await Promise.all([refreshFocusedGoal(),refreshWorkerObservation()]);
    byId('focus-error').textContent='';
   }catch(err){
    byId('focus-title').textContent='Luna could not load the task list';
