@@ -2,6 +2,22 @@
 
 ORBIT is a local-first, provider-independent assistant ecosystem. Luna is its conversational coordinator.
 
+## Priorities 6–14: local-first foundations (under development)
+
+The next milestone adds review-only chat memory extraction, traceable
+specialist handoffs, device-security readiness, real provider-reported token
+usage accounting (prices unknown), persisted avatar presentation choices,
+a static integration catalog, on-demand proactive suggestions, improvement
+evidence gates, and verified offline SQLite backups.
+
+These foundations are **not** nine completed priorities. In particular,
+authenticated iPhone access, independent model agents, paid provider routing,
+microphone/voice, connected apps and remote deployment still need explicit
+owner decisions and additional work. No new subscriptions, external access,
+provider calls or automatic code application are enabled.
+
+See [Priorities 6–14 development and safety](docs/PRIORITIES6_14_DEVELOPMENT.md).
+
 ## Luna 1.0 release candidate — agent core
 
 The **Goals** tab supports persisted objectives, owner-reviewed action plans, sequential execution of three allowlisted low-risk tools (local health, GitHub status, development plan), and progress recovery after a restart. Failed/interrupted steps stop the goal for attention; they are never automatically retried. This is a limited agent executor, not general-purpose autonomous computer control.
