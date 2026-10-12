@@ -1,3 +1,5 @@
+> **Integration update (2026-10-11):** This roadmap table records an earlier audit baseline; its status cells are not a complete inventory of the merged release. See [master-plan reconciliation](MASTER_PLAN_RECONCILIATION.md) for the original architecture matched to current code and outstanding live-host acceptance tests. PRs #16–#19 merged a bounded developer worker, draft-PR handoff, one-command local model startup and a private memory backup guard. Live model, Mac/iPhone and unattended uptime are not yet verified.
+
 # Development roadmap
 
 The delivery target is a usable Luna conversation interface with persistent,
