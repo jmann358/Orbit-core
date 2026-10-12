@@ -169,7 +169,7 @@ def handle(action):
         return {"kind": "work_status", "reply": progress_message()}
     if action == "unverified_yes":
         return {
-            "kind": "notice",
+            "kind": "work_status",
             "reply": (
                 "My previous suggestion was conversational text, not a saved ORBIT task. "
                 "Your 'yes' didn't secretly authorize or run anything. "
