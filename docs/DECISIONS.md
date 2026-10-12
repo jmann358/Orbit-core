@@ -62,3 +62,21 @@ authentication, pairing, transport, revocation, and retention design. Existing
 readiness reports and permission-policy records are not remote authentication.
 Routine authorized source work proceeds on focused branches and PRs; sensitive
 actions and merging require the applicable explicit owner approval.
+
+## 2026-10-12 — first implementation verified and submitted
+
+**Outcome:** PR #13 preserves the existing adapters and chat API while rejecting
+malformed URL configuration, invalid reply shapes, empty text, and Unicode that
+SQLite cannot encode. A later valid reply succeeds; approved memory and chat
+history survive provider changes and reopening SQLite in a fresh interpreter.
+
+**Evidence:** 219 local tests passed, including 37 new regressions, with the
+documented workspace scheduling adjustment. GitHub CI at implementation commit
+`6ea197fbd9f8b6b101fced3522ff7cb8fef10eed` independently passed ordinary
+Linux/Python 3.13 compilation and all 219 tests (9 warnings, 5.63 seconds).
+See [PR #13](https://github.com/jmann358/Orbit-core/pull/13) and
+[CI run 38191640970](https://github.com/jmann358/Orbit-core/actions/runs/38191640970).
+
+**Next:** Verify and fix pending-send/session-switch behavior before expanding
+the interface. Live inference, browser usage, Mac installation, and iPhone
+access remain unverified. The PR is open; no merge or deployment occurred.

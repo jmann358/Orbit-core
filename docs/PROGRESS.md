@@ -15,10 +15,11 @@ implementation. See [AUDIT.md](AUDIT.md) and the
 | Provider reliability fix | Implemented: invalid response text, malformed Gemini parts, invalid UTF-8, malformed endpoints/ports, timeouts, invalid JSON, and provider HTTP failures produce bounded notices. Tests verify subsequent successful replies. |
 | Conversation and memory integration | Mocked OpenAI-compatible/Gemini replies retain the charter and approved memory; pending memory and other-session text are excluded. A fresh Python interpreter reopens the SQLite file and verifies four saved turns and approved memory. |
 | Post-change regression suite | 219 passed: 182 existing cases plus 37 new cases; 0 failures, errors, or skips; 9 deprecation warnings; 13.11 s. Uses the same external scheduling workaround as the baseline. |
+| GitHub CI | Normal Linux/Python 3.13 execution passed compilation and all 219 tests with 9 warnings in 5.63 s, without the workspace scheduling workaround. [Run 38191640970](https://github.com/jmann358/Orbit-core/actions/runs/38191640970) tested implementation commit `6ea197fbd9f8b6b101fced3522ff7cb8fef10eed`. |
 | Other checks | Python compilation and app import passed; embedded dashboard JavaScript passed `node --check`. Chromium could not launch because socket creation was denied, so there is no browser interaction verification. |
 | Test setup and run docs | Added `requirements-dev.txt` with pytest 8.4.2; CI installs that manifest; README/RUN setup uses it; RUN now states Python 3.11+ and 30 recent turns plus approved context/cloud opt-in. Clean installation on Mac remains unverified. |
 | Development instructions and records | `AGENTS.md`, audit, prioritized roadmap, this report, inventory, and decision entries established. |
-| Branch/PR | `fix/luna-conversation-reliability`; publication and exact PR reference pending. No merge or deployment authorized. |
+| Branch/PR | [PR #13](https://github.com/jmann358/Orbit-core/pull/13), branch `fix/luna-conversation-reliability`, implementation commit `6ea197fbd9f8b6b101fced3522ff7cb8fef10eed`. Open for review; no merge or deployment performed. |
 
 The baseline is evidence about assertions in the existing suite, not a claim
 that Luna is ready for everyday use. No live model, actual browser conversation,
@@ -47,7 +48,7 @@ text file directly; use it only to investigate the documented environment stall.
 
 ## Remaining work
 
-Publish the focused PR, then verify pending-send/session-switch behavior and
+Review PR #13, then verify pending-send/session-switch behavior and
 interactive chat. Explicit typed model failures, deterministic connection
 closure, atomic backlog dispatch, case-safe Mac checkout, launcher backup, and
 restore rehearsal remain on the roadmap. Model failures are still represented

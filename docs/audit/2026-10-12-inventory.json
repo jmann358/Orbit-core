@@ -1373,5 +1373,22 @@
     ],
     "command": "PYTHONPATH=/workspace/test-deps/pytest/src:/workspace/test-deps/pluggy/src:/workspace/test-deps/iniconfig/src:/workspace/Orbit-core PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 LUNA_DB_PATH=/workspace/audit-artifacts/final-test-data.db python /workspace/audit-artifacts/run_pytest_with_polling.py -q -p no:cacheprovider tests --junitxml=/workspace/audit-artifacts/final-pytest.xml > /workspace/audit-artifacts/final-pytest.txt 2>&1",
     "workdir": "/workspace/Orbit-core"
+  },
+  "github_ci": {
+    "implementation_commit": "6ea197fbd9f8b6b101fced3522ff7cb8fef10eed",
+    "pull_request": 13,
+    "url": "https://github.com/jmann358/Orbit-core/actions/runs/38191640970",
+    "run_id": 38191640970,
+    "job_id": 114625453047,
+    "event": "push",
+    "conclusion": "success",
+    "python": "3.13.16",
+    "pytest": "8.4.2",
+    "command": "python -m pytest -q -p no:cacheprovider tests",
+    "tests_passed": 219,
+    "warnings": 9,
+    "pytest_elapsed_seconds": 5.63,
+    "external_scheduling_workaround": false,
+    "python_compilation": "passed"
   }
 }
