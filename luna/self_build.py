@@ -22,6 +22,24 @@ API_URL = "https://api.github.com"
 BASE_BRANCH = "main"
 
 
+def is_start_command(message):
+    """A deliberately tiny, explicit natural-language tool command.
+
+    This never interprets arbitrary model output or quoted/source text as an
+    instruction, and it performs only the bounded queue action.
+    """
+    if not isinstance(message, str):
+        return False
+    value = message.strip().lower().rstrip("!.")
+    if value.startswith("luna, "):
+        value = value[6:]
+    return value in {
+        "start self-building", "start building yourself",
+        "start working on yourself", "work on yourself",
+        "begin self-building", "build yourself",
+    }
+
+
 def publishing_config(environ=None):
     env = os.environ if environ is None else environ
     # An environment variable is an opt-in, not an authority to target other
