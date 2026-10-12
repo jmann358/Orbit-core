@@ -271,3 +271,101 @@ def test_memory_and_handoff_api_review_only():
         assert len(client.get("/memory/learning/sources").json()["sources"]) == 1
         assert core.approved_memories() == []
         assert client.get("/agent/goals/999/handoff/0").status_code == 404
+
+
+def test_actual_successful_model_response_records_reported_usage(monkeypatch):
+    import asyncio
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+        def json(self):
+            return {
+                "choices": [{"message": {"content": "Luna is connected"}}],
+                "usage": {"prompt_tokens": 21,
+                          "completion_tokens": 6, "total_tokens": 27},
+            }
+    class FakeClient:
+        def __init__(self, **kwargs):
+            assert kwargs["follow_redirects"] is False
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *args):
+            return False
+        async def post(self, url, **kwargs):
+            assert url == "https://api.openai.com/v1/chat/completions"
+            assert kwargs["headers"]["Authorization"] == "Bearer test-only"
+            return FakeResponse()
+    with TemporaryDirectory() as folder, patch.object(
+        core, "DB_PATH", Path(folder) / "db"
+    ):
+        monkeypatch.setenv("LUNA_MODEL_URL", "https://api.openai.com/v1")
+        monkeypatch.setenv("LUNA_MODEL_NAME", "test-model")
+        monkeypatch.setenv("LUNA_API_KEY", "test-only")
+        monkeypatch.setattr(core.httpx, "AsyncClient", FakeClient)
+        core.add_message("chat", "user", "Please respond")
+        assert asyncio.run(core.respond("chat", "Please respond")) == "Luna is connected"
+        assert model_usage.report()["reported_total_tokens"] == 27
+
+
+def test_gemini_response_usage_adapter_tracks_verified_counts(monkeypatch):
+    import asyncio
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+        def json(self):
+            return {
+                "candidates": [{"content": {"parts": [{"text": "Hello!"}]}}],
+                "usageMetadata": {"promptTokenCount": 8,
+                                  "candidatesTokenCount": 2,
+                                  "totalTokenCount": 10},
+            }
+    class FakeClient:
+        def __init__(self, **kwargs):
+            pass
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *args):
+            return False
+        async def post(self, url, **kwargs):
+            assert url.endswith("models/gemini-test:generateContent")
+            assert kwargs["headers"]["x-goog-api-key"] == "test-only"
+            return FakeResponse()
+    with TemporaryDirectory() as folder, patch.object(
+        core, "DB_PATH", Path(folder) / "db"
+    ):
+        monkeypatch.setenv("LUNA_MODEL_URL",
+                           "https://generativelanguage.googleapis.com/v1beta")
+        monkeypatch.setenv("LUNA_MODEL_NAME", "gemini-test")
+        monkeypatch.setenv("LUNA_API_KEY", "test-only")
+        monkeypatch.setattr(core.httpx, "AsyncClient", FakeClient)
+        core.add_message("chat", "user", "Hello")
+        assert asyncio.run(core.respond("chat", "Hello")) == "Hello!"
+        assert model_usage.report()["reported_total_tokens"] == 10
+
+
+def test_dashboard_wires_memory_and_ecosystem_controls():
+    html = TestClient(app).get("/").text
+    for identifier in (
+        'data-tab="ecosystem"', 'id="tab-ecosystem"',
+        'id="memory-learning-preview"', 'id="memory-learning-list"',
+        'id="ecosystem-refresh"', 'id="ecosystem-save-presentation"',
+        'id="ecosystem-suggestions-refresh"',
+    ):
+        assert identifier in html
+
+
+def test_dashboard_embedded_javascript_syntax_when_node_available():
+    import re
+    import shutil
+    import subprocess
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("Optional Node runtime not installed")
+    html = TestClient(app).get("/").text
+    match = re.search(r"<script>(.*?)</script>", html, re.S)
+    assert match, "Dashboard must contain embedded JavaScript"
+    result = subprocess.run(
+        [node, "--check"], input=match.group(1),
+        capture_output=True, text=True, timeout=10, check=False,
+    )
+    assert result.returncode == 0, result.stderr[:1500]
