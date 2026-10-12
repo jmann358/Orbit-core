@@ -193,7 +193,7 @@ async function loadControl(){
     let pending=0;
     for(const group of controlGroups)for(const item of data[group.key]||[]){
       pending++;
-      const card=document.createElement('article');card.className='control-card';
+      const card=document.createElement('article');card.className='control-card';card.dataset.reviewKind=group.key;card.dataset.reviewId=String(item.id);
       const kind=document.createElement('div');kind.className='control-kind';kind.textContent=group.label;
       const title=document.createElement('h4');title.textContent=group.title(item);
       const desc=document.createElement('p');desc.textContent=group.body(item);
