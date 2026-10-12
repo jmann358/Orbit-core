@@ -168,7 +168,7 @@ Open **Development → Luna’s Design Studio** and select **Let Luna redesign O
 
 ## Verified update and launch
 
-Stop the currently running server first. From the project directory run `bash scripts/verify_and_launch.sh`. The script pulls only fast-forward changes, backs up the default SQLite database, compiles Python files, runs regression tests, and starts Luna **only if the checks pass**. It requires `pytest` to be installed (`python -m pip install pytest`). If you configured `LUNA_DB_PATH` to a custom location, back up that database separately.
+Stop the currently running server first. From the project directory run `bash scripts/verify_and_launch.sh` **only when online**. The script creates a private SQLite-consistent snapshot of the configured `LUNA_DB_PATH` **before** pulling a fast-forward update, then requires a successful GitHub Actions CI run for the exact `main` commit before starting Luna on localhost. It intentionally does **not** execute newly fetched test code using your local memory database or API credentials. If the public GitHub CI check cannot be reached or has not passed, launch refuses to proceed. Ordinary `python scripts/start_luna_agent.py --self-build` remains the separate local developer-worker startup path; neither launcher installs Ollama or provides phone access.
 
 ## Start locally
 
