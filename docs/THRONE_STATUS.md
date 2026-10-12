@@ -40,8 +40,8 @@ transfer listener is closed. Automatic login services and service recovery
 work; sleep is disabled on power and automatic restart after power loss is
 enabled. The owner must unlock/log in after boot before Luna resumes.
 
-The automatic code draft's model/validation failure remains unresolved. No
-Mac sandbox, secure mobile pairing, independent backup of later Mac changes,
+The installed version still has the recorded drafting failure; the source
+candidate passes one local drafting scenario, as recorded below. No Mac sandbox, secure mobile pairing, independent backup of later Mac changes,
 complete self-development loop or newly published pojo.3 is claimed.
 
 ## Next gates
@@ -68,3 +68,24 @@ service was stopped or changed. Installed ee067a3 remains clean.
 
 Existing GitHub CI covers #57, not this new local candidate. Preserve the
 new commit and obtain exact-head CI after authorized publication.
+
+## Local drafting acceptance — follow-up
+
+The original proposal path failed strict validation twice against public
+`luna/skill_catalog.py` in disposable state. The candidate now requests
+schema-constrained output only at the local Ollama-compatible endpoint
+(port 11434, /v1). Path and base revision are constrained, and the existing
+revision, size and Python-syntax validation still apply. Other providers
+retain their previous payload, and rejected requests do not trigger a
+less-constrained fallback.
+
+The same local qwen2.5-coder:7b then produced a proposal that reached review
+on its first attempt in 30.42 seconds. Source remained unchanged, generated
+code was not executed, and private memory was not used. This proves one
+local drafting scenario, not correctness of the proposed improvement or
+a complete test/repair/deployment cycle. The old production failure remains
+a preserved historical record; these fixes are not installed yet.
+
+Full regression: 502 passed, 13 warnings, zero skips in 35.91 seconds.
+Transport, consent, rejection, retry and local-only scope tests passed.
+Reference: https://docs.ollama.com/capabilities/structured-outputs

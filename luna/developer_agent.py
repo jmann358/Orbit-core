@@ -316,6 +316,20 @@ def _candidate(answer, path, digest):
     return data
 
 
+def proposal_schema(path, digest):
+    """Constrain local generation; normal revision/syntax checks still apply."""
+    return {
+        "type": "object", "additionalProperties": False,
+        "properties": {
+            "path": {"type": "string", "enum": [path]},
+            "base_sha256": {"type": "string", "enum": [digest]},
+            "replacement": {"type": "string"},
+            "summary": {"type": "string", "minLength": 1, "maxLength": 400},
+        },
+        "required": ["path", "base_sha256", "replacement", "summary"],
+    }
+
+
 async def run_mission(db_path, ident, *, model=None, root=None):
     """Execute a SINGLE, bounded drafting task; preserve source untouched."""
     root = ROOT if root is None else Path(root)
@@ -330,7 +344,8 @@ async def run_mission(db_path, ident, *, model=None, root=None):
     async def infer(text):
         if model is not None:
             return await model(text)
-        return await propose(text, mission_id=ident, db_path=db_path)
+        return await propose(text, mission_id=ident, db_path=db_path,
+                             output_schema=proposal_schema(record["path"], digest))
 
     try:
         original, digest = _source(root, record["path"])
@@ -351,7 +366,7 @@ async def run_mission(db_path, ident, *, model=None, root=None):
             if not _reserve_validation_retry(db_path, ident):
                 raise ValueError("Development draft needs manual attention") from None
             answer = await infer(
-                prompt + "\\nThe first response failed strict JSON or "
+                prompt + "\nThe first response failed strict JSON or "
                 "revision-locked Python syntax validation. Respond with ONLY "
                 "the exact requested JSON object and valid Python source."
             )

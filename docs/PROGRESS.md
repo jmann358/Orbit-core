@@ -79,3 +79,24 @@ Append dated evidence as work advances. Distinguish source review, automated
 tests, mocked adapter tests, local server/browser checks, hardware checks, and
 owner approval. A failed or unavailable check remains visible until resolved.
 Record exact counts and outcomes; do not invent completion percentages.
+
+## Local drafting acceptance — follow-up
+
+The original proposal path failed strict validation twice against public
+`luna/skill_catalog.py` in disposable state. The candidate now requests
+schema-constrained output only at the local Ollama-compatible endpoint
+(port 11434, /v1). Path and base revision are constrained, and the existing
+revision, size and Python-syntax validation still apply. Other providers
+retain their previous payload, and rejected requests do not trigger a
+less-constrained fallback.
+
+The same local qwen2.5-coder:7b then produced a proposal that reached review
+on its first attempt in 30.42 seconds. Source remained unchanged, generated
+code was not executed, and private memory was not used. This proves one
+local drafting scenario, not correctness of the proposed improvement or
+a complete test/repair/deployment cycle. The old production failure remains
+a preserved historical record; these fixes are not installed yet.
+
+Full regression: 502 passed, 13 warnings, zero skips in 35.91 seconds.
+Transport, consent, rejection, retry and local-only scope tests passed.
+Reference: https://docs.ollama.com/capabilities/structured-outputs
