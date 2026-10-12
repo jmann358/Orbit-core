@@ -121,7 +121,7 @@ def handle(command):
             tasks = custom_agents.list_tasks()
             lines = []
             for agent in agents:
-                recent = next((t for t in tasks if t["agent_id"] == agent["id"]), None)
+                recent = next((t for t in tasks if t["agent_id"] == agent["id"] and t["status"] in ("completed", "attention")), None) or next((t for t in tasks if t["agent_id"] == agent["id"]), None)
                 last = (" Last task: " + recent["status"] +
                         (" — " + recent["result"][:280] if recent["result"] else "") +
                         ".") if recent else ""
