@@ -759,11 +759,47 @@ form.onsubmit=async event=>{
     show('Luna',result.reply||'No response received');
     setLunaMood('happy');status.textContent='Reply saved to this conversation.';
     if(result.mission_id){
+     const missionId=result.mission_id;
      const item=document.createElement('p');
      const link=document.createElement('a');
      link.href='/agent/studio';
-     link.textContent='View real development mission #'+result.mission_id+' and its status';
+     link.textContent='View real development mission #'+missionId+' and its status';
      item.append(link);document.querySelector('#log').append(item);
+     try{
+      const [consentResponse,agentResponse]=await Promise.all([
+       fetch('/agent/self-build/model-consent',{cache:'no-store'}),
+       fetch('/agent/developer/status',{cache:'no-store'})
+      ]);
+      if(consentResponse.ok&&agentResponse.ok){
+       const consent=await consentResponse.json();
+       const dev=await agentResponse.json();
+       if(consent.available_unverified && !dev.model.ready){
+        const button=document.createElement('button');button.type='button';
+        button.textContent='Approve one AI code draft';
+        button.title='Authorize at most two model calls for this mission only. Cloud provider charges may apply.';
+        button.onclick=async()=>{
+         const warning='Approve up to '+consent.max_model_calls+
+          ' AI calls for mission #'+missionId+' with '+consent.provider+
+          ' / '+consent.model+'?'+(consent.may_incur_charges?
+          ' These may incur provider charges even on a free-tier account.':
+          ' This uses your existing local model.')+
+          ' Only a reviewable draft is allowed; no automatic code installation.';
+         if(!window.confirm(warning))return;
+         button.disabled=true;
+         try{
+          const approved=await fetch('/agent/self-build/authorize/'+missionId,{
+           method:'POST',headers:{'Content-Type':'application/json'},
+           body:JSON.stringify({approve:true})});
+          const info=await approved.json();
+          if(!approved.ok)throw Error(info.detail||'Mission authorization failed');
+          button.textContent='One draft authorized';
+          status.textContent='Mission #'+missionId+' may use up to 2 model calls. Check Agent Studio for actual results.';
+         }catch(error){status.textContent=error.message;button.disabled=false}
+        };
+        item.append(document.createTextNode(' '),button);
+       }
+      }
+     }catch(error){/* The persisted work receipt is still usable offline. */}
     }
 
 
