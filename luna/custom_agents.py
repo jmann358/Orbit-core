@@ -142,8 +142,8 @@ def propose_agent(name=None, template="developer", purpose=None):
     if type(purpose) is not str or not 8 <= len(purpose.strip()) <= 300:
         raise ValueError("Agent purpose must be 8–300 characters.")
     with core.connect() as db:
-        _setup(db)
         db.execute("BEGIN IMMEDIATE")
+        _setup(db)
         if db.execute("SELECT COUNT(*) FROM custom_agents WHERE status IN "
                       "('active','paused','pending')").fetchone()[0] >= MAX_AGENTS:
             raise ValueError("Agent limit reached. Pause or review existing agents.")
@@ -187,8 +187,8 @@ def _queue(db, agent_id, kind, instruction):
 def approve_agent(agent_id):
     """Atomic approval of a *fixed, visible* role and first safe tasks."""
     with core.connect() as db:
-        _setup(db)
         db.execute("BEGIN IMMEDIATE")
+        _setup(db)
         agent = _one(db, agent_id)
         if not agent or agent["status"] != "pending":
             raise ValueError("Agent is not waiting for approval.")
@@ -230,8 +230,8 @@ def queue_task(agent_id, kind, instruction):
     if type(kind) is not str:
         raise ValueError("Invalid task kind.")
     with core.connect() as db:
-        _setup(db)
         db.execute("BEGIN IMMEDIATE")
+        _setup(db)
         task_id = _queue(db, agent_id, kind, instruction)
     return get_task(task_id)
 
@@ -303,8 +303,8 @@ def _claim():
     if not jobs.worker_status()["enabled"]:
         return None
     with core.connect() as db:
-        _setup(db)
         db.execute("BEGIN IMMEDIATE")
+        _setup(db)
         budget = _budget(db)
         rows = db.execute("SELECT t.id,t.agent_id,t.kind,t.instruction,a.status,a.template "
                           "FROM custom_agent_tasks t JOIN custom_agents a ON a.id=t.agent_id "
