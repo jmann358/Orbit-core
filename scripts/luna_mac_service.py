@@ -31,7 +31,7 @@ def _memory_path(root, value=None):
     raw = os.environ.get("LUNA_DB_PATH") if value is None else value
     if not raw:
         return None
-    if not isinstance(raw, str) or len(raw) > 2048 or "\\x00" in raw:
+    if not isinstance(raw, str) or len(raw) > 2048 or "\x00" in raw:
         raise ValueError("Invalid configured memory path")
     path = Path(raw).expanduser()
     if not path.is_absolute():
