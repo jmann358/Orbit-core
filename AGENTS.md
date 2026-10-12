@@ -63,3 +63,18 @@ is future work.
 - A change report or PR must state the problem, resulting behavior, evidence,
   material limitations, and remaining work. Never claim something works unless
   it was verified at the reported revision.
+
+## Code review guidelines for Codex
+
+Review source behavior rather than green CI alone. Flag as P0/P1 when a
+change could lose approved memories, send user data or credentials to a
+provider/GitHub without consent, weaken authentication, expose the localhost
+service publicly, execute generated code on the live host, grant itself
+permissions, or authorize paid calls/merges/deployment without owner approval.
+For startup/backup changes, test custom `LUNA_DB_PATH`, SQLite WAL and source
+integrity, symlinks, permissions, incomplete snapshots and process cleanup.
+For conversation changes, test invalid provider responses, delayed replies,
+session switching, retry recovery and actual model readiness. Check failure
+messages against observed state. Clearly identify mocked-provider tests versus
+verified host/network/device behavior. Propose small reproducible fixes and
+bounded regression tests; don't claim live deployment.
