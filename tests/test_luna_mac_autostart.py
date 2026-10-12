@@ -16,8 +16,8 @@ from scripts import luna_one_time_setup as setup
 
 def test_private_launchagent_starts_existing_agent_and_worker():
     with tempfile.TemporaryDirectory() as temp:
-        root = Path(temp) / "Orbit-core"
-        home = Path(temp) / "home"
+        root = Path(temp).resolve() / "Orbit-core"
+        home = Path(temp).resolve() / "home"
         root.mkdir()
         home.mkdir()
         config = mac.plist_config(root=root, home=home)
@@ -37,7 +37,7 @@ def test_private_launchagent_starts_existing_agent_and_worker():
 
 def test_install_requires_mac_and_never_changes_files_elsewhere():
     with tempfile.TemporaryDirectory() as temp:
-        home = Path(temp)
+        home = Path(temp).resolve()
         with patch.object(mac.sys, "platform", "linux"):
             with pytest.raises(ValueError, match="Mac"):
                 mac.install(root=home, home=home)
@@ -46,8 +46,8 @@ def test_install_requires_mac_and_never_changes_files_elsewhere():
 
 def test_install_and_uninstall_do_not_touch_memory():
     with tempfile.TemporaryDirectory() as temp:
-        root = Path(temp) / "project"
-        home = Path(temp) / "home"
+        root = Path(temp).resolve() / "project"
+        home = Path(temp).resolve() / "home"
         root.mkdir()
         home.mkdir()
         private = root / "luna_local.db"
@@ -74,8 +74,8 @@ def test_install_and_uninstall_do_not_touch_memory():
 
 def test_existing_foreign_service_is_not_replaced():
     with tempfile.TemporaryDirectory() as temp:
-        root = Path(temp) / "project"
-        home = Path(temp) / "home"
+        root = Path(temp).resolve() / "project"
+        home = Path(temp).resolve() / "home"
         root.mkdir()
         home.mkdir()
         target = mac.service_file(home)

@@ -14,7 +14,7 @@ from scripts import cloud_worker
 
 def test_first_backup_is_consistent_and_second_is_not_duplicated():
     with tempfile.TemporaryDirectory() as directory:
-        root = Path(directory)
+        root = Path(directory).resolve()
         database = root / "luna_local.db"
         with sqlite3.connect(database) as db:
             db.execute("CREATE TABLE memory (content TEXT)")
@@ -35,7 +35,7 @@ def test_first_backup_is_consistent_and_second_is_not_duplicated():
 
 def test_old_backup_is_preserved_and_new_private_snapshot_created():
     with tempfile.TemporaryDirectory() as directory:
-        root = Path(directory)
+        root = Path(directory).resolve()
         database = root / "luna_local.db"
         with sqlite3.connect(database) as db:
             db.execute("CREATE TABLE memory (content TEXT)")
@@ -55,7 +55,7 @@ def test_old_backup_is_preserved_and_new_private_snapshot_created():
 
 def test_symlinked_backup_directory_cannot_be_used_even_with_recent_files():
     with tempfile.TemporaryDirectory() as directory:
-        root = Path(directory)
+        root = Path(directory).resolve()
         outside = root / "external"
         outside.mkdir()
         (root / "backups").symlink_to(outside)

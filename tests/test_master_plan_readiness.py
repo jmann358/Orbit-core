@@ -14,7 +14,10 @@ def test_tracked_paths_have_no_case_insensitive_collisions():
     # This is also enforced against *all* Git-tracked paths by CI's
     # repository case-collision guard.
     assert (ROOT / "README.md").exists()
-    assert not (ROOT / "readme.md").exists()
+    names = [item.name for item in ROOT.iterdir()]
+    assert names.count("README.md") == 1
+    assert "readme.md" not in names
+    assert len(names) == len({name.casefold() for name in names})
 
 
 def test_rehearsal_never_changes_snapshot_or_live_memory():

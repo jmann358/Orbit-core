@@ -1294,7 +1294,7 @@ def test_baseline():
     from pathlib import Path
     root=Path(__file__).resolve().parent
     with tempfile.TemporaryDirectory(prefix="orbit-check-") as temp:
-        workspace=Path(temp)
+        workspace=Path(temp).resolve()
         for name in ("app.py","requirements.txt"):
             src=root/name
             if src.is_file() and not src.is_symlink():

@@ -14,7 +14,7 @@ from scripts import cloud_worker
 
 def test_custom_database_path_preserved_without_other_environment_secrets():
     with tempfile.TemporaryDirectory() as temp:
-        root = Path(temp)
+        root = Path(temp).resolve()
         original = root / "custom_memory.db"
         with sqlite3.connect(original) as db:
             db.execute("CREATE TABLE memory(text TEXT)")
@@ -33,7 +33,7 @@ def test_custom_database_path_preserved_without_other_environment_secrets():
 
 def test_reject_symlinked_custom_database():
     with tempfile.TemporaryDirectory() as temp:
-        root = Path(temp)
+        root = Path(temp).resolve()
         data = root / "real.db"
         with sqlite3.connect(data) as db:
             db.execute("CREATE TABLE memory(text TEXT)")
@@ -46,13 +46,15 @@ def test_reject_symlinked_custom_database():
 
 def test_untrusted_persistent_launcher_path_is_rejected():
     with tempfile.TemporaryDirectory() as temp:
-        root = Path(temp)
+        root = Path(temp).resolve()
         launcher = root / "scripts" / "start_luna_agent.py"
         launcher.parent.mkdir()
         launcher.write_text("print('mock')\n")
         python = root / ".venv/bin/python"
         python.parent.mkdir(parents=True)
         python.write_text("mock")
+        # Create the untrusted condition explicitly; macOS temp parents are private.
+        root.chmod(0o777)
         with pytest.raises(ValueError, match="writable by other users"):
             mac._verify_owner_control(root)
         fake = root / "scripts" / "shortcut.py"
@@ -63,7 +65,7 @@ def test_untrusted_persistent_launcher_path_is_rejected():
 
 def test_corrupted_recent_backup_does_not_suppress_fresh_snapshot():
     with tempfile.TemporaryDirectory() as temp:
-        root = Path(temp)
+        root = Path(temp).resolve()
         database = root / "luna.db"
         with sqlite3.connect(database) as db:
             db.execute("CREATE TABLE memory(note TEXT)")
