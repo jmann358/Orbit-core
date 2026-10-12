@@ -249,7 +249,9 @@ async function refreshSelfBuild(){
   const items=state.blockers.length
    ? ('Waiting for: '+state.blockers.join(', ').replaceAll('_',' '))
    : 'Configuration flags ready (actual server/model still unverified)';
-  output.textContent=items+' · Cloud host: not provisioned · Owner reviews PRs.';
+  output.textContent='Global unattended mode: '+items+
+   ' · Individual mission approvals below can still authorize one draft. '+
+   'No code is automatically installed or merged.';
  }catch(error){output.textContent=error.message}
 }
 document.querySelector('#self-build-start').onclick=async()=>{
