@@ -15,6 +15,6 @@ def test_luna_pojo_release_identifier_is_consistent():
 
     home = client.get("/")
     assert home.status_code == 200
-    assert "<title>Luna vpojo.1 · ORBIT</title>" in home.text
-    assert "<small>vpojo.1 · Agent Core</small>" in home.text
+    assert "<title>Luna pojo.1 · ORBIT</title>" in home.text
+    assert "<small>pojo.1 · Agent Core</small>" in home.text
     assert "v1.0.0-rc.1" not in home.text
