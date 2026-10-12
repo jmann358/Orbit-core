@@ -14,6 +14,30 @@ import stat
 from urllib.parse import quote
 
 
+def _open_directory_tree_no_symlinks(path, flags):
+    """Pin every path component to an opened directory descriptor.
+
+    Using O_NOFOLLOW on only the final directory still permits a writable
+    ancestor to be swapped for a symlink between validation and opening.
+    Start from '/' and resolve each component relative to its pinned parent.
+    Reject symlinks in *any* ancestor rather than following them.
+    """
+    absolute = Path(os.path.abspath(os.fspath(path)))
+    parts = absolute.parts
+    if not parts or parts[0] != os.sep:
+        raise ValueError("Project root must be an absolute Unix path")
+    fd = os.open(os.sep, flags)
+    try:
+        for component in parts[1:]:
+            child_fd = os.open(component, flags, dir_fd=fd)
+            os.close(fd)
+            fd = child_fd
+        return fd
+    except BaseException:
+        os.close(fd)
+        raise
+
+
 def snapshot_existing_memory(db_path, *, project_root):
     """Create a consistent private SQLite snapshot without reopening its path.
 
@@ -63,7 +87,7 @@ def snapshot_existing_memory(db_path, *, project_root):
     file_fd = None
     created = False
     try:
-        root_fd = os.open(project_root, directory_flags)
+        root_fd = _open_directory_tree_no_symlinks(project_root, directory_flags)
         original_root = os.fstat(root_fd)
         if not stat.S_ISDIR(original_root.st_mode):
             raise ValueError("Memory project root is not a directory")
