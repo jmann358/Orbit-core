@@ -108,6 +108,10 @@ selection uses the same limits.</p>
 </div><p id="assigned" role="status"></p>
 </article>
 <article><h2>Development missions</h2>
+<p id="mission-consent-note"><small>If you have a connected chat model,
+you can approve a limited AI draft for just one queued mission below.
+Cloud provider calls may incur charges. This does not authorize future
+missions, code installation, merging or deployment.</small></p>
 <div id="missions">Loading…</div>
 </article>
 <article><h2>Review selected proposal</h2>
@@ -133,7 +137,12 @@ async function refresh(){
  try{
   const state=await req('/agent/developer/status');
   paused=state.paused;pauseButton.textContent=paused?'Resume development':'Pause new development';
-  statusEl.textContent=paused?'Paused':(state.model.ready?'Model ready for approved work':'Waiting for model configuration');
+  const consent=await req('/agent/self-build/model-consent');
+  statusEl.textContent=paused?'Paused':(state.model.ready?
+    'Developer model settings enabled (provider unverified)':
+    consent.available_unverified?
+    'Connected model settings available; authorize only the mission you want drafted':
+    'Waiting for model configuration');
   const counts=state.counts;
   detailEl.textContent='Queued: '+(counts.queued||0)+' · Working: '+(counts.working||0)+
   ' · Ready for review: '+(counts.review||0)+' · Needs attention: '+(counts.attention||0)+
@@ -150,7 +159,57 @@ async function refresh(){
    note.textContent=item.summary||item.error_code||'Awaiting worker and model';
    const btn=document.createElement('button');btn.textContent='Inspect';
    btn.onclick=()=>openMission(item.id);
-   card.append(heading,note,btn);missionEl.append(card);
+   card.append(heading,note,btn);
+   if(item.state==='queued' && item.source==='owner' &&
+      !state.model.ready && consent.available_unverified){
+    const info=await req('/agent/self-build/consent/'+item.id);
+    const approval=document.createElement('p');
+    if(!info.recorded){
+     const approve=document.createElement('button');
+     approve.textContent='Approve 1 AI draft for mission #'+item.id;
+     approve.title='Allows up to 2 model requests for this one saved mission. Charges may apply.';
+     approve.onclick=async()=>{
+      const message='Authorize up to '+consent.max_model_calls+
+        ' AI model calls for ONLY mission #'+item.id+
+        ' using '+consent.provider+' / '+consent.model+
+        '?'+(consent.may_incur_charges?
+           ' Your provider may charge for these calls, even if your account has a free tier.':
+           ' This uses your existing local AI model.')+
+        ' This does not apply code, permit future calls or deploy anything.';
+      if(!window.confirm(message))return;
+      approve.disabled=true;
+      try{
+       await req('/agent/self-build/authorize/'+item.id,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({approve:true})
+       });
+       document.querySelector('#assigned').textContent=
+         'Mission #'+item.id+' authorized for a limited draft. Worker processing is not yet verified.';
+       await refresh();
+      }catch(error){
+       document.querySelector('#assigned').textContent=error.message;
+       approve.disabled=false;
+      }
+     };
+     approval.append(approve);
+    }else{
+     approval.textContent='One-mission authorization recorded · model calls used: '+
+      (info.used_calls||0)+'/'+info.max_model_calls+
+      (info.ready_unverified?' · awaiting worker or result.':' · expired or unavailable.');
+     if(!info.revoked && info.used_calls===0){
+      const revoke=document.createElement('button');
+      revoke.className='alt';revoke.textContent='Revoke unused authorization';
+      revoke.onclick=async()=>{
+       revoke.disabled=true;
+       try{await req('/agent/self-build/revoke/'+item.id,{method:'POST'});await refresh()}
+       catch(error){document.querySelector('#assigned').textContent=error.message;revoke.disabled=false}
+      };
+      approval.append(revoke);
+     }
+    }
+    card.append(approval);
+   }
+   missionEl.append(card);
   }
  }catch(error){statusEl.textContent=error.message}
 }
