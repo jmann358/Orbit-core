@@ -88,10 +88,14 @@ def claim(path, *, now=None):
         paused = bool(db.execute(
             "SELECT paused FROM developer_control WHERE id=1"
         ).fetchone()[0]) if control_exists else False
+        # A queued development job must remain untouched if the explicit
+        # model opt-in is absent. The rest of Luna's read-only work continues.
+        from luna.developer_model import configuration
+        development_available = not paused and configuration()["ready"]
         row = db.execute(
             "SELECT id,kind,attempts,payload FROM cloud_jobs "
             "WHERE status='queued' AND available_at<=? "
-            + ("AND kind!='development_draft' " if paused else "")
+            + ("" if development_available else "AND kind!='development_draft' ")
             + "ORDER BY id LIMIT 1",
             (stamp,),
         ).fetchone()
