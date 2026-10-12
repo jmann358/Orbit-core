@@ -51,6 +51,6 @@ def configure(expression, avatar, motion):
             db.execute(
                 "INSERT INTO luna_settings(key,value) VALUES(?,?) "
                 "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
-                ("presentation_"+key, value),
+                ("presentation_"+key if not key.startswith("presentation_") else key, value),
             )
     return preferences()
