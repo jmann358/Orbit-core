@@ -60,10 +60,13 @@ contain **private conversation records**; treat them as confidential, encrypt
 disk backups under the host's native storage protection, and confirm that
 the backup directory isn't included in a cloud-sync system.
 
-The existing `scripts/verify_and_launch.sh` does its own simple copy; this
-new tool is more strict about SQLite online-consistent snapshots. Switching
-the launcher to use it, adding rotation or restoring old databases warrants
-a separate review and local validation.
+The current `scripts/verify_and_launch.sh` now takes an integrity-checked,
+read-only-source SQLite snapshot (including a custom `LUNA_DB_PATH`) **before**
+pulling updates. For newly pulled code, tests run in isolated GitHub Actions,
+not with the host's private credentials or conversation database. The launcher
+requires successful CI for the exact reviewed `main` commit before importing
+new application code. That online CI check does not replace a live Mac restore
+rehearsal, encryption, local uptime supervision or device acceptance tests.
 
 ## Safety limitations
 
