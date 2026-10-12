@@ -174,11 +174,11 @@ async function controlDecision(group,item,decision,button){
     const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision})});
     if(!r.ok)throw Error((await r.json()).detail||'Decision failed');
     await loadControl();
+  }catch(e){document.querySelector('#control-status').textContent='Decision not saved: '+e.message;button.disabled=false}
+}
 async function loadAutopilot(){const b=document.querySelector('#control-autopilot');try{const r=await fetch('/control/autopilot');if(!r.ok)throw Error('Unavailable');const data=await r.json();b.dataset.enabled=String(data.enabled);b.textContent=data.enabled?'Pause independent work':'Resume independent work';b.title='Tier 1 only: predefined local checks and planning; no code changes or paid model calls.'}catch(e){b.textContent='Autopilot status unavailable';b.disabled=true}}
 document.querySelector('#control-autopilot').onclick=async()=>{const b=document.querySelector('#control-autopilot');b.disabled=true;try{const enabled=b.dataset.enabled!=='true';const r=await fetch('/control/autopilot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled})});if(!r.ok)throw Error('Update failed');await loadAutopilot()}catch(e){document.querySelector('#control-status').textContent=e.message}finally{b.disabled=false}};
 loadAutopilot();
-  }catch(e){document.querySelector('#control-status').textContent='Decision not saved: '+e.message;button.disabled=false}
-}
 async function loadControl(){
   const status=document.querySelector('#control-status'),metrics=document.querySelector('#control-metrics'),review=document.querySelector('#control-review'),inventory=document.querySelector('#control-inventory');
   status.textContent='Refreshing…';
