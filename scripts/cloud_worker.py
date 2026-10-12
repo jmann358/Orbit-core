@@ -39,7 +39,14 @@ def handlers():
     def develop(mission_id):
         if not mission_id.isdecimal() or len(mission_id) > 10:
             raise ValueError("Invalid mission identifier")
-        return asyncio.run(run_mission(db_path(), int(mission_id), root=ROOT))
+        result = asyncio.run(run_mission(db_path(), int(mission_id), root=ROOT))
+        # Publishing a draft PR does not merge or deploy it. This separate
+        # opt-in requires a repository-scoped GitHub token on the host.
+        if os.environ.get("LUNA_GITHUB_PR_AUTO_ENABLED") == "1":
+            from luna.self_build import publish_review_pr
+            published = publish_review_pr(db_path(), int(mission_id), root=ROOT)
+            return result + "; draft PR: " + published["url"]
+        return result
 
     return {
         "heartbeat": heartbeat,
