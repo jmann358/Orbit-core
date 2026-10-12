@@ -204,3 +204,48 @@ def test_remote_revision_cannot_be_checked_out_before_ci_verification():
     )
     assert 'git pull --ff-only' not in script
     assert 'python -I -' in script
+
+
+
+def test_swapping_project_root_cannot_redirect_backup_to_shared_directory():
+    from luna import launch_guard
+
+    with tempfile.TemporaryDirectory() as temp:
+        base = Path(temp)
+        root = base / "Orbit-core"
+        root.mkdir()
+        private = root / "memory.db"
+        _write_memory(private)
+        moved = base / "original-project"
+        external = base / "shared-folder"
+        (external / "backups").mkdir(parents=True)
+        genuine_connect = sqlite3.connect
+        swapped = []
+
+        def change_parent_at_copy(path, *args, **kwargs):
+            if path == ":memory:" and not swapped:
+                root.rename(moved)
+                root.symlink_to(external, target_is_directory=True)
+                swapped.append(True)
+            return genuine_connect(path, *args, **kwargs)
+
+        with patch.object(launch_guard.sqlite3, "connect",
+                          side_effect=change_parent_at_copy):
+            with pytest.raises(ValueError, match="backup failed"):
+                snapshot_existing_memory(private, project_root=root)
+        assert swapped
+        assert list((external / "backups").iterdir()) == []
+        assert list((moved / "backups").iterdir()) == []
+        with genuine_connect(moved / "memory.db") as db:
+            assert db.execute("SELECT content FROM messages").fetchone()[0] == (
+                "private approved history"
+            )
+
+
+def test_verifier_binds_to_exact_workflow_path_not_display_name():
+    script = (Path(__file__).resolve().parents[1]
+              / "scripts" / "verify_and_launch.sh").read_text()
+    assert "actions/workflows/orbit-checks.yml/runs?" in script
+    assert 'item.get("path") == ".github/workflows/orbit-checks.yml"' in script
+    assert 'item.get("head_sha") == commit' in script
+    assert 'item.get("conclusion") == "success"' in script
