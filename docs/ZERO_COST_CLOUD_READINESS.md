@@ -1,10 +1,34 @@
 # Luna: zero-cost cloud readiness and self-hosting boundary
 
-This is a **dry-run plan**, not a deployment. It requires no cloud account, payment method, AI provider key, public URL, or transfer of personal memory.
+This documents the **implemented, review-gated self-building handoff** and a proposed disposable cloud test. It is not a deployment. No cloud account, payment method, AI provider key, public URL, or personal-memory transfer was created.
 
 ## What Luna can do herself today
 
-Luna's worker can queue bounded source improvements and prepare reviewable, revision-locked proposals. It cannot create cloud accounts, configure GitHub credentials, buy hosting, deploy code, or grant itself permissions. These restrictions are intentional. A worker that could expand its own privileges would defeat the owner's approval policy.
+Luna's worker can queue bounded source improvements and prepare revision-locked proposals. The new self-build supervisor can start the next mission, reverify its source fingerprint, and publish it automatically as a **draft GitHub PR** *after* a separately approved repository-scoped token and opt-in are configured. These are code review requests, not deployments. She cannot create accounts, grant permissions, buy hosting, merge code, or deploy code.
+
+Self-building APIs, available only after the owner starts the app:
+- `GET /agent/self-build/status` — report verified blockers (without exposing credentials).
+- `POST /agent/self-build/start` — choose and queue one bounded improvement.
+- `GET /agent/self-build/publications/{mission_id}` — see whether a PR was published.
+- `POST /agent/self-build/publish/{mission_id}` — publish one prepared, verified proposal as a draft PR if separately configured.
+- `/agent/studio` — contains a **Start Luna's next improvement** button.
+
+The independent worker can take this further with these explicit, host-level controls:
+
+```text
+LUNA_WORKER_ENABLED=1
+LUNA_AGENT_AUTO_ENABLED=1
+LUNA_AGENT_MODEL_ENABLED=1
+LUNA_MODEL_URL=<owner-approved endpoint>
+LUNA_MODEL_NAME=<owner-approved model>
+LUNA_GITHUB_PR_ENABLED=1
+LUNA_GITHUB_PR_AUTO_ENABLED=1
+LUNA_GITHUB_TOKEN=<repository-scoped secret, never committed>
+```
+
+For cloud AI models, `LUNA_AGENT_ALLOW_CLOUD=1` and a provider's key are separately required. Keep all keys in a secret manager; **never paste them in a chat, issue, source file, or PR.** Use the smallest possible token scope for the GitHub repository, with **contents + pull-request** access but no administration. The token is needed only if owner authorizes the publishing capability. Once configured, the worker runs the limited mission and publishes a *draft* PR for review, without asking the owner for each file.
+
+**This is code that has passed mock-provider tests, not a claimed live model/GitHub provider run.** GitHub account/service connection, live model test, and always-on runtime remain outstanding. The worker's 2-model-attempts/day limit is not a monetary cost cap.
 
 ## Zero-cost cloud experiment
 
@@ -44,4 +68,4 @@ It must **not**:
 
 **No cloud service created. No paid service created. No personal memory migrated.**
 
-The only automatic action authorized here is preparation of reviewable code and checks in GitHub. A live, independent cloud Luna is not yet available.
+The prepared self-building code can create **draft feature-branch PRs only after opt-in and credentials are provided**. It cannot merge, deploy, or spend. A live, independently hosted Luna still requires a model and persistent runtime.
