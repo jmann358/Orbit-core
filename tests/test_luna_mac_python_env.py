@@ -27,7 +27,7 @@ def test_existing_python310_venv_is_not_reused_for_luna():
             with pytest.raises(RuntimeError, match="unsupported Python"):
                 setup.prepare_python()
             install.assert_not_called()
-            assert probe.call_args.args[0][1:3] == ("-I", "-c")
+            assert probe.call_args.args[0][1:3] == ["-I", "-c"]
             assert python.exists()
 
 
@@ -42,5 +42,5 @@ def test_existing_supported_venv_may_install_project_dependencies():
                           return_value=Completed("3 13\n")), \
              patch.object(setup, "run") as install:
             assert setup.prepare_python() == python
-            assert install.call_args.args[0][0] == str(python)
+            assert install.call_args.args[0] == str(python)
             assert install.call_args.args[0][2:4] == ("pip", "install")
