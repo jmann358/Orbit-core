@@ -9,6 +9,8 @@ from pathlib import Path
 import time
 
 from luna.launch_guard import snapshot_existing_memory
+from luna.database_backup import verify
+import sqlite3
 
 DAY_SECONDS = 86400
 PREFIX = "luna-before-self-build-"
@@ -32,7 +34,14 @@ def backup_due(root, *, now=None):
                     and not entry.is_symlink() and entry.is_file()):
                 age = now - entry.stat().st_mtime
                 if 0 <= age < DAY_SECONDS:
-                    return False
+                    # An interrupted snapshot may leave a recent but empty or
+                    # truncated file. Never count it as a recovery point.
+                    try:
+                        checked = verify(entry)
+                        if checked["integrity_ok"]:
+                            return False
+                    except (OSError, sqlite3.Error, ValueError):
+                        continue
     except OSError:
         raise ValueError("Cannot verify private local backups") from None
     return True
