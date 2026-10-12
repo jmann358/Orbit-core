@@ -106,10 +106,13 @@ async def propose(prompt, *, mission_id=None, db_path=None):
                 )
                 response.raise_for_status()
                 result = response.json()
-                answer = "".join(
-                    part.get("text", "")
-                    for part in result["candidates"][0]["content"]["parts"]
-                )
+                parts = result["candidates"][0]["content"]["parts"]
+                if (not isinstance(parts, list) or not parts
+                        or any(not isinstance(part, dict)
+                               or not isinstance(part.get("text"), str)
+                               for part in parts)):
+                    raise ValueError("Invalid Gemini developer-model parts")
+                answer = "".join(part["text"] for part in parts)
             else:
                 response = await client.post(
                     endpoint + "/chat/completions",
@@ -127,6 +130,14 @@ async def propose(prompt, *, mission_id=None, db_path=None):
                 answer = response.json()["choices"][0]["message"]["content"]
     except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as exc:
         raise AgentModelUnavailable("Developer model request failed") from None
-    if not isinstance(answer, str) or not 1 <= len(answer) <= MAX_RESPONSE_CHARS:
+    if (not isinstance(answer, str) or not answer.strip()
+            or len(answer) > MAX_RESPONSE_CHARS or "\x00" in answer):
         raise AgentModelUnavailable("Developer model returned an invalid response")
+    # SQLite, JSON proposal parsing and a later reviewer all require valid text.
+    # A lone surrogate may be accepted by Python strings but will fail while
+    # being encoded or persisted; reject it at this provider boundary.
+    try:
+        answer.encode("utf-8")
+    except UnicodeEncodeError:
+        raise AgentModelUnavailable("Developer model returned an invalid response") from None
     return answer
