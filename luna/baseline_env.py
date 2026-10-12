@@ -15,9 +15,10 @@ def trusted_baseline_env(workspace):
     PATH supports ordinary test tooling without inheriting arbitrary host
     directories. All subprocess-created state remains in the disposable tree.
     """
-    root = Path(workspace).resolve(strict=True)
-    if not root.is_dir():
+    candidate = Path(workspace)
+    if candidate.is_symlink() or not candidate.is_dir():
         raise ValueError("Baseline workspace must be an existing directory")
+    root = candidate.resolve(strict=True)
     return {
         "PATH": os.defpath,
         "HOME": str(root),
