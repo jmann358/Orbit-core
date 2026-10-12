@@ -6,7 +6,7 @@ provider calls. The existing localhost / cloud-owner gate protects every route.
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
-from luna import custom_agents
+from luna import custom_agents, helper_consent
 
 router = APIRouter()
 
@@ -19,6 +19,10 @@ class NewHelper(BaseModel):
 class HelperTask(BaseModel):
     kind: str
     instruction: str = Field(min_length=8, max_length=1000)
+
+
+class ModelConsent(BaseModel):
+    approve: bool
 
 
 def _invalid(exc):
@@ -74,6 +78,27 @@ def agents_resume(agent_id: int):
 def agents_task(agent_id: int, request: HelperTask):
     try:
         return custom_agents.queue_task(agent_id, request.kind, request.instruction)
+    except ValueError as exc:
+        _invalid(exc)
+
+
+@router.get("/agents/model-consent")
+def model_option():
+    return helper_consent.provider()
+
+
+@router.post("/agents/tasks/{task_id}/authorize")
+def agent_model_authorize(task_id: int, decision: ModelConsent):
+    try:
+        return helper_consent.authorize(task_id, decision.approve)
+    except ValueError as exc:
+        _invalid(exc)
+
+
+@router.post("/agents/tasks/{task_id}/revoke")
+def agent_model_revoke(task_id: int):
+    try:
+        return helper_consent.revoke(task_id)
     except ValueError as exc:
         _invalid(exc)
 
@@ -174,8 +199,10 @@ async function refresh(){
  try{
  const state=await api('/agents/status');
  el('model-state').textContent=state.model_ready_unverified
-  ?'Helper AI model settings are configured, but inference is not yet verified.'
-  :'Model-backed work is waiting for an explicitly enabled AI model. Local health checks can still run.';
+  ?'AI helper model is enabled, but live inference is unverified.'
+  :state.model_option.available_unverified
+  ?'Chat AI model settings found. You can approve one AI request for a specific queued helper task below.'
+  :'Model-backed tasks need a permitted AI connection. Local checks do not.';
  const holder=el('agent-list');holder.replaceChildren();
  if(!state.agents.length){
    holder.append(node('p','No agents created yet. Ask Luna in chat to create one, or use the form.'));return;
@@ -232,8 +259,31 @@ async function refresh(){
     row.append(node('strong','#'+task.id+' · '+task.kind+' · '+task.status));
     row.append(node('p',task.result||(
      task.status==='queued' && (task.kind==='plan'||task.kind==='code_review')
-       && !state.model_ready_unverified?'Waiting for model configuration':
+       && !state.model_ready_unverified?
+          (state.model_option.available_unverified
+          ?'Queued. An AI call for this task needs your one-time approval.'
+          :'Queued. Connect an allowed AI model before approving a call.'):
        'No result recorded yet.')));
+    if(task.status==='queued' && ['plan','code_review'].includes(task.kind)
+       && !state.model_ready_unverified && state.model_option.available_unverified
+       && !state.task_model_consent_ids.includes(task.id)){
+       const approve=action('Approve one AI call for task #'+task.id,async()=>{
+         const p=state.model_option;
+         const prompt='Allow exactly one model call for helper task #'+task.id+
+          ' using '+p.provider+' / '+p.model+'?'+(p.may_incur_charges
+          ?' Your provider may charge for this request.':' This uses your local model.')+
+          ' This approval expires after 60 minutes and does not authorize other tasks.';
+         if(!window.confirm(prompt))return;
+         approve.disabled=true;
+         await post('/agents/tasks/'+task.id+'/authorize',
+           'One model request authorized for task #'+task.id+'.',
+           {approve:true});
+       });
+       row.append(approve);
+    }else if(task.status==='queued' && state.task_model_consent_ids.includes(task.id)
+             && !state.model_ready_unverified){
+       row.append(node('p','Single-task model authorization recorded. Waiting for worker.'));
+    }
     card.append(row);
    }
   }
