@@ -1,0 +1,1377 @@
+{
+  "audit_date": "2026-10-12",
+  "repository": "jmann358/Orbit-core",
+  "upstream_audited_commit": "a5eb41a898c250736d760d13cc412f19442f1158",
+  "reconstructed_local_snapshot_commit": "979f8cdfec97972b59baa49081ac6cd775c0d9d0",
+  "source_provenance": "All 83 source files matched upstream Git blob SHA-1 and byte counts before implementation; local commit reconstructs that snapshot and is not upstream history.",
+  "counts": {
+    "tracked_files": 83,
+    "python_files": 63,
+    "luna_files": 36,
+    "test_files": 26,
+    "docs_directory_files": 12,
+    "application_routes": 102,
+    "collected_test_cases": 182
+  },
+  "files": [
+    {
+      "path": ".github/workflows/orbit-checks.yml",
+      "git_blob_sha1": "da7190b2d7f01b5b60e8ebe61aa8b6ab0b403c04",
+      "bytes": 602,
+      "mode": "100644",
+      "category": "ci",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": ".gitignore",
+      "git_blob_sha1": "2c3c70003228242235bd23010fa551d901a0b1f3",
+      "bytes": 61,
+      "mode": "100644",
+      "category": "repository_configuration",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "DEVELOPMENT_POLICY.md",
+      "git_blob_sha1": "7573824780216709b895c493b7726aee62234204",
+      "bytes": 4039,
+      "mode": "100644",
+      "category": "documentation",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "README.md",
+      "git_blob_sha1": "e92823959d11582d2a1ca0d9b6b00b6e45d3fbef",
+      "bytes": 7368,
+      "mode": "100644",
+      "category": "documentation",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "app.py",
+      "git_blob_sha1": "d31a7005709540ab50617084360584ed8b316905",
+      "bytes": 133197,
+      "mode": "100644",
+      "category": "dashboard_and_api",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "git_blob_sha1": "2c50053492634dbcc6b7b93512983710457305f4",
+      "bytes": 1309,
+      "mode": "100644",
+      "category": "documentation",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "docs/DECISIONS.md",
+      "git_blob_sha1": "bbd7967e8e189b3ba728e65fda3bacc0caf1878a",
+      "bytes": 1086,
+      "mode": "100644",
+      "category": "documentation",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "docs/PATCH_MANIFEST.md",
+      "git_blob_sha1": "cae674eb47f5cf8e85f0a386e1bb0ef86b3aff4c",
+      "bytes": 1715,
+      "mode": "100644",
+      "category": "documentation",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "docs/PRIORITIES6_14_DEVELOPMENT.md",
+      "git_blob_sha1": "0f935f487d157f9062b699ed76336c35b63f5d3b",
+      "bytes": 7372,
+      "mode": "100644",
+      "category": "documentation",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "docs/PRIORITY2_WORKFLOW.md",
+      "git_blob_sha1": "2d18dbf3cdd79155264313c017931c3700f6ca83",
+      "bytes": 5234,
+      "mode": "100644",
+      "category": "documentation",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "docs/PRIORITY3_CONTINUITY.md",
+      "git_blob_sha1": "de48c2ff323d46469c429f210a2ffddd6a41d512",
+      "bytes": 5237,
+      "mode": "100644",
+      "category": "documentation",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "docs/PRIORITY4_SUPERVISED_TASKS.md",
+      "git_blob_sha1": "998b149bf666f3df2ae4df92cfc444fafe687376",
+      "bytes": 5183,
+      "mode": "100644",
+      "category": "documentation",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "docs/PRIORITY5_COMPLETION.md",
+      "git_blob_sha1": "ee36148799a9c08d8cb93de100460d45cb542d7e",
+      "bytes": 6204,
+      "mode": "100644",
+      "category": "documentation",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "docs/PRIORITY5_DELEGATION.md",
+      "git_blob_sha1": "cd924ebd36affd2a8bb0bb949f9d91ba444f2f36",
+      "bytes": 2071,
+      "mode": "100644",
+      "category": "documentation",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "docs/PRIORITY5_SPECIALISTS.md",
+      "git_blob_sha1": "1a63d685b928e5b3468d38213db810d426472eb5",
+      "bytes": 1303,
+      "mode": "100644",
+      "category": "documentation",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "docs/RUN.md",
+      "git_blob_sha1": "4de7fdf40d304ca3742e9fff46421826758cff82",
+      "bytes": 2482,
+      "mode": "100644",
+      "category": "documentation",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "docs/development-workbench.md",
+      "git_blob_sha1": "67499007371a17ffa9f2e880da459bdfc127d22c",
+      "bytes": 2306,
+      "mode": "100644",
+      "category": "documentation",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/__init__.py",
+      "git_blob_sha1": "71369773159dffe6382f20239ee84662c0c5f57b",
+      "bytes": 17,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/agent_handoffs.py",
+      "git_blob_sha1": "a9ce226d27273954e3fa4c17ffc45f8b6a82f5e3",
+      "bytes": 2616,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/agent_registry.py",
+      "git_blob_sha1": "57071bd65bcc6dcbe64d24d082234496ac3143d8",
+      "bytes": 2076,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/autopilot.py",
+      "git_blob_sha1": "ee4e71ee84ae62043fa13bdd68f2be32cf75eb1a",
+      "bytes": 3689,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/backlog.py",
+      "git_blob_sha1": "3b7e79f1b5bd01946511ee6474ba68a47d84d0e4",
+      "bytes": 6317,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/bridge.py",
+      "git_blob_sha1": "553fa1a921a8fe2a5729fa3e3df588e979be1cd6",
+      "bytes": 4595,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/chat_router.py",
+      "git_blob_sha1": "9fddef1a2bdbb2e8b36b1eb075a8fa2d5cff5e4f",
+      "bytes": 1393,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/continuity.py",
+      "git_blob_sha1": "faef5788664c3a9d85574408442dc9cb79fff2e0",
+      "bytes": 5268,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/continuity_settings.py",
+      "git_blob_sha1": "80e9773a53057938dc339c6e4017df1f9d8dc531",
+      "bytes": 1678,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/core.py",
+      "git_blob_sha1": "81cfc2c3bd7dcc0c4b873b9cf575a360cf08e076",
+      "bytes": 25175,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/database_backup.py",
+      "git_blob_sha1": "3323d882f00481a0368b8d2261dd811fa2889837",
+      "bytes": 3058,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/delegation_guard.py",
+      "git_blob_sha1": "d2e5b72974f0738c4992d42d16d09b2e8e3ae638",
+      "bytes": 2113,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/development.py",
+      "git_blob_sha1": "28443eaa2921794cbf5e8556cc9f828ec1c549f0",
+      "bytes": 6117,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/device_readiness.py",
+      "git_blob_sha1": "927116101e84151ca7623b512dcb593b1f7c4c89",
+      "bytes": 1441,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/goal_escalations.py",
+      "git_blob_sha1": "c0488d7b27f46313a2f94d2a15efbbba68b4322a",
+      "bytes": 2161,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/goal_recipes.py",
+      "git_blob_sha1": "ebe7e32f166a2d50702c28e7909c8021611af275",
+      "bytes": 3390,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/goals.py",
+      "git_blob_sha1": "bce7ba604d09271e4cfd2d476be8c6791c014a9d",
+      "bytes": 16119,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/improvement_gate.py",
+      "git_blob_sha1": "559e1e7a73477d79422800306fb081ff7d34378c",
+      "bytes": 1805,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/job_operations.py",
+      "git_blob_sha1": "4a9f5e21508ba5b73ecba2b36329d100a96b8ced",
+      "bytes": 2059,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/jobs.py",
+      "git_blob_sha1": "07292123284305d5a23538a239d738b1a3fdc8b5",
+      "bytes": 15057,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/memory_learning.py",
+      "git_blob_sha1": "2f3724aa86e8e0b8000f23bad4c316710a46b1db",
+      "bytes": 4856,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/memory_suggestions.py",
+      "git_blob_sha1": "d564a84eff1acb361a94e913249860460f04bac7",
+      "bytes": 1924,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/model_usage.py",
+      "git_blob_sha1": "4041720b90890ae339e9629c3526e425e02ac256",
+      "bytes": 3873,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/patch_manifest.py",
+      "git_blob_sha1": "c918a7bd91dc2d534878170f4a1c246552e0d59d",
+      "bytes": 6277,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/patches.py",
+      "git_blob_sha1": "350c31df8fa4be7bb08f9c7da9f974687f7477cf",
+      "bytes": 2095,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/permissions.py",
+      "git_blob_sha1": "b87f195f876dea854935f600e5fbaf42c373511e",
+      "bytes": 3608,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/presentation.py",
+      "git_blob_sha1": "cc99474ca726f249db2719ca446510356bf62758",
+      "bytes": 2165,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/proactive.py",
+      "git_blob_sha1": "9854494c8f07353abd5a8bdf52c9d65660f14e7c",
+      "bytes": 2663,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/quality_gate.py",
+      "git_blob_sha1": "ef480de4ff045816a76679f9d0ffbc93436e82c9",
+      "bytes": 1827,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/requests.py",
+      "git_blob_sha1": "6ef3ab717231da82a9cd8531a2a022fc4039f4ce",
+      "bytes": 3226,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/restricted_runner.py",
+      "git_blob_sha1": "2ca7fe3a85fb964c8afbbc1a528beafd4ef1e807",
+      "bytes": 9665,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/runner_preflight.py",
+      "git_blob_sha1": "c1e964ea21941c6533f87e9d609bbfc41cd36bd7",
+      "bytes": 1533,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/self_improvement.py",
+      "git_blob_sha1": "693128b1cc80cf0129e26b306daf31ec629f30f0",
+      "bytes": 3363,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/skill_catalog.py",
+      "git_blob_sha1": "8839325d5d74faf3734193b88d1fbd5d700fd8f5",
+      "bytes": 2160,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/technical_memory.py",
+      "git_blob_sha1": "89b999e295e7586aaecf1b8832169f82b553372c",
+      "bytes": 1658,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "luna/workshop.py",
+      "git_blob_sha1": "a5e0c21072c47b3133b6fe88baa27779cecbe892",
+      "bytes": 4204,
+      "mode": "100644",
+      "category": "luna_module",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "orbit_tasks.json",
+      "git_blob_sha1": "9d323f6436896e5e4662820c636cd79ee5dbbbae",
+      "bytes": 1635,
+      "mode": "100644",
+      "category": "task_data",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "readme.md",
+      "git_blob_sha1": "35a53843e0c7f6632f3f7fbfc54b866dc43e9abf",
+      "bytes": 19,
+      "mode": "100644",
+      "category": "documentation",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "requirements.txt",
+      "git_blob_sha1": "3c5f1b6d1e09f476676ccf3c0011b257308f6491",
+      "bytes": 50,
+      "mode": "100644",
+      "category": "dependencies",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "scripts/verify_and_launch.sh",
+      "git_blob_sha1": "504efeca2074d6a807132617182e017135722b0e",
+      "bytes": 775,
+      "mode": "100644",
+      "category": "launch_script",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_activity.py",
+      "git_blob_sha1": "023a4b1b05042eecc04bb67c6c7b0eceb7d9a371",
+      "bytes": 1540,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_autopilot.py",
+      "git_blob_sha1": "77eb0e7aa4022fe0e165d06c18a941f86434dbb3",
+      "bytes": 1071,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_backlog.py",
+      "git_blob_sha1": "5bcc06992e2d38bc6126934a7ec71197d0ffadcc",
+      "bytes": 2306,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_bridge.py",
+      "git_blob_sha1": "328435b4f5cd6078efd1473c2b77bad08498166a",
+      "bytes": 1811,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_chat_router.py",
+      "git_blob_sha1": "9dabd668d936e8dcfb28a2be5c329281af7e1196",
+      "bytes": 795,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_continuity.py",
+      "git_blob_sha1": "e1587f79575da9fb16244f963b713bd8b33608f4",
+      "bytes": 13393,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_core.py",
+      "git_blob_sha1": "0428522c3e127894516115e287113320996744e5",
+      "bytes": 4244,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_development.py",
+      "git_blob_sha1": "32ddcf5623d0bec1f75534d847c9a2c73b461df5",
+      "bytes": 4101,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_development_engine.py",
+      "git_blob_sha1": "31978d67aa24eb7564cc236d2d64fd872faf9600",
+      "bytes": 4244,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_goals.py",
+      "git_blob_sha1": "b5521e0c78f9adc1fdfed56573add7efaa1e9677",
+      "bytes": 3335,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_jobs.py",
+      "git_blob_sha1": "ea91b770ba9dd98a0ed84666478225ed82d12f10",
+      "bytes": 1571,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_luna_design_studio.py",
+      "git_blob_sha1": "f4a752171f01bf0a538fd29ad0e5b380e70be0c0",
+      "bytes": 1435,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_memory_suggestions.py",
+      "git_blob_sha1": "18087714841c6998681de2c39d89f42975d212a6",
+      "bytes": 1705,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_patch_integration.py",
+      "git_blob_sha1": "21a23624bc8eac56e4dcb8d38eac1551b021c57a",
+      "bytes": 2659,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_patch_manifest.py",
+      "git_blob_sha1": "d741bfdf47c5e2797701c1911a7d375877d784ff",
+      "bytes": 9607,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_priorities6_14_foundations.py",
+      "git_blob_sha1": "38f6f374eba9b02c02b6c5f484fe1adbf1d11e7a",
+      "bytes": 16487,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_priority2_workflow.py",
+      "git_blob_sha1": "448c586b6bfacbe55f77304100c8e5b3f883b28c",
+      "bytes": 9084,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_priority4_jobs.py",
+      "git_blob_sha1": "bc448729256812a2e537fc3ee8988ae781d51925",
+      "bytes": 12017,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_priority5_completion.py",
+      "git_blob_sha1": "1af90c4d073655bdd7cb78bea1508fa407ce935d",
+      "bytes": 15226,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_priority5_delegation.py",
+      "git_blob_sha1": "b1974af701553d973ae068aeca33a923294bcdc3",
+      "bytes": 6359,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_priority5_specialists.py",
+      "git_blob_sha1": "a9c32efff6969ef0a430f06b89dc22cd03d524a2",
+      "bytes": 2277,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_product_integration.py",
+      "git_blob_sha1": "54068b0952922322b8cb4a8050d50c3c1bf538b9",
+      "bytes": 2023,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_quality_gate.py",
+      "git_blob_sha1": "d24dcdfdef5b1842b8df7696480367a44433ac57",
+      "bytes": 813,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_requests.py",
+      "git_blob_sha1": "ed5b61280ca7c608c08f9c5f7bb829b5104c1a00",
+      "bytes": 1526,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_self_improvement.py",
+      "git_blob_sha1": "1a6b3352009b79fd0fb724fe11c773e2e56b18cb",
+      "bytes": 1675,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    },
+    {
+      "path": "tests/test_workshop.py",
+      "git_blob_sha1": "7f0e61019e26241bed727de071468b1d6189c0f8",
+      "bytes": 1731,
+      "mode": "100644",
+      "category": "test",
+      "review": "read_by_audit_team_before_implementation"
+    }
+  ],
+  "declared_routes": [
+    {
+      "method": "GET",
+      "path": "/",
+      "handler": "home"
+    },
+    {
+      "method": "GET",
+      "path": "/sessions",
+      "handler": "get_sessions"
+    },
+    {
+      "method": "GET",
+      "path": "/continuity/search",
+      "handler": "continuity_search"
+    },
+    {
+      "method": "GET",
+      "path": "/continuity/settings",
+      "handler": "get_continuity_settings"
+    },
+    {
+      "method": "POST",
+      "path": "/continuity/settings",
+      "handler": "update_continuity_settings"
+    },
+    {
+      "method": "GET",
+      "path": "/continuity/project-notes",
+      "handler": "continuity_project_notes"
+    },
+    {
+      "method": "GET",
+      "path": "/history/page",
+      "handler": "get_history_page"
+    },
+    {
+      "method": "GET",
+      "path": "/history",
+      "handler": "get_history"
+    },
+    {
+      "method": "POST",
+      "path": "/chat",
+      "handler": "chat"
+    },
+    {
+      "method": "GET",
+      "path": "/memory/candidates",
+      "handler": "list_candidates"
+    },
+    {
+      "method": "POST",
+      "path": "/memory/candidates",
+      "handler": "create_candidate"
+    },
+    {
+      "method": "POST",
+      "path": "/memory/candidates/{candidate_id}/review",
+      "handler": "review"
+    },
+    {
+      "method": "GET",
+      "path": "/autonomy/tasks",
+      "handler": "autonomy_tasks"
+    },
+    {
+      "method": "POST",
+      "path": "/autonomy/tasks",
+      "handler": "create_autonomy_task"
+    },
+    {
+      "method": "POST",
+      "path": "/autonomy/tasks/{task_id}/decision",
+      "handler": "autonomy_decision"
+    },
+    {
+      "method": "POST",
+      "path": "/autonomy/plan",
+      "handler": "autonomy_plan"
+    },
+    {
+      "method": "GET",
+      "path": "/project/overview",
+      "handler": "project_overview"
+    },
+    {
+      "method": "POST",
+      "path": "/project/inspect",
+      "handler": "project_inspect"
+    },
+    {
+      "method": "GET",
+      "path": "/project/notes",
+      "handler": "get_project_notes"
+    },
+    {
+      "method": "POST",
+      "path": "/project/notes",
+      "handler": "create_project_note"
+    },
+    {
+      "method": "POST",
+      "path": "/project/notes/{note_id}/decision",
+      "handler": "review_project_note"
+    },
+    {
+      "method": "POST",
+      "path": "/project/draft-change",
+      "handler": "draft_change"
+    },
+    {
+      "method": "GET",
+      "path": "/project/health",
+      "handler": "project_health"
+    },
+    {
+      "method": "GET",
+      "path": "/version",
+      "handler": "get_version"
+    },
+    {
+      "method": "GET",
+      "path": "/project/drafts",
+      "handler": "project_drafts"
+    },
+    {
+      "method": "POST",
+      "path": "/project/drafts/{draft_id}/review",
+      "handler": "review_code_draft"
+    },
+    {
+      "method": "POST",
+      "path": "/project/test-baseline",
+      "handler": "test_baseline"
+    },
+    {
+      "method": "POST",
+      "path": "/agent/run-routine",
+      "handler": "run_routine"
+    },
+    {
+      "method": "GET",
+      "path": "/agent/runs",
+      "handler": "agent_runs"
+    },
+    {
+      "method": "GET",
+      "path": "/project/github-checks",
+      "handler": "github_checks"
+    },
+    {
+      "method": "GET",
+      "path": "/project/shared-tasks",
+      "handler": "shared_tasks"
+    },
+    {
+      "method": "POST",
+      "path": "/agent/execute-shared-task",
+      "handler": "execute_shared_task"
+    },
+    {
+      "method": "GET",
+      "path": "/agent/shared-task-results",
+      "handler": "shared_task_results"
+    },
+    {
+      "method": "POST",
+      "path": "/project/drafts/{draft_id}/static-review",
+      "handler": "review_draft_syntax"
+    },
+    {
+      "method": "GET",
+      "path": "/agent/scheduler",
+      "handler": "scheduler_status"
+    },
+    {
+      "method": "POST",
+      "path": "/agent/scheduler",
+      "handler": "scheduler_choice"
+    },
+    {
+      "method": "POST",
+      "path": "/agent/jobs",
+      "handler": "enqueue_job"
+    },
+    {
+      "method": "GET",
+      "path": "/agent/jobs",
+      "handler": "get_jobs"
+    },
+    {
+      "method": "POST",
+      "path": "/agent/jobs/{job_id}/cancel",
+      "handler": "cancel_queued_job"
+    },
+    {
+      "method": "GET",
+      "path": "/agent/worker",
+      "handler": "agent_worker_status"
+    },
+    {
+      "method": "POST",
+      "path": "/agent/worker",
+      "handler": "agent_worker_choice"
+    },
+    {
+      "method": "GET",
+      "path": "/agent/jobs/{job_id}/events",
+      "handler": "agent_job_events"
+    },
+    {
+      "method": "POST",
+      "path": "/agent/jobs/{job_id}/retry",
+      "handler": "agent_retry_job"
+    },
+    {
+      "method": "GET",
+      "path": "/bridge/threads",
+      "handler": "bridge_threads"
+    },
+    {
+      "method": "POST",
+      "path": "/bridge/threads",
+      "handler": "bridge_new_thread"
+    },
+    {
+      "method": "GET",
+      "path": "/bridge/threads/{thread_id}",
+      "handler": "bridge_thread"
+    },
+    {
+      "method": "GET",
+      "path": "/bridge/threads/{thread_id}/relay",
+      "handler": "bridge_relay"
+    },
+    {
+      "method": "POST",
+      "path": "/bridge/threads/{thread_id}/messages",
+      "handler": "bridge_add_message"
+    },
+    {
+      "method": "POST",
+      "path": "/bridge/threads/{thread_id}/relayed",
+      "handler": "bridge_mark_relayed"
+    },
+    {
+      "method": "POST",
+      "path": "/bridge/threads/{thread_id}/close",
+      "handler": "bridge_close"
+    },
+    {
+      "method": "GET",
+      "path": "/control/requests",
+      "handler": "control_requests"
+    },
+    {
+      "method": "POST",
+      "path": "/control/requests",
+      "handler": "control_create_request"
+    },
+    {
+      "method": "POST",
+      "path": "/control/requests/{request_id}/decision",
+      "handler": "control_request_decision"
+    },
+    {
+      "method": "GET",
+      "path": "/control/activity",
+      "handler": "control_activity"
+    },
+    {
+      "method": "GET",
+      "path": "/control/autopilot",
+      "handler": "control_autopilot_status"
+    },
+    {
+      "method": "POST",
+      "path": "/control/autopilot",
+      "handler": "control_autopilot_choice"
+    },
+    {
+      "method": "GET",
+      "path": "/control/overview",
+      "handler": "control_overview"
+    },
+    {
+      "method": "POST",
+      "path": "/development/patch-review",
+      "handler": "development_patch_review"
+    },
+    {
+      "method": "GET",
+      "path": "/development/technical-decisions",
+      "handler": "development_decisions"
+    },
+    {
+      "method": "POST",
+      "path": "/development/technical-decisions",
+      "handler": "development_record_decision"
+    },
+    {
+      "method": "POST",
+      "path": "/development/workshop/stage",
+      "handler": "development_workshop_stage"
+    },
+    {
+      "method": "GET",
+      "path": "/development/permissions",
+      "handler": "development_permissions"
+    },
+    {
+      "method": "GET",
+      "path": "/development/inspect",
+      "handler": "development_inspect"
+    },
+    {
+      "method": "GET",
+      "path": "/control/diagnostics",
+      "handler": "control_diagnostics"
+    },
+    {
+      "method": "POST",
+      "path": "/control/suggest-next",
+      "handler": "suggest_next_control_improvement"
+    },
+    {
+      "method": "POST",
+      "path": "/control/improvements/{improvement_id}/decision",
+      "handler": "decide_control_improvement"
+    },
+    {
+      "method": "GET",
+      "path": "/agent/improvements",
+      "handler": "improvement_roadmap"
+    },
+    {
+      "method": "GET",
+      "path": "/project/drafts/{draft_id}/quality",
+      "handler": "draft_quality"
+    },
+    {
+      "method": "GET",
+      "path": "/memory/suggestions/settings",
+      "handler": "get_memory_suggestion_settings"
+    },
+    {
+      "method": "POST",
+      "path": "/memory/suggestions/settings",
+      "handler": "update_memory_suggestion_settings"
+    },
+    {
+      "method": "GET",
+      "path": "/agent/goals",
+      "handler": "get_agent_goals"
+    },
+    {
+      "method": "POST",
+      "path": "/agent/goals",
+      "handler": "create_agent_goal"
+    },
+    {
+      "method": "POST",
+      "path": "/agent/goals/{goal_id}/decision",
+      "handler": "agent_goal_decision"
+    },
+    {
+      "method": "GET",
+      "path": "/agent/delegation/status",
+      "handler": "agent_delegation_status"
+    },
+    {
+      "method": "GET",
+      "path": "/agent/goals/recipes",
+      "handler": "agent_goal_recipes"
+    },
+    {
+      "method": "POST",
+      "path": "/agent/goals/recipes/suggest",
+      "handler": "agent_recipe_suggest"
+    },
+    {
+      "method": "POST",
+      "path": "/agent/goals/recipes/preview",
+      "handler": "agent_recipe_preview"
+    },
+    {
+      "method": "POST",
+      "path": "/agent/goals/recipes/propose",
+      "handler": "agent_recipe_propose"
+    },
+    {
+      "method": "GET",
+      "path": "/agent/specialists",
+      "handler": "agent_specialists"
+    },
+    {
+      "method": "GET",
+      "path": "/agent/goals/{goal_id}/report",
+      "handler": "agent_goal_report"
+    },
+    {
+      "method": "POST",
+      "path": "/agent/goals/{goal_id}/control",
+      "handler": "agent_goal_control"
+    },
+    {
+      "method": "POST",
+      "path": "/project/luna-design-mission",
+      "handler": "luna_design_mission"
+    },
+    {
+      "method": "GET",
+      "path": "/agent/backlog",
+      "handler": "get_backlog"
+    },
+    {
+      "method": "POST",
+      "path": "/agent/backlog",
+      "handler": "create_backlog_task"
+    },
+    {
+      "method": "GET",
+      "path": "/agent/overnight",
+      "handler": "get_overnight"
+    },
+    {
+      "method": "POST",
+      "path": "/agent/overnight",
+      "handler": "set_overnight"
+    },
+    {
+      "method": "POST",
+      "path": "/development/workshop/proposal",
+      "handler": "development_workshop_proposal"
+    },
+    {
+      "method": "GET",
+      "path": "/development/runner/preflight",
+      "handler": "development_runner_preflight"
+    },
+    {
+      "method": "GET",
+      "path": "/memory/learning/preview",
+      "handler": "memory_learning_preview"
+    },
+    {
+      "method": "POST",
+      "path": "/memory/learning/suggest",
+      "handler": "memory_learning_suggest"
+    },
+    {
+      "method": "GET",
+      "path": "/memory/learning/sources",
+      "handler": "memory_learning_sources"
+    },
+    {
+      "method": "GET",
+      "path": "/agent/goals/{goal_id}/handoff/{step_position}",
+      "handler": "goal_step_handoff"
+    },
+    {
+      "method": "GET",
+      "path": "/system/device-readiness",
+      "handler": "system_device_readiness"
+    },
+    {
+      "method": "GET",
+      "path": "/model/usage",
+      "handler": "model_usage_status"
+    },
+    {
+      "method": "GET",
+      "path": "/presentation/settings",
+      "handler": "presentation_settings"
+    },
+    {
+      "method": "POST",
+      "path": "/presentation/settings",
+      "handler": "presentation_update"
+    },
+    {
+      "method": "GET",
+      "path": "/skills/catalog",
+      "handler": "skills_catalog"
+    },
+    {
+      "method": "GET",
+      "path": "/skills/plan/{skill_id}",
+      "handler": "skills_plan"
+    },
+    {
+      "method": "GET",
+      "path": "/assist/suggestions",
+      "handler": "assist_suggestions"
+    },
+    {
+      "method": "POST",
+      "path": "/assist/suggestions/review",
+      "handler": "assist_review"
+    },
+    {
+      "method": "GET",
+      "path": "/development/evidence-gate",
+      "handler": "development_evidence_gate"
+    },
+    {
+      "method": "GET",
+      "path": "/system/backup-readiness",
+      "handler": "system_backup_readiness"
+    }
+  ],
+  "existing_suite": {
+    "status": "passed_with_external_test_process_scheduling_workaround",
+    "tests": 182,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "warnings": 9,
+    "pytest_elapsed_seconds": 8.68,
+    "process_elapsed_seconds": 9.34,
+    "runtime": {
+      "python": "3.12.14",
+      "pytest": "8.4.2",
+      "pluggy": "1.6.0",
+      "iniconfig": "2.1.0",
+      "fastapi": "0.141.1",
+      "starlette": "1.6.0",
+      "httpx": "0.28.1",
+      "anyio": "4.14.2",
+      "uvicorn": "0.52.1",
+      "packaging": "26.3",
+      "pygments": "2.21.0"
+    },
+    "run": {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "/workspace/audit-artifacts/run_pytest_with_polling.py",
+        "-q",
+        "tests",
+        "--junitxml=/workspace/audit-artifacts/baseline-pytest-polling.xml"
+      ],
+      "elapsed_seconds": 9.34,
+      "returncode": 0,
+      "timed_out": false,
+      "workaround": "External default-event-loop policy schedules a 20ms heartbeat; product and tests unchanged",
+      "runtime": "verified upstream source via PYTHONPATH; pytest8.4.2 pluggy1.6.0 iniconfig2.1.0; Python3.12.14; preinstalled FastAPI0.141.1 httpx0.28.1 uvicorn0.52.1"
+    },
+    "pythonpath": "/workspace/test-deps/pytest/src:/workspace/test-deps/pluggy/src:/workspace/test-deps/iniconfig/src:/workspace/Orbit-core",
+    "initial_normal_invocation": {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests",
+        "--junitxml=/workspace/audit-artifacts/baseline-pytest.xml"
+      ],
+      "elapsed_seconds": 180.0,
+      "returncode": null,
+      "timed_out": true,
+      "runtime": "verified upstream source via PYTHONPATH; pytest8.4.2 pluggy1.6.0 iniconfig2.1.0; Python3.12.14; preinstalled FastAPI0.141.1 httpx0.28.1 uvicorn0.52.1"
+    },
+    "limitations": [
+      "Normal TestClient invocation stalled in this environment, independently reproduced with a bare FastAPI app.",
+      "External entry point adds an asyncio timer every 20ms; product and test sources are unchanged.",
+      "Provider responses are mocked; no live inference or app startup lifecycle verification.",
+      "No interactive browser, listening server, Mac M4, iPhone, real sandbox, remote access, or public deployment verified."
+    ]
+  },
+  "evidence": [
+    {
+      "workspace_path": "/workspace/audit-artifacts/BASELINE_TESTS.md",
+      "bytes": 2558,
+      "sha256": "498ecc7cc4bc6c2005b44c38a572cd71e08afe4e58d159b9ffc64451078b5854"
+    },
+    {
+      "workspace_path": "/workspace/audit-artifacts/baseline-pytest-polling.txt",
+      "bytes": 3457,
+      "sha256": "886e0f89a8add5720dde531a9574b9bf7dffaee7bd63176f36ef45a6325e8551",
+      "repository_copy": "docs/audit/2026-10-12-baseline-pytest.txt"
+    },
+    {
+      "workspace_path": "/workspace/audit-artifacts/baseline-pytest-polling.xml",
+      "bytes": 22557,
+      "sha256": "2b37f90a16f10c4fd027251181d4bc99f9fb516ad6f19ad1752cc931e032e711",
+      "repository_copy": "docs/audit/2026-10-12-baseline-pytest.xml"
+    },
+    {
+      "workspace_path": "/workspace/audit-artifacts/baseline-pytest-polling-run.json",
+      "bytes": 603,
+      "sha256": "d0c73b3841761c9c4be0480bb420edcd7379195e9dc26d9d11a6bbeee1f7087c"
+    },
+    {
+      "workspace_path": "/workspace/audit-artifacts/baseline-pytest-collection.txt",
+      "bytes": 17845,
+      "sha256": "032ece1aada8f933f755bae989cbeb94352b184041a453c3a81423ce5e504563"
+    },
+    {
+      "workspace_path": "/workspace/audit-artifacts/baseline-installed-versions.json",
+      "bytes": 163,
+      "sha256": "a5a11a10a0d57bfa5720a903c7096b5311622308473b021b5f2d3a3a0b65e385"
+    },
+    {
+      "workspace_path": "/workspace/audit-artifacts/pytest-source-provenance.json",
+      "bytes": 15725,
+      "sha256": "88c28dc47c6e95ca695cc81f799a9d5ec784f5ad63a8fe22366492edeb8990c4"
+    },
+    {
+      "workspace_path": "/workspace/audit-artifacts/run_pytest_with_polling.py",
+      "bytes": 816,
+      "sha256": "ca46e197bc8750f28bce516b2325fc5c5a5ac7218ffc7358cee0e2d8e183e443",
+      "repository_copy": "docs/audit/run_pytest_with_polling.py.txt"
+    },
+    {
+      "workspace_path": "/workspace/audit-artifacts/baseline-pytest.txt",
+      "bytes": 322,
+      "sha256": "c75516b7cda5d87d29cdd1f0356c8118629fedf11305e8a13538c9c757ee09d2"
+    },
+    {
+      "workspace_path": "/workspace/audit-artifacts/baseline-pytest-run.json",
+      "bytes": 451,
+      "sha256": "502b6e4703ccc0b5518c035117d1578c3bdb8d90a20026ae2ecf20944f2973c9"
+    }
+  ],
+  "first_improvement_verification": {
+    "branch": "fix/luna-conversation-reliability",
+    "tests": 219,
+    "existing_tests": 182,
+    "new_tests": 37,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "warnings": 9,
+    "pytest_elapsed_seconds": 13.11,
+    "external_scheduling_workaround": "same 20ms event-loop heartbeat as baseline",
+    "checks": {
+      "compileall": "passed",
+      "app_import": "passed",
+      "embedded_javascript_node_syntax": "passed",
+      "interactive_browser": "unverified: Chromium socket creation denied"
+    },
+    "live_model_verified": false,
+    "mac_m4_verified": false,
+    "iphone_verified": false,
+    "remote_access_verified": false,
+    "artifacts": [
+      {
+        "repository_path": "docs/audit/2026-10-12-final-pytest.txt",
+        "workspace_path": "/workspace/audit-artifacts/final-pytest.txt",
+        "bytes": 3195,
+        "sha256": "9aedfa07e275f1f3119d1d8d6df00035c2542cc27efa4d086932bd7d0f7181ef"
+      },
+      {
+        "repository_path": "docs/audit/2026-10-12-final-pytest.xml",
+        "workspace_path": "/workspace/audit-artifacts/final-pytest.xml",
+        "bytes": 27790,
+        "sha256": "30afb70dd3f21c01cacdd7651fc6942d5c8e469e6387aae6ba6cc1f7a254a49c"
+      }
+    ],
+    "source_files_at_final_run": [
+      {
+        "path": "app.py",
+        "bytes": 133197,
+        "sha256": "2fbe0dee302797e83d2581e54bda8a56249c6c6fdc19764bad1f9da28993d043",
+        "git_blob_sha1": "d31a7005709540ab50617084360584ed8b316905"
+      },
+      {
+        "path": "luna/core.py",
+        "bytes": 26286,
+        "sha256": "d8e747de348f756b1e4747017fabb917ca3716b7b9048b6f98536a23180fe592",
+        "git_blob_sha1": "cd0036d239bc202705b2c779e9fac63401273ed6"
+      },
+      {
+        "path": "tests/test_model_reliability.py",
+        "bytes": 8943,
+        "sha256": "51e037a5963782f8134ddfff9a7d25e7bdd4154425efdb2d8f4633d754c9143c",
+        "git_blob_sha1": "557af512a8b360e28920cc677cb1a86001cac72c"
+      },
+      {
+        "path": "requirements-dev.txt",
+        "bytes": 34,
+        "sha256": "3c3ad6730cf0c0417b77bae38e53c11fa8cd96a34f2f8956998bafc0aaf3ef17",
+        "git_blob_sha1": "44dca339de2fd3f5f3e1bc740fcb5052b2e338de"
+      },
+      {
+        "path": ".github/workflows/orbit-checks.yml",
+        "bytes": 599,
+        "sha256": "a8e3303713ac6bfa16b8971180591ca424443d60f776e622a31b717d33647437",
+        "git_blob_sha1": "82be1feab41886c3fe271cef96f079af6b025c07"
+      }
+    ],
+    "command": "PYTHONPATH=/workspace/test-deps/pytest/src:/workspace/test-deps/pluggy/src:/workspace/test-deps/iniconfig/src:/workspace/Orbit-core PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 LUNA_DB_PATH=/workspace/audit-artifacts/final-test-data.db python /workspace/audit-artifacts/run_pytest_with_polling.py -q -p no:cacheprovider tests --junitxml=/workspace/audit-artifacts/final-pytest.xml > /workspace/audit-artifacts/final-pytest.txt 2>&1",
+    "workdir": "/workspace/Orbit-core"
+  }
+}

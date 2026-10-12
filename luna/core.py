@@ -248,12 +248,19 @@ async def respond(session, message):
         return ("Luna's memory is working, but no AI model is connected yet. "
                 "Configure LUNA_MODEL_URL and LUNA_MODEL_NAME to enable responses.")
 
-    parsed = urlparse(endpoint)
+    try:
+        parsed = urlparse(endpoint)
+        # Validate the port even for local endpoints. urlparse defers this
+        # check until .port is read, while httpx otherwise raises InvalidURL.
+        port = parsed.port
+    except ValueError:
+        # Configuration errors must not break chat or expose the endpoint.
+        return "Model endpoint blocked. Use localhost or a supported HTTPS AI provider."
     local = parsed.scheme == "http" and parsed.hostname in ("localhost", "127.0.0.1") and not parsed.username and not parsed.password
     # Fixed trusted host list prevents sending private chat history to arbitrary servers.
     cloud_hosts = {"api.groq.com", "api.openai.com", "api.together.xyz", "openrouter.ai", "generativelanguage.googleapis.com"}
     cloud = (parsed.scheme == "https" and parsed.hostname in cloud_hosts
-             and parsed.port in (None, 443) and not parsed.username and not parsed.password)
+             and port in (None, 443) and not parsed.username and not parsed.password)
     if not (local or cloud):
         return "Model endpoint blocked. Use localhost or a supported HTTPS AI provider."
     if cloud and not api_key:
@@ -322,9 +329,17 @@ async def respond(session, message):
                 response.raise_for_status()
                 data = response.json()
                 parts = data["candidates"][0]["content"]["parts"]
+                if not isinstance(parts, list) or any(
+                    not isinstance(part, dict)
+                    or not isinstance(part.get("text", ""), str)
+                    for part in parts
+                ):
+                    raise ValueError("Invalid Gemini response")
                 answer = "".join(part.get("text", "") for part in parts)
-                if not answer:
+                if not answer.strip():
                     raise ValueError("Empty Gemini response")
+                # JSON may contain lone surrogates that SQLite cannot store.
+                answer.encode("utf-8")
                 try:
                     from luna.model_usage import record
                     record(parsed.hostname, model, "cloud", data, "gemini")
@@ -340,6 +355,11 @@ async def respond(session, message):
             response.raise_for_status()
             data = response.json()
             answer = data["choices"][0]["message"]["content"]
+            # Tool-only, empty or malformed responses are not conversation
+            # replies. Never pass them to SQLite or the next model request.
+            if not isinstance(answer, str) or not answer.strip():
+                raise ValueError("Invalid model reply")
+            answer.encode("utf-8")
             try:
                 from luna.model_usage import record
                 record(parsed.hostname, model, "cloud" if cloud else "local",
@@ -349,7 +369,7 @@ async def respond(session, message):
                 # changes a successful model response into an error.
                 pass
             return answer
-    except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as exc:
+    except (httpx.HTTPError, httpx.InvalidURL, KeyError, IndexError, TypeError, ValueError) as exc:
         journal("Model request failed: " + type(exc).__name__)
         return "I couldn't reach my configured AI model. Check the provider, model, key, and free-tier limits."
 
