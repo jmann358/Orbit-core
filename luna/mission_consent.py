@@ -142,6 +142,12 @@ def _eligible_db(db, mission_id, *, now=None, require_running=False):
     snap = snapshot()
     if not snap["available"]:
         return False
+    # An owner pause blocks new work even if an earlier model grant remains.
+    controls = db.execute(
+        "SELECT paused FROM developer_control WHERE id=1"
+    ).fetchone()
+    if controls is None or controls[0]:
+        return False
     record = db.execute(
         "SELECT m.source,m.state,m.job_id,c.endpoint,c.model,"
         "c.expires_at,c.used_calls,c.max_calls,c.revoked "
