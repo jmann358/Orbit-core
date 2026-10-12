@@ -167,7 +167,7 @@ def test_frontend_uses_text_content_no_generated_html_injection():
     assert ".textContent" in FOCUS_SCRIPT
     assert "next.why" in FOCUS_SCRIPT
     assert "openLunaApprovals" in FOCUS_SCRIPT
-    assert "await loadControl()" in FOCUS_SCRIPT
+    assert "selectTab('approvals')" in FOCUS_SCRIPT
 
 
 def test_embedded_focus_javascript_is_parseable_when_node_available():
