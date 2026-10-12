@@ -1,6 +1,7 @@
 """Local-first Luna core. No paid API calls without explicit configuration."""
 import os
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 from datetime import datetime, timezone
 import json
@@ -226,14 +227,24 @@ def sessions(limit=30):
                 break
     return visible
 
+@contextmanager
 def connect():
+    """One managed SQLite transaction. Always close, even on exception.
+
+    sqlite3.Connection.__exit__ commits/rolls back but does NOT close.
+    Callers already use `with connect() as db`, so explicitly enforce
+    lifetime and transaction cleanup rather than leave file handles open.
+    """
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     db = sqlite3.connect(DB_PATH)
-    db.execute("CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY, session TEXT NOT NULL, role TEXT NOT NULL, content TEXT NOT NULL, created_at TEXT NOT NULL)")
-    db.execute("CREATE TABLE IF NOT EXISTS memory_candidates (id INTEGER PRIMARY KEY, content TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', created_at TEXT NOT NULL)")
-    db.execute("CREATE TABLE IF NOT EXISTS improvement_journal (id INTEGER PRIMARY KEY, description TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'proposed', created_at TEXT NOT NULL)")
-    db.commit()
-    return db
+    try:
+        with db:
+            db.execute("CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY, session TEXT NOT NULL, role TEXT NOT NULL, content TEXT NOT NULL, created_at TEXT NOT NULL)")
+            db.execute("CREATE TABLE IF NOT EXISTS memory_candidates (id INTEGER PRIMARY KEY, content TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', created_at TEXT NOT NULL)")
+            db.execute("CREATE TABLE IF NOT EXISTS improvement_journal (id INTEGER PRIMARY KEY, description TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'proposed', created_at TEXT NOT NULL)")
+            yield db
+    finally:
+        db.close()
 
 def timestamp():
     return datetime.now(timezone.utc).isoformat()
