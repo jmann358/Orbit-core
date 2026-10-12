@@ -1723,6 +1723,7 @@ def control_autopilot_choice(choice: AutopilotChoice):
 def focus_summary():
     """One read-only, truthful view of owner decisions and Luna's recorded work."""
     from luna import core, developer_agent, visual_studio, custom_agents
+    from luna.developer_model import configuration as development_model_settings
     from luna.attention_feed import summarize
     from luna.model_connection import inspect_model_configuration
     return summarize(
@@ -1733,6 +1734,7 @@ def focus_summary():
         visual_studio.proposals(),
         custom_agents.list_agents(),
         custom_agents.list_tasks(),
+        developer_model=development_model_settings(),
     )
 
 
