@@ -15,7 +15,9 @@ def test_home_shows_current_goal_and_inline_scoped_decision_ui(tmp_path):
         assert 'id="focus-goal-status"' in html
         assert "Approve listed steps" in html
         assert "Reject plan" in html
-        assert "Review or change plan" in html
+        assert "Review plan details" in html
+        assert "To change the proposal, reject it and create a new plan" in html
+        assert "'/agent/goals/'+goal.id+'/view'" in html
         assert "Open saved outcome and audit" in html
         assert "from owner" not in html  # no unverified authority claims
 
