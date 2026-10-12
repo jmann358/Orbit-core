@@ -29,7 +29,7 @@ def preferences():
         "avatar": options.get("presentation_avatar", DEFAULTS["avatar"]),
         "motion": options.get("presentation_motion", DEFAULTS["motion"]),
         "voice": "off",
-        "voice_available": False, "avatar_renderer_available": False,
+        "voice_available": False, "avatar_renderer_available": True,\n        "avatar_renderer_scope": "built-in CSS mood states only",
         "microphone_enabled": False,
         "actual_model_personality_updated": False,
     }
@@ -51,6 +51,6 @@ def configure(expression, avatar, motion):
             db.execute(
                 "INSERT INTO luna_settings(key,value) VALUES(?,?) "
                 "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
-                ("presentation_"+key if not key.startswith("presentation_") else key, value),
+                (key, value),
             )
     return preferences()
