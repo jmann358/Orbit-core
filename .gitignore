@@ -5,3 +5,6 @@ __pycache__/
 *.sqlite*
 .venv/
 .pytest_cache/
+
+# Never commit memory snapshots or restored databases.
+backups/
