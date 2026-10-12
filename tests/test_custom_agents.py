@@ -70,7 +70,7 @@ def test_chat_create_second_agent_approval_and_real_local_work_without_model():
 
                 status = client.post("/chat", json={
                     "session": "owner", "message": "List my agents"})
-                assert "Agent" in status.json()["reply"]
+                assert "Development Helper" in status.json()["reply"]
                 assert "Last task" in status.json()["reply"]
 
 
