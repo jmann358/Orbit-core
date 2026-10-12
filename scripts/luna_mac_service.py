@@ -215,9 +215,14 @@ def main(argv=None):
         else:
             require_mac()
             path = service_file()
-            print("LaunchAgent installed:", path.is_file())
-            print("Running:", _launchctl("print",
-                  "gui/" + str(os.getuid()) + "/" + LABEL, allow_error=True))
+            print("LaunchAgent file present:", path.is_file())
+            registered = _launchctl(
+                "print", "gui/" + str(os.getuid()) + "/" + LABEL,
+                allow_error=True,
+            )
+            print("LaunchAgent registered:", registered)
+            print("Process and worker health: unverified by this registration "
+                  "check; inspect Luna\'s dashboard and recent worker activity.")
     except (ValueError, OSError, subprocess.TimeoutExpired) as exc:
         print(str(exc), file=sys.stderr)
         return 1
