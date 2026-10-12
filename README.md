@@ -21,6 +21,8 @@ The worker can independently draft one curated improvement per day, within
 the existing two model attempts per UTC day. The chat window can close while
 the worker continues, but **the computer and launcher must stay running**.
 
+The self-build command first creates a private, integrity-checked SQLite snapshot if a memory database already exists. If that backup fails, it refuses to start unattended development. The read-only `--check` reports whether an existing local Ollama model is visible without revealing model names or secrets.
+
 The launcher automatically discovers an existing Ollama model, preferring
 a code-specialized model. It never installs Ollama, downloads a model,
 exposes a port, sets up paid services, or supplies a GitHub token. If no

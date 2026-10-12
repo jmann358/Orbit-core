@@ -95,7 +95,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     ready = check_readiness()
     if args.check:
-        import json
+        # Local probe only, no personal data, keys or network exposure.
+        ready["existing_local_model_available"] = discover_ollama() is not None
+        ready["self_build_requires_running_ollama"] = True
         print(json.dumps(ready, indent=2))
         return 0 if ready["python_supported"] and not ready["missing_dependencies"] else 1
     if not ready["python_supported"] or ready["missing_dependencies"]:
@@ -127,6 +129,18 @@ def main(argv=None):
         env.pop("LUNA_AGENT_ALLOW_CLOUD", None)
         print("Using existing local Ollama model: " + found, flush=True)
         env["LUNA_AGENT_AUTO_ENABLED"] = "1"
+        # The agent's job queue lives alongside Luna's conversation DB.
+        # Back up an existing database consistently before unattended work.
+        from luna.launch_guard import snapshot_existing_memory
+        from luna.core import DB_PATH
+        try:
+            snapshot = snapshot_existing_memory(DB_PATH, project_root=ROOT)
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        if snapshot is not None:
+            print("Created a private SQLite safety snapshot before self-building.",
+                  flush=True)
     if args.auto_drafts:
         if not ready["developer_model_configured_unverified"] and not args.self_build:
             print("To auto-draft, first enable and configure a trusted development model.",
