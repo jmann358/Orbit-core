@@ -16,7 +16,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from luna.cloud_worker import process_one
-from luna.developer_agent import maybe_queue_automatic, run_mission, status as developer_status
+from luna.developer_agent import maybe_queue_automatic, run_mission
+from luna.developer_model import configuration
 
 
 def db_path():
@@ -60,11 +61,11 @@ def main(argv=None):
                         help="Check readiness without queuing or calling any model")
     args = parser.parse_args(argv)
     if args.check:
-        report = developer_status(db_path())
-        print("Luna worker ready; no jobs executed or scheduled.")
-        print("Developer model ready: " + str(report["model"]["ready"]))
+        # This mode is truly read-only. It neither opens nor initializes SQLite.
+        ready = configuration()
+        print("Luna worker ready; no database changed and no tasks executed.")
+        print("Developer model configured (unverified): " + str(ready["ready"]))
         print("Automatic drafts: " + str(os.environ.get("LUNA_AGENT_AUTO_ENABLED") == "1"))
-        print("Owner pause: " + str(report["paused"]))
         return 0
     if args.once:
         print(run_once())
