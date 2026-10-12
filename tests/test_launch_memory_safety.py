@@ -131,3 +131,47 @@ def test_consistent_backup_in_wal_mode_for_custom_memory_path():
             )
         with sqlite3.connect(original) as db:
             assert db.execute("SELECT COUNT(*) FROM memories").fetchone()[0] == 1
+
+
+def test_swapping_backup_directory_during_copy_cannot_exfiltrate_memory():
+    from luna import launch_guard
+
+    with tempfile.TemporaryDirectory() as temp:
+        root = Path(temp)
+        source = root / "memory.db"
+        _write_memory(source)
+        outside = root / "shared"
+        outside.mkdir()
+        moved = root / "backups-moved"
+        genuine_connect = sqlite3.connect
+        swapped = []
+
+        def swap_on_copy(path, *args, **kwargs):
+            if path == ":memory:" and not swapped:
+                (root / "backups").rename(moved)
+                (root / "backups").symlink_to(outside, target_is_directory=True)
+                swapped.append(True)
+            return genuine_connect(path, *args, **kwargs)
+
+        with patch.object(launch_guard.sqlite3, "connect",
+                          side_effect=swap_on_copy):
+            with pytest.raises(ValueError, match="backup failed"):
+                snapshot_existing_memory(source, project_root=root)
+        assert swapped
+        assert list(outside.iterdir()) == []
+        assert list(moved.iterdir()) == []
+        with genuine_connect(source) as db:
+            assert db.execute("SELECT content FROM messages").fetchone()[0] == (
+                "private approved history"
+            )
+
+
+def test_verified_launch_never_executes_fetched_tests_with_live_credentials():
+    script = (Path(__file__).resolve().parents[1]
+              / "scripts" / "verify_and_launch.sh").read_text()
+    assert "python -m pytest" not in script
+    assert "LUNA_API_KEY=" not in script
+    assert "head_sha=" in script
+    assert 'item.get("head_branch") == "main"' in script
+    assert 'item.get("conclusion") == "success"' in script
+    assert "No successful isolated CI run found" in script
