@@ -16,6 +16,7 @@ router = APIRouter()
 
 class DesignRequest(BaseModel):
     direction: str = Field(min_length=5, max_length=1000)
+    base_design_id: int | None = Field(default=None, ge=1)
 
 
 @router.get("/design/status")
@@ -29,8 +30,16 @@ async def design_generate(request: DesignRequest):
     direction = request.direction.strip()
     if len(direction) < 5:
         raise HTTPException(422, "Describe what you want changed.")
+    previous = None
+    if request.base_design_id is not None:
+        previous = visual_studio.lookup(request.base_design_id)
+        if previous is None or previous["status"] == "rejected":
+            raise HTTPException(404, "The design to refine is unavailable.")
+    prior_context = ("Start from this earlier design, adjusting only what the owner requests: "
+                     + json.dumps(previous["design"], sort_keys=True) + "\n") if previous else ""
     prompt = (
-        "You are Luna, designing the appearance of your ORBIT dashboard with its owner. "
+        prior_context
+        + "You are Luna, designing the appearance of your ORBIT dashboard with its owner. "
         "The owner requests: " + json.dumps(direction) + "\n"
         "Create one appealing, accessible design using ONLY the exact JSON structure "
         "shown below. Respond with a single JSON object. No Markdown, explanations, "
@@ -140,7 +149,7 @@ After approving, return to the dashboard to use it normally.</small></p>
 <script>
 (function(){
  const $=id=>document.getElementById(id);
- let pending=null;
+ let pending=null,active=null;
  async function call(path,options){
   const response=await fetch(path,options);
   let data={};try{data=await response.json()}catch(e){}
@@ -156,7 +165,8 @@ After approving, return to the dashboard to use it normally.</small></p>
  }
  async function refresh(){
   const state=await call('/design/status');
-  if(!pending)preview(state.active);
+  active=state.active;
+  if(!pending)preview(active);
   const history=$('history');history.replaceChildren();
   if(!state.proposals.length){history.textContent='No saved designs yet.';return}
   for(const item of state.proposals){
@@ -190,9 +200,9 @@ After approving, return to the dashboard to use it normally.</small></p>
   try{
    const item=await call('/design/proposals',{method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({direction:$('direction').value})});
+    body:JSON.stringify({direction:$('direction').value,base_design_id:pending?pending.id:(active?active.id:null)})});
    preview(item);await refresh();
-   $('status').textContent='Preview ready. Nothing has changed until you approve.';
+   $('status').textContent='Preview ready. Give Luna another direction to refine it, or approve.';
   }catch(e){$('status').textContent=e.message}
   finally{button.disabled=false}
  };
