@@ -107,7 +107,7 @@ def test_verify_launch_snapshots_memory_before_pulling_source():
     launcher = (Path(__file__).resolve().parents[1]
                 / "scripts" / "verify_and_launch.sh").read_text()
     assert launcher.index("snapshot_existing_memory(DB_PATH") < launcher.index(
-        "git pull --ff-only"
+        "git merge --ff-only"
     )
     assert "cp -p luna_local.db" not in launcher
 
@@ -175,6 +175,7 @@ def test_verified_launch_never_executes_fetched_tests_with_live_credentials():
     assert 'item.get("head_branch") == "main"' in script
     assert 'item.get("conclusion") == "success"' in script
     assert "No successful isolated CI run found" in script
+    assert "python -I -" in script
 
 
 def test_failed_prior_update_cannot_import_any_app_module_on_retry():
@@ -184,6 +185,22 @@ def test_failed_prior_update_cannot_import_any_app_module_on_retry():
     assert script.count(precheck) == 2
     assert script.index(precheck) < script.index("from luna.core import DB_PATH")
     assert script.index("from luna.core import DB_PATH") < script.index(
-        "git pull --ff-only"
+        "git merge --ff-only"
     )
-    assert script.rindex(precheck) > script.index("git pull --ff-only")
+    assert script.rindex(precheck) > script.index("git merge --ff-only")
+
+
+def test_remote_revision_cannot_be_checked_out_before_ci_verification():
+    script = (Path(__file__).resolve().parents[1]
+              / "scripts" / "verify_and_launch.sh").read_text()
+    assert script.index("git fetch --no-tags") < script.index(
+        'verify_ci_commit "$verified_target"'
+    )
+    assert script.index('verify_ci_commit "$verified_target"') < script.index(
+        "from luna.core import DB_PATH"
+    )
+    assert script.index('verify_ci_commit "$verified_target"') < script.index(
+        'git merge --ff-only "$verified_target"'
+    )
+    assert 'git pull --ff-only' not in script
+    assert 'python -I -' in script
