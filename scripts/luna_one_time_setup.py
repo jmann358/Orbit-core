@@ -43,8 +43,20 @@ def existing_python():
 
 def prepare_python():
     if sys.version_info < (3, 11):
-        raise RuntimeError("Requires Python 3.11+. Install a current Python "
-                           "release, then re-run this one-time setup.")
+        brew = shutil.which("brew")
+        if not brew:
+            raise RuntimeError("Python 3.11+ is required and Homebrew is not "
+                               "available. Install a current Python release "
+                               "on your Mac, then re-run setup.")
+        print("Installing free Python 3.13 through existing Homebrew...",
+              flush=True)
+        run(brew, "install", "python@3.13", timeout=1200)
+        prefix = subprocess.run([brew, "--prefix", "python@3.13"],
+                                capture_output=True, text=True, check=False)
+        candidate = Path(prefix.stdout.strip()) / "bin" / "python3.13"
+        if prefix.returncode or not candidate.is_file():
+            raise RuntimeError("Homebrew Python installation cannot be verified")
+        os.execv(str(candidate), [str(candidate), *sys.argv])
     python = existing_python()
     if not python.is_file():
         run(sys.executable, "-m", "venv", str(ROOT / ".venv"))
