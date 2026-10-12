@@ -1,3 +1,62 @@
+## Mac mini: one-time Luna handoff
+
+For the intended always-on **Mac M4 mini**, once you have the approved
+repository checked out, open Terminal there and run:
+
+```bash
+cd ~/Orbit-core
+python3 scripts/luna_one_time_setup.py --enable-draft-prs
+```
+
+The `--enable-draft-prs` flag is the **explicit one-time GitHub
+authorization** for Luna to publish draft improvement PRs. It uses the
+GitHub CLI's own login/keychain store; no GitHub token is written to ORBIT's
+source, configuration or logs. If GitHub authorization is missing, the setup
+opens the normal web login flow. The CLI may request the broader GitHub
+`repo` OAuth scope, so only authorize that scope if you accept it. Luna's
+publisher itself is restricted to `jmann358/Orbit-core`, draft PRs, and
+six approved low-risk source files; she cannot self-merge or deploy.
+
+For **local-only autonomous drafts without GitHub write access**, omit the
+flag: `python3 scripts/luna_one_time_setup.py`.
+
+This installs only local free software: a project Python environment and its
+declared Python dependencies, Ollama through **existing Homebrew** when needed,
+and a local coding model if no code-capable model is already installed. It then
+creates a private macOS LaunchAgent that starts Luna's chat and independent
+developer worker automatically when you log in, and restarts them after a
+process failure. **No model API charges, cloud account, public listening port, self-merge or
+deployment are enabled.** GitHub draft PR permission is enabled only with
+`--enable-draft-prs` and successful owner authentication.
+
+The setup may download multiple gigabytes of model files; ensure sufficient
+storage. Without Homebrew or the Ollama Mac app installed, the script explains
+the missing one-time prerequisite. It does not create or manage a new
+Homebrew installation. To inspect prerequisites without changing anything:
+
+```bash
+python3 scripts/luna_one_time_setup.py --check
+```
+
+After successful setup, on that same Mac open
+`http://127.0.0.1:8000` and
+`http://127.0.0.1:8000/agent/studio`. Luna schedules one bounded
+development draft per day across six bounded, reviewed source modules.
+If GitHub drafting was authorized she can publish each successful proposal
+as a review-only draft PR. Keep the Mac logged in and awake: a LaunchAgent is
+not a system-wide service during logout/sleep. Changes she drafts are kept
+for owner review; she still cannot merge, execute, deploy, or grant herself
+GitHub credentials. Phone access requires a separate owner-approved secure
+pairing/transport setup.
+
+```bash
+python3 scripts/luna_mac_service.py --status
+python3 scripts/luna_mac_service.py --uninstall
+```
+
+Uninstalling the autostart service preserves Luna's database, backups and
+model files.
+
 # ORBIT · Luna
 
 ORBIT is a local-first, provider-independent assistant ecosystem. Luna is its conversational coordinator.

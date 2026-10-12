@@ -75,7 +75,7 @@ small{color:#566277}#missions article{margin:8px 0;background:#fbfcff}
 <header><h1>☾ Luna · Developer Agent</h1><a href="/">← ORBIT</a></header>
 <p>Independent work with an owner review gate. Luna can inspect approved code,
 draft a full replacement and validate its syntax without executing it.
-She cannot commit, install, deploy, buy services or approve her own changes.</p>
+With an explicit GitHub opt-in she may commit a bounded proposal to a review-only draft PR. She cannot merge to main, install, deploy, buy services or approve her own changes.</p>
 <article>
 <h2>Agent status</h2>
 <p id="status" role="status">Checking…</p>
@@ -99,7 +99,11 @@ your review. She cannot approve, merge, deploy or spend money.</p>
 selection uses the same limits.</p>
 <div class="inline">
 <select id="target"><option value="luna/development.py">Improve diagnostics</option>
-<option value="luna/self_improvement.py">Improve self-development planner</option></select>
+<option value="luna/self_improvement.py">Improve self-development planner</option>
+<option value="luna/presentation.py">Improve local presentation</option>
+<option value="luna/proactive.py">Improve review suggestions</option>
+<option value="luna/skill_catalog.py">Improve capability catalog</option>
+<option value="luna/goal_recipes.py">Improve safe goal recipes</option></select>
 <button id="assign">Queue development task</button>
 </div><p id="assigned" role="status"></p>
 </article>

@@ -134,7 +134,12 @@ def main(argv=None):
         from luna.launch_guard import snapshot_existing_memory
         from luna.core import DB_PATH
         try:
-            snapshot = snapshot_existing_memory(DB_PATH, project_root=ROOT)
+            if os.environ.get("LUNA_SERVICE_MODE") == "1":
+                from luna.backup_schedule import maybe_backup
+                result = maybe_backup(DB_PATH, root=ROOT)
+                snapshot = result["created"]
+            else:
+                snapshot = snapshot_existing_memory(DB_PATH, project_root=ROOT)
         except ValueError as exc:
             print(str(exc), file=sys.stderr)
             return 2

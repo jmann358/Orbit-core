@@ -15,6 +15,7 @@ import httpx
 from luna.cloud_worker import connect
 from luna.developer_agent import ROOT, TEMPLATES, mission, queue_mission, status
 from luna.patches import MAX_BYTES
+from luna.github_auth import token_for_draft_pr
 from luna.workshop import stage_proposal
 
 REPOSITORY = "jmann358/Orbit-core"
@@ -47,7 +48,8 @@ def publishing_config(environ=None):
     return {
         "enabled": env.get("LUNA_GITHUB_PR_ENABLED") == "1",
         "ready": (env.get("LUNA_GITHUB_PR_ENABLED") == "1"
-                  and bool(env.get("LUNA_GITHUB_TOKEN"))
+                  and (bool(env.get("LUNA_GITHUB_TOKEN"))
+                       or env.get("LUNA_GITHUB_USE_GH_CLI") == "1")
                   and env.get("LUNA_GITHUB_REPOSITORY", REPOSITORY) == REPOSITORY),
         "repository": REPOSITORY,
         "approval_required_to_merge": True,
@@ -179,6 +181,11 @@ def publish_review_pr(db_path, mission_id, *, environ=None, root=None,
     cfg = publishing_config(env)
     if not cfg["ready"]:
         raise ValueError("GitHub PR publishing needs explicit owner setup")
+    # Authenticate before recording an attempted network publication. If
+    # credentials are absent the mission remains reviewable and untouched.
+    token = token_for_draft_pr(env)
+    if not token:
+        raise ValueError("GitHub is not authenticated; draft PR not attempted")
     item = verified_proposal(db_path, mission_id, root=root)
     branch = ("luna/review-" + str(mission_id) + "-"
               + item["fingerprint"][:12])
@@ -199,7 +206,7 @@ def publish_review_pr(db_path, mission_id, *, environ=None, root=None,
 
     route = "/repos/" + REPOSITORY
     headers = {
-        "Authorization": "Bearer " + env["LUNA_GITHUB_TOKEN"],
+        "Authorization": "Bearer " + token,
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
     }
@@ -239,7 +246,7 @@ def publish_review_pr(db_path, mission_id, *, environ=None, root=None,
                 "title": "Luna proposed improvement #" + str(mission_id),
                 "body": (
                     "Autonomously drafted source change. Owner review required.\n\n"
-                    "Target: \`" + item["path"] + "\`\n\n"
+                    "Target: \u0060" + item["path"] + "\u0060\n\n"
                     "Summary: " + item["summary"][:400] + "\n\n"
                     "**Only syntax/bytecode compilation checked locally; full "
                     "tests and security review still required.**\n"

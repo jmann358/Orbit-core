@@ -5,7 +5,14 @@ import hashlib
 from pathlib import Path
 
 # Narrow, explicit allowlist. Never edit app entrypoints, policy, secrets or auth.
-ALLOWED_PATHS = frozenset({"luna/development.py", "luna/self_improvement.py"})
+ALLOWED_PATHS = frozenset({
+    "luna/development.py",
+    "luna/self_improvement.py",
+    "luna/presentation.py",
+    "luna/proactive.py",
+    "luna/skill_catalog.py",
+    "luna/goal_recipes.py",
+})
 MAX_BYTES = 30_000
 
 def review_patch(root, relative_path, expected_sha256, replacement):
