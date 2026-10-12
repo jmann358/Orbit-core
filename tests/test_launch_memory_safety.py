@@ -268,7 +268,8 @@ def test_root_swap_immediately_before_open_fails_without_leaking_memory():
         swapped = []
 
         def switch_before_open(path, flags, *args, **kwargs):
-            if os.fspath(path) == os.fspath(root) and not swapped:
+            if (os.fspath(path) in (os.fspath(root), root.name)
+                    and not swapped):
                 root.rename(moved)
                 root.symlink_to(external, target_is_directory=True)
                 swapped.append(True)
@@ -295,3 +296,42 @@ def test_trusted_workflow_blob_must_match_pinned_main_and_remote_revisions():
     assert script.index('verify_trusted_workflow "$verified_target"') < script.index(
         'git merge --ff-only "$verified_target"'
     )
+
+
+
+def test_ancestor_swap_before_component_open_never_exports_private_memory():
+    from luna import launch_guard
+
+    with tempfile.TemporaryDirectory() as temp:
+        base = Path(temp)
+        parent = base / "checkout-parent"
+        root = parent / "Orbit-core"
+        root.mkdir(parents=True)
+        memory = root / "memory.db"
+        _write_memory(memory)
+        moved = base / "moved-parent"
+        external = base / "shared"
+        (external / "Orbit-core" / "backups").mkdir(parents=True)
+        true_open = os.open
+        swapped = []
+
+        def move_ancestor_before_final_open(path, flags, *args, **kwargs):
+            if (os.fspath(path) == root.name
+                    and kwargs.get("dir_fd") is not None
+                    and not swapped):
+                parent.rename(moved)
+                parent.symlink_to(external, target_is_directory=True)
+                swapped.append(True)
+            return true_open(path, flags, *args, **kwargs)
+
+        with patch.object(launch_guard.os, "open",
+                          side_effect=move_ancestor_before_final_open):
+            with pytest.raises(ValueError, match="backup failed"):
+                snapshot_existing_memory(memory, project_root=root)
+        assert swapped
+        assert list((external / "Orbit-core" / "backups").iterdir()) == []
+        assert list((moved / "Orbit-core" / "backups").iterdir()) == []
+        with sqlite3.connect(moved / "Orbit-core" / "memory.db") as db:
+            assert db.execute("SELECT content FROM messages").fetchone()[0] == (
+                "private approved history"
+            )
