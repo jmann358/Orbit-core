@@ -99,10 +99,10 @@ def test_one_time_setup_invokes_only_local_dependencies_and_autostart():
                     with patch.object(setup, "ensure_local_model",
                                       side_effect=lambda _: calls.append("model")):
                         with patch.object(setup, "verify_local_inference"):
-                        with patch.object(setup, "run",
-                                          side_effect=lambda *args, **kwargs:
-                                          calls.append(args)):
-                            assert setup.main([]) == 0
+                            with patch.object(setup, "run",
+                                              side_effect=lambda *args, **kwargs:
+                                              calls.append(args)):
+                                assert setup.main([]) == 0
     assert calls[:2] == ["server", "model"]
     assert calls[2][0] == "/mock/python"
     assert calls[2][-1] == "--install"
