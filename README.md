@@ -1,3 +1,33 @@
+## Tell Luna to improve herself (real work, not copy-and-paste scripts)
+
+In Luna's existing Chat, say: **"Luna, begin improving yourself."**
+
+This exact everyday phrase now creates two **actual persistent records**:
+a project-health task in the existing local worker inbox and an allowlisted
+development mission in the existing independent developer worker. Luna replies
+with their real IDs. The health check runs without an AI model, while the code
+draft needs a separately permitted developer-model connection. This matters:
+a connected Groq or other conversational API is not, on its own, permission
+to use the same API for potentially billable developer tasks. The response
+truthfully identifies blockers instead of promising that a model-free worker
+will generate code. GitHub and ORBIT source files remain unchanged until
+a separately authorized, verified publication or application workflow.
+
+To ask for actual evidence, say **"What have you actually improved?"** or
+**"What's the status of your development?"**. Luna reads the saved mission
+status instead of inventing a progress report. **"Luna, run a diagnostic"**
+queues the already implemented local project-health checker. If Luna's AI
+previously invented a plan and you simply reply **"yes, let's do it"**,
+that reply alone does *not* authorize tools or execute code: she now explains
+what would be needed to create a real task. After a real work receipt, "yes"
+instead reports the work's recorded status, without duplicating it.
+
+Do **not** copy a model-generated shell script that references a guessed
+~/orbit directory, an invented /api/health endpoint, or JSON-based approved
+memories: ORBIT already has local source inspection and health checking,
+and memory proposals are approved in the SQLite-backed dashboard.
+No app-generated model text can silently create, run, or deploy new code.
+
 ## Let Luna create her own helpers
 
 With the current version running on your Chromebook or Mac, open Luna's
