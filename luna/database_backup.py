@@ -3,6 +3,7 @@
 Backups contain private conversation data. Keep files on the trusted host,
 restrict permissions and NEVER check them into source control.
 """
+from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote
@@ -24,7 +25,7 @@ def _readonly(path):
 
 def verify(path):
     """Open without creating or modifying source database."""
-    with _readonly(path) as db:
+    with closing(_readonly(path)) as db:
         status = db.execute("PRAGMA integrity_check").fetchone()[0]
         tables = db.execute(
             "SELECT COUNT(*) FROM sqlite_master WHERE type='table'"
@@ -55,9 +56,10 @@ def backup(source, destination):
     fd = os.open(target, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     os.close(fd)
     try:
-        with _readonly(source) as source_db:
-            with sqlite3.connect(target) as destination_db:
+        with closing(_readonly(source)) as source_db:
+            with closing(sqlite3.connect(target)) as destination_db:
                 source_db.backup(destination_db)
+                destination_db.commit()
         if not verify(target)["integrity_ok"]:
             raise ValueError("Copied database integrity check failed")
         os.chmod(target, 0o600)
