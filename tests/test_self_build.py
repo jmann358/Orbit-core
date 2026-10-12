@@ -225,5 +225,7 @@ def test_chat_can_start_self_build_without_connected_model():
                 assert response.status_code == 200
                 assert response.json()["kind"] == "queued_task"
                 assert "mission #" in response.json()["reply"]
-                assert "once my model" in response.json()["reply"]
+                assert "BLOCKED" in response.json()["reply"]
+                assert response.json()["mission_id"] >= 1
+                assert response.json()["job_id"] >= 1
                 assert readiness(core.DB_PATH)["missions"]["queued"] == 1

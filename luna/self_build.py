@@ -38,6 +38,14 @@ def is_start_command(message):
         "start self-building", "start building yourself",
         "start working on yourself", "work on yourself",
         "begin self-building", "build yourself",
+        "begin improving yourself", "start improving yourself",
+        "improve yourself", "start improving your own code",
+        "i need you to begin improving yourself",
+        "i need you to start improving yourself",
+        "i want you to begin improving yourself",
+        "i want you to start improving yourself",
+        "get to work improving yourself",
+        "start making improvements to yourself",
     }
 
 

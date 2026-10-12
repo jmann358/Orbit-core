@@ -5,6 +5,7 @@ def test_explicit_safe_commands_route():
     assert route_chat_job("Luna, run a health check")["kind"]=="project_health"
     assert route_chat_job("Please run GitHub status check")["kind"]=="github_status"
     assert route_chat_job("Start a development plan")["kind"]=="development_plan"
+    assert route_chat_job("Start the diagnostic")["kind"]=="project_health"
 
 
 def test_ambiguous_or_unsafe_messages_do_not_create_jobs():
