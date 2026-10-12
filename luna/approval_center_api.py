@@ -120,7 +120,7 @@ def pending():
 
     model_choice = mission_consent.snapshot()
     dev_model_enabled = developer_agent.status(core.DB_PATH)["model"]["ready"]
-    for mission in developer_agent.list_missions():
+    for mission in developer_agent.list_missions(core.DB_PATH):
         if mission["state"] == "review":
             add(_item("code_review", mission["id"],
                       "Review code mission #" + str(mission["id"]),
