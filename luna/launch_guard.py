@@ -14,6 +14,30 @@ import stat
 from urllib.parse import quote
 
 
+def _open_directory_tree_no_symlinks(path, flags):
+    """Pin every path component to an opened directory descriptor.
+
+    Using O_NOFOLLOW on only the final directory still permits a writable
+    ancestor to be swapped for a symlink between validation and opening.
+    Start from '/' and resolve each component relative to its pinned parent.
+    Reject symlinks in *any* ancestor rather than following them.
+    """
+    absolute = Path(os.path.abspath(os.fspath(path)))
+    parts = absolute.parts
+    if not parts or parts[0] != os.sep:
+        raise ValueError("Project root must be an absolute Unix path")
+    fd = os.open(os.sep, flags)
+    try:
+        for component in parts[1:]:
+            child_fd = os.open(component, flags, dir_fd=fd)
+            os.close(fd)
+            fd = child_fd
+        return fd
+    except BaseException:
+        os.close(fd)
+        raise
+
+
 def snapshot_existing_memory(db_path, *, project_root):
     """Create a consistent private SQLite snapshot without reopening its path.
 
@@ -26,10 +50,12 @@ def snapshot_existing_memory(db_path, *, project_root):
     Return None if no source database existed. An error leaves the original
     database untouched and blocks the unattended launch.
     """
-    project_root = Path(project_root)
+    # abspath normalizes the caller-provided path WITHOUT following symlinks.
+    # Calling Path.resolve() here would let a raced root symlink silently
+    # retarget our later O_NOFOLLOW open to an external directory.
+    project_root = Path(os.path.abspath(os.fspath(project_root)))
     if project_root.is_symlink():
         raise ValueError("Refusing a symlinked project root")
-    project_root = project_root.resolve()
     requested = Path(db_path)
     if not requested.is_absolute():
         requested = project_root / requested
@@ -61,7 +87,7 @@ def snapshot_existing_memory(db_path, *, project_root):
     file_fd = None
     created = False
     try:
-        root_fd = os.open(project_root, directory_flags)
+        root_fd = _open_directory_tree_no_symlinks(project_root, directory_flags)
         original_root = os.fstat(root_fd)
         if not stat.S_ISDIR(original_root.st_mode):
             raise ValueError("Memory project root is not a directory")

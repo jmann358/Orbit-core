@@ -249,3 +249,89 @@ def test_verifier_binds_to_exact_workflow_path_not_display_name():
     assert 'item.get("path") == ".github/workflows/orbit-checks.yml"' in script
     assert 'item.get("head_sha") == commit' in script
     assert 'item.get("conclusion") == "success"' in script
+
+
+
+def test_root_swap_immediately_before_open_fails_without_leaking_memory():
+    from luna import launch_guard
+
+    with tempfile.TemporaryDirectory() as temp:
+        base = Path(temp)
+        root = base / "Orbit-core"
+        root.mkdir()
+        source = root / "memory.db"
+        _write_memory(source)
+        moved = base / "original-project"
+        external = base / "shared-folder"
+        (external / "backups").mkdir(parents=True)
+        true_open = os.open
+        swapped = []
+
+        def switch_before_open(path, flags, *args, **kwargs):
+            if (os.fspath(path) in (os.fspath(root), root.name)
+                    and not swapped):
+                root.rename(moved)
+                root.symlink_to(external, target_is_directory=True)
+                swapped.append(True)
+            return true_open(path, flags, *args, **kwargs)
+
+        with patch.object(launch_guard.os, "open", side_effect=switch_before_open):
+            with pytest.raises(ValueError, match="backup failed"):
+                snapshot_existing_memory(source, project_root=root)
+        assert swapped
+        assert list((external / "backups").iterdir()) == []
+        with sqlite3.connect(moved / "memory.db") as db:
+            assert db.execute("SELECT content FROM messages").fetchone()[0] == (
+                "private approved history"
+            )
+
+
+def test_trusted_workflow_blob_must_match_pinned_main_and_remote_revisions():
+    script = (Path(__file__).resolve().parents[1]
+              / "scripts" / "verify_and_launch.sh").read_text()
+    assert 'TRUSTED_WORKFLOW_BLOB="3c13b96eb6a07782be68bf1e233eb6cdae7b048d"' in script
+    assert 'git rev-parse "$sha:.github/workflows/orbit-checks.yml"' in script
+    assert 'verify_trusted_workflow "$(git rev-parse HEAD)"' in script
+    assert 'verify_trusted_workflow "$verified_target"' in script
+    assert script.index('verify_trusted_workflow "$verified_target"') < script.index(
+        'git merge --ff-only "$verified_target"'
+    )
+
+
+
+def test_ancestor_swap_before_component_open_never_exports_private_memory():
+    from luna import launch_guard
+
+    with tempfile.TemporaryDirectory() as temp:
+        base = Path(temp)
+        parent = base / "checkout-parent"
+        root = parent / "Orbit-core"
+        root.mkdir(parents=True)
+        memory = root / "memory.db"
+        _write_memory(memory)
+        moved = base / "moved-parent"
+        external = base / "shared"
+        (external / "Orbit-core" / "backups").mkdir(parents=True)
+        true_open = os.open
+        swapped = []
+
+        def move_ancestor_before_final_open(path, flags, *args, **kwargs):
+            if (os.fspath(path) == root.name
+                    and kwargs.get("dir_fd") is not None
+                    and not swapped):
+                parent.rename(moved)
+                parent.symlink_to(external, target_is_directory=True)
+                swapped.append(True)
+            return true_open(path, flags, *args, **kwargs)
+
+        with patch.object(launch_guard.os, "open",
+                          side_effect=move_ancestor_before_final_open):
+            with pytest.raises(ValueError, match="backup failed"):
+                snapshot_existing_memory(memory, project_root=root)
+        assert swapped
+        assert list((external / "Orbit-core" / "backups").iterdir()) == []
+        assert list((moved / "Orbit-core" / "backups").iterdir()) == []
+        with sqlite3.connect(moved / "Orbit-core" / "memory.db") as db:
+            assert db.execute("SELECT content FROM messages").fetchone()[0] == (
+                "private approved history"
+            )

@@ -53,6 +53,20 @@ if not verified:
 print("Exact main commit passed isolated GitHub CI. No local tests executed.")
 PY
 }
+# Pin the Git blob of the owner-reviewed workflow, not only its filename.
+# A candidate commit that edits the CI workflow requires a separate explicit
+# review and update to this trusted pin; a trivial green workflow is not proof.
+TRUSTED_WORKFLOW_BLOB="3c13b96eb6a07782be68bf1e233eb6cdae7b048d"
+verify_trusted_workflow() {
+  local sha="$1"
+  local blob
+  blob="$(git rev-parse "$sha:.github/workflows/orbit-checks.yml")"
+  if [ "$blob" != "$TRUSTED_WORKFLOW_BLOB" ]; then
+    echo "CI workflow definition differs from trusted review; refusing launch." >&2
+    exit 1
+  fi
+}
+verify_trusted_workflow "$(git rev-parse HEAD)"
 verify_ci_commit "$(git rev-parse HEAD)"
 
 # FETCH ONLY: this never checks out or executes newly fetched source.
@@ -60,6 +74,7 @@ verify_ci_commit "$(git rev-parse HEAD)"
 # evidence; do not check out a SHA that has not passed isolated CI.
 git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
 verified_target="$(git rev-parse refs/remotes/origin/main)"
+verify_trusted_workflow "$verified_target"
 verify_ci_commit "$verified_target"
 
 # This backup must run with the previously reviewed and CI-verified source.
