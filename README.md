@@ -1,3 +1,40 @@
+## Start Luna on a Chromebook (simple owner screen)
+
+On the Chromebook where ORBIT is already checked out, **stop any previous
+Luna server with Ctrl+C**, then use:
+
+```bash
+cd ~/Orbit-core
+git pull --ff-only origin main
+source .venv/bin/activate
+python scripts/luna_today.py
+```
+
+Open **http://127.0.0.1:8000** in Chrome **on that Chromebook**.
+
+Luna's opening screen now has one clearly recommended action with a
+**Why this?** explanation (also a tooltip on hover), **Waiting for you**,
+**Luna's work**, and direct Chat/Design Studio links. Existing technical
+sections are available via **More tools** or **All decisions and advanced
+tools**, rather than cluttering the home screen. Clicking an item takes
+you to its actual saved request or task; no code, memory or approval
+is applied on its own. The screen polls local status read-only when visible.
+
+The `luna_today.py` launcher uses an **existing running Ollama model** if
+one is detected and starts the bounded self-building worker; otherwise it
+still opens the local dashboard, saved chats and approval queue while
+clearly saying that real model-backed chat/design generation is unavailable.
+If a separately configured AI provider is present, the dashboard may use
+it for chat, but the launcher does not turn on unapproved cloud
+development calls. **Model configuration is not verified inference.**
+
+No Linux software or AI model is installed by the launcher. It does not
+create a public deployment, connect your phone, or bypass owner review.
+If the script reports missing packages, run
+`python -m pip install -r requirements.txt` in the existing virtualenv
+before retrying. For a read-only readiness check use
+`python scripts/luna_today.py --check`.
+
 ## Design with Luna: generate → preview → approve
 
 Luna can now propose a new **visual appearance** without giving generated code

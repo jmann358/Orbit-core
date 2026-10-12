@@ -108,10 +108,10 @@ def test_local_model_chat_survives_new_client_and_keeps_turn_order():
     assert "release-test" in session_names
 
 
-def test_default_interface_is_conversation_first_with_send_guard():
+def test_default_interface_shows_next_action_first_and_preserves_chat_send_guard():
     html = TestClient(app).get("/").text
     assert html.count('class="tab-panel active"') == 1
-    assert 'id="tab-chat" class="tab-panel active"' in html
+    assert 'id="tab-home" class="tab-panel active"' in html
     assert "let chatSending=false" in html
     assert "if(chatSending)return;" in html
     assert "/chat/readiness" in html

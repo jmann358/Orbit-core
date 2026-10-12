@@ -215,6 +215,7 @@ font-weight:700;text-decoration:none}</style>"""
  nav.appendChild(more);
 })();
 </script>"""
-            markup = markup.replace("</html>", toggle + "</html>", 1)
+            if 'id="focus-tools-toggle"' not in markup:
+                markup = markup.replace("</html>", toggle + "</html>", 1)
     markup = markup.replace("<header>", css + "<header>", 1)
     return markup.replace("</header>", '</header><a id="design-home-link" href="/design">✦ Design with Luna</a>', 1)
