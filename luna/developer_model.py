@@ -131,7 +131,7 @@ async def propose(prompt, *, mission_id=None, db_path=None):
     except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as exc:
         raise AgentModelUnavailable("Developer model request failed") from None
     if (not isinstance(answer, str) or not answer.strip()
-            or len(answer) > MAX_RESPONSE_CHARS or "\\x00" in answer):
+            or len(answer) > MAX_RESPONSE_CHARS or "\x00" in answer):
         raise AgentModelUnavailable("Developer model returned an invalid response")
     # SQLite, JSON proposal parsing and a later reviewer all require valid text.
     # A lone surrogate may be accepted by Python strings but will fail while
