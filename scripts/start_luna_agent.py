@@ -110,19 +110,22 @@ def main(argv=None):
     if args.self_build:
         # Reuse an already running Ollama instance and existing model. No
         # software installation, model download, paid service or credentials.
-        if not ready["developer_model_configured_unverified"]:
-            found = discover_ollama()
-            if found is None:
-                print("Self-build needs a running local Ollama server with an "
-                      "installed model. No model was downloaded or paid for.",
-                      file=sys.stderr)
-                print("Start Ollama and install a code-capable model separately, "
-                      "then retry this command.", file=sys.stderr)
-                return 2
-            env["LUNA_MODEL_URL"] = "http://127.0.0.1:11434/v1"
-            env["LUNA_MODEL_NAME"] = found
-            env["LUNA_AGENT_MODEL_ENABLED"] = "1"
-            print("Using existing local Ollama model: " + found, flush=True)
+        found = discover_ollama()
+        if found is None:
+            print("Self-build needs a running local Ollama server with an "
+                  "installed model. No model was downloaded or paid for.",
+                  file=sys.stderr)
+            print("Start Ollama and install a code-capable model separately, "
+                  "then retry this command.", file=sys.stderr)
+            return 2
+        # Explicitly override any inherited cloud model settings: this flag
+        # promises local-only development and must never incur API charges.
+        env["LUNA_MODEL_URL"] = "http://127.0.0.1:11434/v1"
+        env["LUNA_MODEL_NAME"] = found
+        env["LUNA_AGENT_MODEL_ENABLED"] = "1"
+        env.pop("LUNA_API_KEY", None)
+        env.pop("LUNA_AGENT_ALLOW_CLOUD", None)
+        print("Using existing local Ollama model: " + found, flush=True)
         env["LUNA_AGENT_AUTO_ENABLED"] = "1"
     if args.auto_drafts:
         if not ready["developer_model_configured_unverified"] and not args.self_build:
