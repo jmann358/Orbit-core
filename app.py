@@ -850,6 +850,7 @@ form.onsubmit=async event=>{
   }
  }finally{
   chatSending=false;sendButton.disabled=false;refreshChatReadiness();
+  if(window.refreshChatMissionCard)window.refreshChatMissionCard();
  }
 };
 loadHistory();loadSessions();loadTasks();
@@ -955,7 +956,11 @@ async function loadTasks(){try{const r=await fetch('/autonomy/tasks');const task
 </script></html>"""
     from luna import visual_studio
     from luna.focus_ui import enhance_home
-    return visual_studio.decorate_home(enhance_home(html.replace("__LUNA_VERSION__", VERSION)), design_preview)
+    from luna.chat_mission_ui import enhance_chat_mission
+    return visual_studio.decorate_home(
+        enhance_chat_mission(enhance_home(html.replace("__LUNA_VERSION__", VERSION))),
+        design_preview,
+    )
 
 @app.get("/chat/readiness")
 def chat_readiness():
