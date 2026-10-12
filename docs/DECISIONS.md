@@ -1,3 +1,5 @@
+> **Current confirmed owner choices (Pojo.3.1.0 checkpoint; October 12, 2026):** Mac M4 mini as primary home; Chromebook as current source-of-user-data until a verified safe migration; iPhone/iPad authenticated clients after owner review. **Uptime B:** Mac primary, optional explicitly approved cloud fallback later. **Retention C:** keep histories and recovery copies; no automated destructive cleanup until separately approved. **Starting spending authority $0** and no paid API requests without explicit authorization. In-context approve/modify/reject and automatic continuation are intended; existing steps remain fixed, allowlisted and owner-approved. The reviewed Flight Plan 1.0-RC is *not yet owner-approved for repository publication*. No blanket permission to merge, deploy, change sensitive access or enable automatic code application is implied by this note. This supersedes outdated "not yet decided" wording later in this historical log without modifying the chronology below.
+
 # Decisions and approvals
 
 ## Confirmed
