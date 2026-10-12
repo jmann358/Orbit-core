@@ -241,6 +241,29 @@ def _reserve_model_attempt(db_path, ident):
         )
 
 
+def _reserve_validation_retry(db_path, ident):
+    """Count one more proposal attempt under the existing daily hard limit."""
+    stamp = _stamp()
+    with job_connect(db_path) as db:
+        _setup(db)
+        db.execute("BEGIN IMMEDIATE")
+        day = stamp[:10]
+        row = db.execute(
+            "SELECT state FROM developer_missions WHERE id=?", (ident,)
+        ).fetchone()
+        paused, model_day, calls = db.execute(
+            "SELECT paused,model_day,model_calls FROM developer_control WHERE id=1"
+        ).fetchone()
+        if row != ("working",) or paused or model_day != day:
+            return False
+        if calls >= MAX_DAILY_CALLS:
+            return False
+        db.execute(
+            "UPDATE developer_control SET model_calls=model_calls+1 WHERE id=1"
+        )
+        return True
+
+
 def _source(root, path):
     base = Path(root).resolve(strict=True)
     target = base / path
@@ -304,12 +327,31 @@ async def run_mission(db_path, ident, *, model=None, root=None):
     try:
         original, digest = _source(root, record["path"])
         _reserve_model_attempt(db_path, ident)
-        answer = await (model or propose)(_instructions(record["path"], original, digest))
-        data = _candidate(answer, record["path"], digest)
-        staged = stage_proposal(root, [{
-            "path": record["path"], "base_sha256": digest,
-            "replacement": data["replacement"],
-        }], tests=[])
+        prompt = _instructions(record["path"], original, digest)
+        try:
+            answer = await (model or propose)(prompt)
+            data = _candidate(answer, record["path"], digest)
+            staged = stage_proposal(root, [{
+                "path": record["path"], "base_sha256": digest,
+                "replacement": data["replacement"],
+            }], tests=[])
+        except (ValueError, SyntaxError):
+            # Local models may get the structured JSON format wrong. Allow
+            # only one fresh model attempt, counted against the same hard
+            # two-calls-per-day budget; no unbounded agent loops or retries.
+            # Never include the failed answer, secrets or personal memories.
+            if not _reserve_validation_retry(db_path, ident):
+                raise ValueError("Development draft needs manual attention") from None
+            answer = await (model or propose)(
+                prompt + "\\nThe first response failed strict JSON or "
+                "revision-locked Python syntax validation. Respond with ONLY "
+                "the exact requested JSON object and valid Python source."
+            )
+            data = _candidate(answer, record["path"], digest)
+            staged = stage_proposal(root, [{
+                "path": record["path"], "base_sha256": digest,
+                "replacement": data["replacement"],
+            }], tests=[])
         diff = staged["diffs"][0]["diff"]
         manifest = staged["manifest"]
         with job_connect(db_path) as db:
