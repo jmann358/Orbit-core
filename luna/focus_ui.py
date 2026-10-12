@@ -257,7 +257,12 @@ def enhance_home(html):
     original = '<section id="tab-home" class="tab-panel"><h2>ORBIT command center</h2>'
     if html.count(original) != 1:
         raise ValueError("Unexpected dashboard template: home panel not found.")
-    html = html.replace(original, '<section id="tab-home" class="tab-panel">' + FOCUS_HOME, 1)
+    html = html.replace(original, '<section id="tab-home" class="tab-panel active">' + FOCUS_HOME, 1)
+    # The focus view must also be visible in script-disabled design previews.
+    previous_chat = 'id="tab-chat" class="tab-panel active"'
+    if html.count(previous_chat) != 1:
+        raise ValueError("Unexpected initial chat panel.")
+    html = html.replace(previous_chat, 'id="tab-chat" class="tab-panel"', 1)
     closing = '</section><section id="tab-activity"'
     if html.count(closing) != 1:
         raise ValueError("Unexpected dashboard template: home panel boundary not found.")
@@ -269,6 +274,8 @@ def enhance_home(html):
                         '<a id="focus-tools-toggle" href="#focus-advanced" role="button" '
                         'aria-controls="main-nav" aria-expanded="false" '
                         'title="Show or hide the full set of ORBIT tools">More tools</a>', 1)
+    html = html.replace('data-tab="chat" class="active">Chat', 'data-tab="chat">Chat', 1)
+    html = html.replace('data-tab="home">Overview', 'data-tab="home" class="active">Overview', 1)
     tab = "selectTab(localStorage.getItem('luna-active-tab')||'chat');"
     if html.count(tab) != 1:
         raise ValueError("Unexpected default dashboard tab.")
