@@ -1,3 +1,47 @@
+## Mac mini: one-time Luna handoff
+
+For the intended always-on **Mac M4 mini**, once you have the approved
+repository checked out, open Terminal there and run:
+
+```bash
+cd ~/Orbit-core
+python3 scripts/luna_one_time_setup.py
+```
+
+This installs only local free software: a project Python environment and its
+declared Python dependencies, Ollama through **existing Homebrew** when needed,
+and a local coding model if no code-capable model is already installed. It then
+creates a private macOS LaunchAgent that starts Luna's chat and independent
+developer worker automatically when you log in, and restarts them after a
+process failure. **No model API charges, cloud account, public listening port,
+GitHub write token, self-merge or deployment are enabled.**
+
+The setup may download multiple gigabytes of model files; ensure sufficient
+storage. Without Homebrew or the Ollama Mac app installed, the script explains
+the missing one-time prerequisite. It does not create or manage a new
+Homebrew installation. To inspect prerequisites without changing anything:
+
+```bash
+python3 scripts/luna_one_time_setup.py --check
+```
+
+After successful setup, on that same Mac open
+`http://127.0.0.1:8000` and
+`http://127.0.0.1:8000/agent/studio`. Luna schedules one bounded
+development draft per day. Keep the Mac logged in and awake: a LaunchAgent is
+not a system-wide service during logout/sleep. Changes she drafts are kept
+for owner review; she still cannot merge, execute, deploy, or grant herself
+GitHub credentials. Phone access requires a separate owner-approved secure
+pairing/transport setup.
+
+```bash
+python3 scripts/luna_mac_service.py --status
+python3 scripts/luna_mac_service.py --uninstall
+```
+
+Uninstalling the autostart service preserves Luna's database, backups and
+model files.
+
 # ORBIT · Luna
 
 ORBIT is a local-first, provider-independent assistant ecosystem. Luna is its conversational coordinator.
