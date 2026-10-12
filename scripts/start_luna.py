@@ -43,7 +43,6 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Launch Luna on this computer only")
     parser.add_argument("--check", action="store_true", help="Print local readiness; do not start server")
     args = parser.parse_args(argv)
-    os.chdir(ROOT)
     status = readiness()
     if args.check:
         print(json.dumps(status, indent=2))
