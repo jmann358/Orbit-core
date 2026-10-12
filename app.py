@@ -1782,3 +1782,132 @@ def development_workshop_proposal(request: WorkshopProposalRequest):
 def development_runner_preflight():
     from luna.runner_preflight import inspect_runner
     return inspect_runner()
+
+
+# Priorities 6-14: local-first, opt-in foundations. Nothing here activates
+# network/device integrations, installs new services or broadens model access.
+class MemoryLearningChoice(BaseModel):
+    message_id: int = Field(gt=0)
+
+
+@app.get("/memory/learning/preview")
+def memory_learning_preview(session:str,limit:int=8):
+    from luna.memory_learning import preview
+    try:
+        return {"candidates":preview(session,limit),
+                "review_only":True,"auto_approve":False}
+    except ValueError as exc:
+        raise HTTPException(400,str(exc)) from exc
+
+
+@app.post("/memory/learning/suggest")
+def memory_learning_suggest(choice:MemoryLearningChoice):
+    from luna.memory_learning import suggest
+    try:
+        return suggest(choice.message_id)
+    except ValueError as exc:
+        raise HTTPException(400,str(exc)) from exc
+
+
+@app.get("/memory/learning/sources")
+def memory_learning_sources():
+    from luna.memory_learning import sources
+    return {"sources":sources(),"includes_approved_and_pending":True}
+
+
+@app.get("/agent/goals/{goal_id}/handoff/{step_position}")
+def goal_step_handoff(goal_id:int,step_position:int):
+    from luna.agent_handoffs import bundle
+    try:
+        result=bundle(goal_id,step_position)
+    except ValueError as exc:
+        raise HTTPException(400,str(exc)) from exc
+    if result is None:
+        raise HTTPException(404,"Goal step not found")
+    return result
+
+
+@app.get("/system/device-readiness")
+def system_device_readiness():
+    from luna.device_readiness import report
+    return report()
+
+
+@app.get("/model/usage")
+def model_usage_status():
+    from luna.model_usage import report
+    return report()
+
+
+@app.get("/presentation/settings")
+def presentation_settings():
+    from luna.presentation import preferences
+    return preferences()
+
+
+class PresentationChoice(BaseModel):
+    expression:str
+    avatar:str
+    motion:str
+
+
+@app.post("/presentation/settings")
+def presentation_update(choice:PresentationChoice):
+    from luna.presentation import configure
+    try:
+        return configure(choice.expression,choice.avatar,choice.motion)
+    except ValueError as exc:
+        raise HTTPException(400,str(exc)) from exc
+
+
+@app.get("/skills/catalog")
+def skills_catalog():
+    from luna.skill_catalog import catalog
+    return {"skills":catalog(),"dynamic_plugins_enabled":False}
+
+
+@app.get("/skills/plan/{skill_id}")
+def skills_plan(skill_id:str):
+    from luna.skill_catalog import integration_plan
+    try:
+        return integration_plan(skill_id)
+    except ValueError as exc:
+        raise HTTPException(404,str(exc)) from exc
+
+
+@app.get("/assist/suggestions")
+def assist_suggestions():
+    from luna.proactive import preview
+    return preview()
+
+
+class ProactiveReviewChoice(BaseModel):
+    suggestion_id:str
+
+
+@app.post("/assist/suggestions/review")
+def assist_review(choice:ProactiveReviewChoice):
+    from luna.proactive import save_review_request
+    try:
+        return save_review_request(choice.suggestion_id)
+    except ValueError as exc:
+        raise HTTPException(400,str(exc)) from exc
+
+
+@app.get("/development/evidence-gate")
+def development_evidence_gate():
+    from luna.improvement_gate import dashboard
+    return dashboard()
+
+
+@app.get("/system/backup-readiness")
+def system_backup_readiness():
+    from luna import core
+    return {
+        "database_exists":core.DB_PATH.is_file(),
+        "automatic_backup_enabled":False,
+        "restoration_exposed_as_api":False,
+        "backup_tool":"luna.database_backup.backup_default",
+        "backup_contains_private_user_data":True,
+        "read_only":True,
+    }
