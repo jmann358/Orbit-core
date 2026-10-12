@@ -89,7 +89,8 @@ def test_specialist_handoff_requires_completed_dependencies():
             "trusted_as_instruction": False,
         }]
         assert handoff["handoff_is_authorization"] is False
-        assert agent_handoffs.bundle(ident, 9) is None or False  # invalid index
+        with pytest.raises(ValueError):
+            agent_handoffs.bundle(ident, 9)  # invalid index
 
 
 def test_mobile_readiness_does_not_claim_remote_access():
