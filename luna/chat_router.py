@@ -9,7 +9,7 @@ def route_chat_job(message):
         return None
     prefix = r"(?:luna[,!]?\s*)?(?:please\s+)?(?:run|start|queue|perform|do)\s+"
     patterns = (
-        (r"(?:a\s+|the\s+)?(?:project\s+|orbit\s+|system\s+)?(?:health\s+check|health\s+scan|health\s+report)", "project_health", "Chat-requested project health check"),
+        (r"(?:a\s+|the\s+)?(?:project\s+|orbit\s+|system\s+)?(?:health\s+check|health\s+scan|health\s+report|diagnostic\s+check|diagnostic|diagnostics)", "project_health", "Chat-requested project health check"),
         (r"(?:a\s+|the\s+)?(?:github\s+|ci\s+)(?:status\s+check|checks?\s+review|checks?)", "github_status", "Chat-requested GitHub status check"),
         (r"(?:a\s+|the\s+)?(?:development\s+|scheduler\s+)(?:plan|planning\s+task)", "development_plan", "Chat-requested development plan"),
         (r"(?:your\s+|the\s+)?(?:next\s+)?(?:self-improvement\s+|self improvement\s+)(?:proposal|plan|task)", "self_improvement", "Luna self-improvement proposal"),
