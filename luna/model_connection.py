@@ -60,3 +60,18 @@ def inspect_model_configuration(environ=None):
         "provider_contacted": False,
         "remote_device_access": False,
     }
+
+
+# These messages report operational setup/transport problems rather than a
+# model-generated reply. They must not be fed back into a model as assistant turns.
+OPERATIONAL_NOTICES = (
+    "Luna's memory is working, but no AI model is connected yet.",
+    "Model endpoint blocked.",
+    "Cloud AI needs a local LUNA_API_KEY.",
+    "Invalid Gemini model name.",
+    "I couldn't reach my configured AI model.",
+)
+
+
+def is_operational_notice(reply):
+    return isinstance(reply, str) and reply.startswith(OPERATIONAL_NOTICES)
