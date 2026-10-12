@@ -64,7 +64,7 @@ def _setup(db):
 def _reconcile(db):
     # A process crash or expired no-retry lease is not silent completion.
     db.execute("""UPDATE developer_missions SET state='attention',
-        error_code='interrupted',updated_at=? WHERE state='working'
+        error_code='interrupted',updated_at=? WHERE state IN ('queued','working')
         AND job_id IN (
             SELECT id FROM cloud_jobs WHERE status='attention'
         )""", (_stamp(),))
@@ -107,7 +107,7 @@ def set_paused(db_path, paused):
 
 
 def queue_mission(db_path, path, *, source="owner", now=None):
-    if path not in TEMPLATES or not isinstance(path, str):
+    if not isinstance(path, str) or path not in TEMPLATES:
         raise ValueError("Development target is not on the allowlist")
     if source not in ("owner", "automatic"):
         raise ValueError("Invalid mission source")
