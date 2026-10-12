@@ -75,7 +75,7 @@ small{color:#566277}#missions article{margin:8px 0;background:#fbfcff}
 <header><h1>☾ Luna · Developer Agent</h1><a href="/">← ORBIT</a></header>
 <p>Independent work with an owner review gate. Luna can inspect approved code,
 draft a full replacement and validate its syntax without executing it.
-She cannot commit, install, deploy, buy services or approve her own changes.</p>
+With an explicit GitHub opt-in she may commit a bounded proposal to a review-only draft PR. She cannot merge to main, install, deploy, buy services or approve her own changes.</p>
 <article>
 <h2>Agent status</h2>
 <p id="status" role="status">Checking…</p>
