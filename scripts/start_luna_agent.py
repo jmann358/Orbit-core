@@ -12,6 +12,9 @@ from pathlib import Path
 import subprocess
 import sys
 import time
+import json
+from urllib.request import urlopen
+from urllib.error import URLError
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -36,6 +39,28 @@ def check_readiness():
         "cloud_deployed": False,
         "remote_access": False,
     }
+
+
+def discover_ollama():
+    """Probe a pre-existing local Ollama instance; never install/pull models."""
+    try:
+        with urlopen("http://127.0.0.1:11434/api/tags", timeout=2) as response:
+            if response.status != 200:
+                return None
+            payload = json.load(response)
+        names = [
+            item.get("name") for item in payload.get("models", [])
+            if isinstance(item, dict) and isinstance(item.get("name"), str)
+        ]
+        # Explicitly prefer code-specialized models when already installed.
+        names = [name for name in names
+                 if name and len(name) < 120 and all(
+                     ch.isalnum() or ch in ".:_-" for ch in name)]
+        names.sort(key=lambda name: (not any(
+            key in name.lower() for key in ("coder", "code", "qwen")), name))
+        return names[0] if names else None
+    except (OSError, ValueError, KeyError, TypeError, URLError):
+        return None
 
 
 def commands():
@@ -64,6 +89,9 @@ def main(argv=None):
                         help="Read-only configuration check, start nothing")
     parser.add_argument("--auto-drafts", action="store_true",
                         help="Opt in to one curated development mission daily")
+    parser.add_argument("--self-build", action="store_true",
+                        help="Use an already installed local Ollama model and "
+                             "start autonomous daily draft generation; never install or spend")
     args = parser.parse_args(argv)
     ready = check_readiness()
     if args.check:
@@ -79,8 +107,25 @@ def main(argv=None):
         return 1
     env = os.environ.copy()
     env["LUNA_WORKER_ENABLED"] = "1"
-    if args.auto_drafts:
+    if args.self_build:
+        # Reuse an already running Ollama instance and existing model. No
+        # software installation, model download, paid service or credentials.
         if not ready["developer_model_configured_unverified"]:
+            found = discover_ollama()
+            if found is None:
+                print("Self-build needs a running local Ollama server with an "
+                      "installed model. No model was downloaded or paid for.",
+                      file=sys.stderr)
+                print("Start Ollama and install a code-capable model separately, "
+                      "then retry this command.", file=sys.stderr)
+                return 2
+            env["LUNA_MODEL_URL"] = "http://127.0.0.1:11434/v1"
+            env["LUNA_MODEL_NAME"] = found
+            env["LUNA_AGENT_MODEL_ENABLED"] = "1"
+            print("Using existing local Ollama model: " + found, flush=True)
+        env["LUNA_AGENT_AUTO_ENABLED"] = "1"
+    if args.auto_drafts:
+        if not ready["developer_model_configured_unverified"] and not args.self_build:
             print("To auto-draft, first enable and configure a trusted development model.",
                   file=sys.stderr)
             return 1
