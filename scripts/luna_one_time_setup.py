@@ -15,7 +15,7 @@ import subprocess
 import sys
 import time
 from urllib.error import URLError
-from urllib.request import urlopen
+from urllib.request import urlopen, Request
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL = "qwen2.5-coder:7b"
@@ -124,6 +124,39 @@ def ensure_local_model(ollama):
         raise RuntimeError("Model download did not verify as available")
 
 
+def verify_local_inference():
+    """Actually exercise existing free local inference, not just list tags."""
+    available = model_names() or []
+    names = [name for name in available if isinstance(name, str) and name]
+    names.sort(key=lambda name: (not any(
+        tag in name.lower() for tag in ("coder", "code", "qwen")), name))
+    if not names:
+        raise RuntimeError("No Ollama model is installed")
+    request = Request(
+        "http://127.0.0.1:11434/api/generate",
+        data=json.dumps({
+            "model": names[0],
+            "prompt": "Reply with the word OK.",
+            "stream": False,
+            "options": {"num_predict": 12},
+        }).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urlopen(request, timeout=120) as response:
+            answer = json.load(response)
+    except (OSError, ValueError, TypeError, URLError):
+        raise RuntimeError("The installed local AI model is not responding. "
+                           "Check Ollama and retry setup.") from None
+    if (not isinstance(answer, dict)
+            or not isinstance(answer.get("response"), str)
+            or not answer["response"].strip()):
+        raise RuntimeError("The local AI model did not return a usable reply")
+    print("Verified a real local AI model response without any cloud API.",
+          flush=True)
+
+
 def ensure_github_login():
     """Optional one-time owner authorization, never collect or print tokens."""
     gh = shutil.which("gh")
@@ -181,6 +214,7 @@ def main(argv=None):
         ollama = ensure_ollama_command()
         start_model_server()
         ensure_local_model(ollama)
+        verify_local_inference()
         if args.enable_draft_prs:
             ensure_github_login()
         command = [str(python), str(ROOT / "scripts" / "luna_mac_service.py"),
