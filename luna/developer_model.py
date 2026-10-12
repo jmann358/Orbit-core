@@ -56,7 +56,7 @@ def configuration(environ=None):
     ready = (
         enabled and bool(model) and bool(kind)
         and (kind != "cloud" or (bool(key) and env.get("LUNA_AGENT_ALLOW_CLOUD") == "1"))
-        and bool(re.fullmatch(r"[A-Za-z0-9._-]{1,120}", model))
+        and bool(re.fullmatch(r"[A-Za-z0-9._:-]{1,120}", model))
     )
     return {
         "ready": ready,
