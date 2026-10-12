@@ -168,6 +168,11 @@ def test_live_multistep_goal_runs_only_after_approval_and_survives_restart():
             assert done["worker_reported_complete"] is True
             assert done["independently_verified"] is False
             assert done["completed_steps"] == 2
+            worker = _get_json(url + "/agent/worker")
+            assert worker["enabled"] is True
+            assert worker["heartbeat"]["state"] in ("working", "idle")
+            assert worker["heartbeat"]["recently_observed"] is True
+            assert worker["heartbeat"]["proof_of_liveness"] is False
             assert [s["kind"] for s in done["steps"]] == [
                 "project_health", "development_plan"
             ]
