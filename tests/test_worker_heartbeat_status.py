@@ -53,6 +53,36 @@ def test_stopped_heartbeat_is_immediately_nonresponsive(tmp_path):
         assert outcome["recently_observed"] is False
 
 
+
+def test_future_heartbeat_is_not_misreported_as_recent_worker_activity(tmp_path):
+    """A changed host clock must not imply that a stopped worker is alive."""
+    with patch.object(core, "DB_PATH", tmp_path / "future-heart.sqlite"):
+        saved = beat("working")
+        stamp = datetime.fromisoformat(saved["updated_at"])
+        with core.connect() as db:
+            db.execute("UPDATE worker_heartbeat SET updated_at=?",
+                       ((stamp + timedelta(hours=1)).isoformat(),))
+
+        # This previously reported recently_observed=True and age_seconds=0.
+        result = status(now=stamp + timedelta(seconds=1))
+        assert result["state"] == "unknown"
+        assert result["stale"] is True
+        assert result["recently_observed"] is False
+        assert result["proof_of_liveness"] is False
+        assert result["age_seconds"] is None
+
+
+def test_minor_clock_adjustment_does_not_hide_real_observation(tmp_path):
+    with patch.object(core, "DB_PATH", tmp_path / "skew-heart.sqlite"):
+        saved = beat("idle")
+        instant = datetime.fromisoformat(saved["updated_at"])
+        # NTP adjustments of a few seconds should not invalidate evidence.
+        result = status(now=instant - timedelta(seconds=2))
+        assert result["state"] == "idle"
+        assert result["recently_observed"] is True
+        assert result["age_seconds"] == 0.0
+
+
 def test_corrupt_timestamp_reports_unknown_instead_of_crash(tmp_path):
     with patch.object(core, "DB_PATH", tmp_path / "heart.sqlite"):
         beat("working")
