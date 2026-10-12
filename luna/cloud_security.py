@@ -56,11 +56,66 @@ def permitted_origin(headers, environ=None):
     return origin is None or hmac.compare_digest(origin, expected)
 
 
+def _same_origin(value, request, *, referer=False):
+    """Compare real origin components, never substring-match hostnames."""
+    try:
+        parsed = urlsplit(value)
+        actual = request.url
+        def port(parts):
+            if parts.port is not None:
+                return parts.port
+            return 443 if parts.scheme == "https" else 80
+        if (not referer and (parsed.path not in ("", "/")
+                             or parsed.query or parsed.fragment)):
+            return False
+        return bool(
+            parsed.scheme in ("http", "https")
+            and parsed.scheme == actual.scheme
+            and parsed.hostname == actual.hostname
+            and port(parsed) == port(actual)
+            and parsed.username is None and parsed.password is None
+        )
+    except (ValueError, TypeError):
+        return False
+
+
+def _local_request_allowed(request):
+    """Reject cross-site browser traffic and host-header DNS rebinding.
+
+    Bare-origin-less local API clients are retained for compatibility; they
+    cannot by themselves establish an authenticated owner identity.
+    """
+    try:
+        hostname = request.url.hostname
+    except (ValueError, TypeError):
+        return False
+    if hostname not in LOOPBACK:
+        # Starlette's synthetic hostname is allowed only in its test client,
+        # never as an alternate production hostname.
+        synthetic = (hostname == "testserver" and request.client is not None
+                     and request.client.host == "testclient")
+        if not synthetic:
+            return False
+    if request.headers.get("sec-fetch-site", "").lower() not in ("", "none", "same-origin"):
+        return False
+    origin = request.headers.get("origin")
+    if origin is not None and not _same_origin(origin, request):
+        return False
+    referrer = request.headers.get("referer")
+    if referrer is not None and not _same_origin(referrer, request, referer=True):
+        return False
+    return True
+
+
 class CloudOwnerGate(BaseHTTPMiddleware):
     """Optional outer access boundary; never accepts unauthenticated traffic."""
 
     async def dispatch(self, request, call_next):
         if not cloud_mode():
+            if not _local_request_allowed(request):
+                return JSONResponse(
+                    {"detail": "Same-origin loopback access required"}, status_code=403
+                )
             return await call_next(request)
         if not valid_configuration():
             return JSONResponse({"detail": "Cloud owner gate is not configured"}, status_code=503)
