@@ -6,8 +6,10 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   echo "Local source changes detected. Refusing to overwrite them."
   exit 1
 fi
-git pull --ff-only
-# Back up the configured SQLite database *before* running tests or launching.
+# This backup must run with the source that is ALREADY checked out.
+# Never import newly pulled, unverified application modules while the
+# owner's memory database is accessible.
+# Back up the configured SQLite database before pulling or running tests.
 # This uses SQLite's online backup API, validates integrity and never copies a
 # live WAL database with an unsafe raw filesystem copy.
 python - <<'PY'
@@ -20,6 +22,7 @@ if snapshot is not None:
 else:
     print("No existing database to back up.")
 PY
+git pull --ff-only
 python -m compileall -q app.py luna tests
 if ! python -m pytest -q -p no:cacheprovider tests; then
   echo "Regression tests failed or pytest is missing. Luna was NOT started."
