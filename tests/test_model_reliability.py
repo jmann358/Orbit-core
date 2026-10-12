@@ -53,7 +53,8 @@ def test_invalid_configuration_returns_notice_without_provider_call(
     assert "private-fixture" not in reply and endpoint not in reply
     assert core.history("invalid") == [
         {"role": "user", "content": "Hello"},
-        {"role": "assistant", "content": reply},
+        # Connectivity notices are system diagnostics, not model-authored replies.
+        {"role": "system", "content": reply},
     ]
 
 
@@ -72,7 +73,7 @@ def test_invalid_openai_reply_is_persisted_as_notice_and_next_turn_recovers(
     assert failed.status_code == 200
     notice = failed.json()["reply"]
     assert notice.startswith("I couldn't reach my configured AI model.")
-    assert core.history("chat")[-1] == {"role": "assistant", "content": notice}
+    assert core.history("chat")[-1] == {"role": "system", "content": notice}
     captured = {}
 
     async def recovered_post(self, url, **kwargs):
@@ -88,6 +89,7 @@ def test_invalid_openai_reply_is_persisted_as_notice_and_next_turn_recovers(
     assert recovered.json()["reply"] == "Recovered reply"
     assert all(isinstance(turn["content"], str) and turn["content"].strip()
                for turn in captured["messages"])
+    assert all(turn["content"] != notice for turn in captured["messages"])
     assert core.history("chat")[-2:] == [
         {"role": "user", "content": "Second turn"},
         {"role": "assistant", "content": "Recovered reply"},
