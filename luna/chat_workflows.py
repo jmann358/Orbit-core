@@ -134,6 +134,9 @@ def start_improving():
         result["mission_id"] = mission["mission_id"]
     if diagnostics is not None:
         result["job_id"] = diagnostics["id"]
+        result["receipt_url"] = (
+            "/agent/jobs/" + str(diagnostics["id"]) + "/receipt"
+        )
     return result
 
 
