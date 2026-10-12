@@ -34,8 +34,9 @@ def test_readiness_uses_flags_not_credentials():
 
 def test_readiness_is_non_mutating(tmp_path, capsys):
     with patch.object(starter, "ROOT", tmp_path):
-        with patch.object(starter, "REQUIRED", ()):
-            assert starter.main(["--check"]) == 0
+        with patch("os.chdir"):
+            with patch.object(starter, "REQUIRED", ()):
+                assert starter.main(["--check"]) == 0
     report = json.loads(capsys.readouterr().out)
     assert report["missing_dependencies"] == []
     assert report["dashboard_url"] == "http://127.0.0.1:8000"
