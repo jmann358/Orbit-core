@@ -5,8 +5,9 @@ this tool copies it into a temporary directory, checks integrity and tables,
 and destroys the rehearsal copy before returning.
 """
 from pathlib import Path
-import shutil
 import sqlite3
+from urllib.parse import quote
+from contextlib import closing
 import tempfile
 
 from luna.database_backup import verify
@@ -23,10 +24,9 @@ def rehearse_restore(snapshot):
         temporary = Path(folder) / "rehearsal.db"
         # SQLite backup API produces a consistent snapshot even if the
         # selected backup is open in another process.
-        with sqlite3.connect(
-            "file:" + str(path.resolve()) + "?mode=ro", uri=True
-        ) as source:
-            with sqlite3.connect(temporary) as target:
+        uri = "file:" + quote(str(path.resolve()), safe="/") + "?mode=ro"
+        with closing(sqlite3.connect(uri, uri=True)) as source:
+            with closing(sqlite3.connect(temporary)) as target:
                 source.backup(target)
         restored = verify(temporary)
         if not restored["integrity_ok"] or restored["tables"] != original["tables"]:
