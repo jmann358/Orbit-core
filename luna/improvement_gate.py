@@ -3,16 +3,11 @@
 Neither approval nor a green CI badge licenses autonomous installation.
 Source review, local tests and owner consent remain distinct steps.
 """
-from luna import core, self_improvement
+from luna import self_improvement
 
 
 def dashboard():
     proposals = self_improvement.list_improvements()
-    with core.connect() as db:
-        db.execute("""CREATE TABLE IF NOT EXISTS code_drafts (
-            id INTEGER PRIMARY KEY, goal TEXT NOT NULL, content TEXT NOT NULL,
-            status TEXT NOT NULL DEFAULT 'pending', created_at TEXT NOT NULL)""") if False else None
-        # Source varies across historic schema versions. Report proposals only.
     return {
         "proposals": len(proposals),
         "proposed": sum(x["status"] == "proposed" for x in proposals),
