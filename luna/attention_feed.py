@@ -4,8 +4,6 @@ An explanation is not an authorization. This module only orders existing
 persisted tasks, proposals and statuses; it never calls an AI model, changes
 permissions, approves items or runs work.
 """
-from collections import Counter
-
 
 def _short(value, limit=260):
     if not isinstance(value, str):
@@ -79,8 +77,8 @@ def summarize(overview, activity, model, missions=(), designs=()):
                   item.get(detail_key) or headline, why,
                   "review", "Review and decide", priority, item.get("id"))
     if counts.get("bridge", 0):
-        offer("bridge", "A ChatGPT bridge message is waiting",
-              "A message needs a manual relay or response.",
+        offer("bridge", "ChatGPT bridge messages are waiting",
+              str(counts["bridge"]) + " thread(s) need a manual relay or response.",
               "The bridge is user-mediated. Luna cannot silently talk to ChatGPT on your behalf.",
               "bridge", "Open bridge", 63)
 
@@ -104,6 +102,7 @@ def summarize(overview, activity, model, missions=(), designs=()):
                   "chat", "Open conversation", 10)
     candidates.sort(key=lambda item: (-item["priority"], item["kind"], item["id"] or 0))
     waiting = [x for x in candidates if x["kind"] != "chat"]
+    hidden_bridge_count = max(0, counts.get("bridge", 0) - 1)
     recent = []
     for mission in list(missions)[:8]:
         recent.append({
@@ -127,10 +126,10 @@ def summarize(overview, activity, model, missions=(), designs=()):
     return {
         "next": candidates[0],
         "waiting": waiting[:12],
-        "more_waiting": max(0, len(waiting) - 12),
-        "waiting_count": len(waiting),
+        "more_waiting": max(0, len(waiting) - 12) + hidden_bridge_count,
+        "waiting_count": len(waiting) + hidden_bridge_count,
         "work": {
-            "queued": len(queued_jobs) + len(active_missions) + max(0, counts.get("queued_jobs", 0) - len(queued_jobs)),
+            "queued": max(counts.get("queued_jobs", 0), len(queued_jobs)) + sum(m.get("state") == "queued" for m in active_missions),
             "running": len(working_jobs) + sum(m.get("state") == "working" for m in active_missions),
             "attention": len(failed_jobs) + len(dev_attention),
             "recent": recent[:8],
