@@ -4,6 +4,14 @@
 
 **Live long-term handoff:** [GitHub issue #52 — POJO RESUME](https://github.com/jmann358/Orbit-core/issues/52). This is the ONLY living context index. Read `AGENTS.md` and `DEVELOPMENT_POLICY.md`, then fetch fresh refs: the exact SHAs below are an immutable October evidence snapshot, **never** assume they remain current in a month.
 
+## Separate Mac-first mitigation candidate (this branch only)
+
+**The mismatch reported below is a verified historical finding for #51/#53**, not an assertion that this separate branch still has it. This proposed Mac-first review branch deliberately **reverts only the two Node 24 workflow action upgrades** and restores the previously owner-trusted Git workflow blob `3c13b96eb6a07782be68bf1e233eb6cdae7b048d` byte-for-byte. `scripts/verify_and_launch.sh` is **unchanged**. Its trust pin now matches the proposed workflow; the real GitHub Actions matrix and actual Mac launch still require separate exact-commit verification.
+
+This deliberately retains the GitHub Actions Node 20 deprecation warning for the first Mac launch. It is **not** a bypass, and the warning could become a separate future CI failure if hosted runner compatibility changes. Defer the Node 24 upgrade until the owner separately authorizes a reviewed workflow trust-pin migration with verified old/new launcher and rollback. This avoids using a workflow update to implicitly grant trust to changed CI steps.
+
+A successful synthetic `test_first_mac_flight_preserves_exact_owner_trusted_workflow_pin` checks pin equality at this candidate's bytes; it does not prove a real host or grant permission to merge/install. Explicit owner approval is still required for any release or Mac installation.
+
 ## Pass 1 of 3 — branch, release, duplicate and historical reconciliation
 
 | Audit item | Verified finding | Action |
