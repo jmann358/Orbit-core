@@ -26,7 +26,10 @@ def snapshot_existing_memory(db_path, *, project_root):
     Return None if no source database existed. An error leaves the original
     database untouched and blocks the unattended launch.
     """
-    project_root = Path(project_root).resolve()
+    project_root = Path(project_root)
+    if project_root.is_symlink():
+        raise ValueError("Refusing a symlinked project root")
+    project_root = project_root.resolve()
     requested = Path(db_path)
     if not requested.is_absolute():
         requested = project_root / requested
@@ -39,25 +42,30 @@ def snapshot_existing_memory(db_path, *, project_root):
     source = requested.resolve(strict=True)
 
     backup_dir = project_root / "backups"
-    if backup_dir.is_symlink():
-        raise ValueError("Refusing a symlinked memory backup directory")
-    backup_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
-    if backup_dir.is_symlink():
-        raise ValueError("Refusing a symlinked memory backup directory")
 
-    # On supported Unix/macOS targets these flags reject symlinks even when
-    # a local process races the initial path check.
+    # Anchor *both* the root and backup directory. Opening only backups with
+    # O_NOFOLLOW does not protect against replacing its parent directory.
+    # Creation below uses only dir_fd-relative operations until completion.
     nofollow = getattr(os, "O_NOFOLLOW", 0)
     directory_flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | nofollow
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     name = "luna-before-self-build-" + stamp + "-" + secrets.token_hex(5) + ".sqlite"
     destination = backup_dir / name
 
+    root_fd = None
     directory_fd = None
     file_fd = None
     created = False
     try:
-        directory_fd = os.open(backup_dir, directory_flags)
+        root_fd = os.open(project_root, directory_flags)
+        original_root = os.fstat(root_fd)
+        if not stat.S_ISDIR(original_root.st_mode):
+            raise ValueError("Memory project root is not a directory")
+        try:
+            os.mkdir("backups", mode=0o700, dir_fd=root_fd)
+        except FileExistsError:
+            pass
+        directory_fd = os.open("backups", directory_flags, dir_fd=root_fd)
         original_dir = os.fstat(directory_fd)
         if not stat.S_ISDIR(original_dir.st_mode):
             raise ValueError("Memory backup location is not a directory")
@@ -91,13 +99,18 @@ def snapshot_existing_memory(db_path, *, project_root):
         os.fchmod(file_fd, 0o600)
         os.fsync(file_fd)
 
-        # The path must still designate the *same* directory descriptor. A
-        # replacement symlink or a different ordinary directory both fail.
-        current_dir = os.stat(backup_dir, follow_symlinks=False)
-        if (not stat.S_ISDIR(current_dir.st_mode)
+        # Reject replacement of *either* the project root or its backups
+        # child. The checks cannot redirect a write, since the data was sent
+        # exclusively through the pinned directory-relative file handle.
+        current_root = os.stat(project_root, follow_symlinks=False)
+        current_dir = os.stat("backups", dir_fd=root_fd, follow_symlinks=False)
+        if (not stat.S_ISDIR(current_root.st_mode)
+                or (current_root.st_dev, current_root.st_ino)
+                != (original_root.st_dev, original_root.st_ino)
+                or not stat.S_ISDIR(current_dir.st_mode)
                 or (current_dir.st_dev, current_dir.st_ino)
                 != (original_dir.st_dev, original_dir.st_ino)):
-            raise ValueError("Memory backup directory changed during copy")
+            raise ValueError("Memory backup path changed during copy")
         return destination
     except (OSError, sqlite3.Error, ValueError, AttributeError):
         if created and directory_fd is not None:
@@ -111,3 +124,5 @@ def snapshot_existing_memory(db_path, *, project_root):
             os.close(file_fd)
         if directory_fd is not None:
             os.close(directory_fd)
+        if root_fd is not None:
+            os.close(root_fd)
