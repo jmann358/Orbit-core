@@ -1,3 +1,5 @@
+> **Historical station evidence.** Station assignments and pre-Mac status are superseded by [THRONE status](../THRONE_STATUS.md) and [the active plan](../FLIGHT_PLAN.md). Retain the source/test evidence below; do not restart another station or memory writer.
+
 # ENGINE Wave 2 — owner-safe host diagnostics
 
 This focused read-only tool is intentionally **not** a Luna starter or a model smoke test. It does not install, change, stop, activate or repair anything; it does not read conversation history, backup SQLite, log process arguments, print credentials, send cloud traffic or change network exposure.

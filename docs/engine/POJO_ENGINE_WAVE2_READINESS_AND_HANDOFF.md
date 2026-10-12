@@ -1,3 +1,5 @@
+> **Historical station evidence.** Station assignments and pre-Mac status are superseded by [THRONE status](../THRONE_STATUS.md) and [the active plan](../FLIGHT_PLAN.md). Retain the source/test evidence below; do not restart another station or memory writer.
+
 # POJO ENGINE WAVE 2 — host readiness and handoff (2026-10-12)
 
 **Station:** Chromebook/ENGINE. **Next intended home host:** Mac M4 mini.

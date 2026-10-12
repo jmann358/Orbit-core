@@ -1,3 +1,5 @@
+> **Historical station evidence.** Station assignments and pre-Mac status are superseded by [THRONE status](../THRONE_STATUS.md) and [the active plan](../FLIGHT_PLAN.md). Retain the source/test evidence below; do not restart another station or memory writer.
+
 # ATLAS — Mac-first source security fixes (review only)
 
 **Date:** 2026-10-12. **Target:** exact ENGINE candidate `0b117439567062231f1e003270c1bbf05f86b66a` (#56), not published `main`. This is a separate ATLAS branch. No one has approved a main merge, installation, model provider charge, owner-memory transfer, remote exposure, or release tag.

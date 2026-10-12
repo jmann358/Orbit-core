@@ -1,3 +1,5 @@
+> **THRONE status supersedes older status claims below.** Read [THRONE_STATUS.md](THRONE_STATUS.md), [FLIGHT_PLAN.md](FLIGHT_PLAN.md) and [PLAN_RECONCILIATION.md](PLAN_RECONCILIATION.md) first. The dated entries below are retained evidence, not a live task list.
+
 # POJO / Luna triple-check — pre-Mac source and handoff review
 
 **Snapshot date:** 2026-10-12. **This report is a remote GitHub source review, NOT actual Mac/iPhone/Chromebook acceptance.** Source base: cumulative draft #51 `2568b7d5432b4f30de33402f075c5dae9510fafe` on unchanged published `main` `baf96abff8105b89e7b4c924ff03921f084923b5`, application `pojo.2`.

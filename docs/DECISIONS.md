@@ -1,3 +1,17 @@
+## 2026-10-12 — THRONE reconciliation package
+
+Owner directed alignment of old/new plans and retirement of obsolete station
+work. The active plan and T01–T34/V01–V18 register now share one baseline.
+Historical documents are retained with explicit supersession pointers.
+The worker autocommit mismatch was reproduced and repaired in candidate
+source; explicit immediate reservations are preserved. Launcher unit tests
+are independent of the running owner dashboard. Final Mac verification:
+496 passed, 13 warnings, zero skips; compilation and case-safe paths pass.
+No merge, release, installed-code change, permission expansion, private-data
+transfer, new model call or paid service was performed. See THRONE_STATUS.md.
+
+> **THRONE status supersedes older status claims below.** Read [THRONE_STATUS.md](THRONE_STATUS.md), [FLIGHT_PLAN.md](FLIGHT_PLAN.md) and [PLAN_RECONCILIATION.md](PLAN_RECONCILIATION.md) first. The dated entries below are retained evidence, not a live task list.
+
 > **Current confirmed owner choices (Pojo.3.1.0 checkpoint; October 12, 2026):** Mac M4 mini as primary home; Chromebook as current source-of-user-data until a verified safe migration; iPhone/iPad authenticated clients after owner review. **Uptime B:** Mac primary, optional explicitly approved cloud fallback later. **Retention C:** keep histories and recovery copies; no automated destructive cleanup until separately approved. **Starting spending authority $0** and no paid API requests without explicit authorization. In-context approve/modify/reject and automatic continuation are intended; existing steps remain fixed, allowlisted and owner-approved. The reviewed Flight Plan 1.0-RC is *not yet owner-approved for repository publication*. No blanket permission to merge, deploy, change sensitive access or enable automatic code application is implied by this note. This supersedes outdated "not yet decided" wording later in this historical log without modifying the chronology below.
 
 # Decisions and approvals

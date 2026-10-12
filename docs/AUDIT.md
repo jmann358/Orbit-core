@@ -1,3 +1,5 @@
+> **THRONE status supersedes older status claims below.** Read [THRONE_STATUS.md](THRONE_STATUS.md), [FLIGHT_PLAN.md](FLIGHT_PLAN.md) and [PLAN_RECONCILIATION.md](PLAN_RECONCILIATION.md) first. The dated entries below are retained evidence, not a live task list.
+
 > **Newer Pojo.3.1.0 candidate evidence (2026-10-12):** The 83-file / 182-test inventory below remains an accurate *historical baseline* at `a5eb41a`, not the current source inventory. Published `main` is still `pojo.2` at `baf96ab` with 380 CI passes per Python version. Current **unmerged candidate** includes actual Uvicorn chat→worker→saved receipt, a two-step approved mission, honest worker heartbeat, safe SQLite handling and diagnostic-only runner check. See [Pojo.3.1.0 acceptance evidence](POJO_3_1_0_ACCEPTANCE_EVIDENCE.md), [Mac handoff](POJO_3_1_0_MAC_HANDOFF.md), and PR #38 for exact source and latest CI. Neither cloud inference nor the owner's Mac/iPhone was verified. Do not interpret green CI as merge/deployment authority.
 
 # Repository audit — 2026-10-12

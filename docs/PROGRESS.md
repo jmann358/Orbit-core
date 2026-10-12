@@ -1,3 +1,17 @@
+## 2026-10-12 — THRONE reconciliation package
+
+Owner directed alignment of old/new plans and retirement of obsolete station
+work. The active plan and T01–T34/V01–V18 register now share one baseline.
+Historical documents are retained with explicit supersession pointers.
+The worker autocommit mismatch was reproduced and repaired in candidate
+source; explicit immediate reservations are preserved. Launcher unit tests
+are independent of the running owner dashboard. Final Mac verification:
+496 passed, 13 warnings, zero skips; compilation and case-safe paths pass.
+No merge, release, installed-code change, permission expansion, private-data
+transfer, new model call or paid service was performed. See THRONE_STATUS.md.
+
+> **THRONE status supersedes older status claims below.** Read [THRONE_STATUS.md](THRONE_STATUS.md), [FLIGHT_PLAN.md](FLIGHT_PLAN.md) and [PLAN_RECONCILIATION.md](PLAN_RECONCILIATION.md) first. The dated entries below are retained evidence, not a live task list.
+
 > **Pojo.3.1.0 development progress (2026-10-12; review-only):** The current **draft** flight code carries 418 passing tests and 13 warnings on each of Python 3.11/3.13 at candidate run [38282532948](https://github.com/jmann358/Orbit-core/actions/runs/38282532948), and subsequent branch runs independently check the latest changes. Scenarios now include real loopback Uvicorn, approved two-step goal continuation, saved job/goal receipts, observed worker heartbeat, atomic dispatch and SQLite lifetime. See [complete acceptance evidence](POJO_3_1_0_ACCEPTANCE_EVIDENCE.md) and [Mac handoff](POJO_3_1_0_MAC_HANDOFF.md). These edits are **not merged**, and the real Mac, iPhone and model provider have not been tested. All older test counts in the chronological report below are historical, not current product certification.
 
 > **Integration update (2026-10-11):** The detailed audit below reports an earlier source snapshot, not the latest integrated build. PRs #16–#19 merged with CI evidence; see [master-plan reconciliation](MASTER_PLAN_RECONCILIATION.md). No live provider, Mac M4, iPhone or continuously hosted deployment has been verified.

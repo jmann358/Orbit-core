@@ -1,3 +1,5 @@
+> **THRONE status supersedes older status claims below.** Read [THRONE_STATUS.md](THRONE_STATUS.md), [FLIGHT_PLAN.md](FLIGHT_PLAN.md) and [PLAN_RECONCILIATION.md](PLAN_RECONCILIATION.md) first. The dated entries below are retained evidence, not a live task list.
+
 # Pojo.3.1.0 — first-flight stability integration (review only)
 
 **Status:** draft, not merged, deployed, installed or owner-published.

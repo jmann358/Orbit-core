@@ -1,3 +1,5 @@
+> **THRONE status supersedes older status claims below.** Read [THRONE_STATUS.md](THRONE_STATUS.md), [FLIGHT_PLAN.md](FLIGHT_PLAN.md) and [PLAN_RECONCILIATION.md](PLAN_RECONCILIATION.md) first. The dated entries below are retained evidence, not a live task list.
+
 # Pojo.3.1.0 — remote flight acceptance evidence
 
 **Date:** October 12, 2026. **Branch:** `feature/pojo-3-1-worker-heartbeat-evidence`.

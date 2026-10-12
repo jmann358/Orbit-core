@@ -46,12 +46,12 @@ separately authorized, tightly scoped, reversible capability after test validati
 - Technical decisions can be saved separately from personal memories. Personal memories
   still require explicit approval.
 - Prioritize development engine, continuity/retrieval, then secure Mac mini / phone access.
-- Mac mini is intended primary home base; selected cloud services are optional.
+- THRONE (Mac M4 mini) is the sole active host; phone/tablet are future authenticated clients. Cloud hosting and other active writers are out of scope. Any external model/tool service requires separate approval.
 - Navigation should be one thin horizontal category banner, with activity and priority badges.
   Luna may recommend priority; show accessible labels in details even if badges are compact.
 - Luna may propose several light themes; user selects the eventual design.
 
-### Current capability status
+### Historical capability snapshot (superseded by docs/THRONE_STATUS.md)
 - Implemented: read-only fixed-scope source inspection, preview-only revision-locked patch
   validator, non-executing permission policy with bounded temporary grants, technical
   decision ledger, persistent user-mediated bridge and Tier 1 routine job scheduler.

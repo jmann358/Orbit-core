@@ -1,3 +1,5 @@
+> **Historical station evidence.** Station assignments and pre-Mac status are superseded by [THRONE status](../THRONE_STATUS.md) and [the active plan](../FLIGHT_PLAN.md). Retain the source/test evidence below; do not restart another station or memory writer.
+
 # POJO HELM — Wave 2 consolidated owner-review gate
 
 **Status:** DRAFT / REVIEW ONLY. This document is a release-control artifact, not the owner's Flight Plan signoff, source of runtime authorization, or proof of actual product readiness.
