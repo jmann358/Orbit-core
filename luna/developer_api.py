@@ -99,7 +99,11 @@ your review. She cannot approve, merge, deploy or spend money.</p>
 selection uses the same limits.</p>
 <div class="inline">
 <select id="target"><option value="luna/development.py">Improve diagnostics</option>
-<option value="luna/self_improvement.py">Improve self-development planner</option></select>
+<option value="luna/self_improvement.py">Improve self-development planner</option>
+<option value="luna/presentation.py">Improve local presentation</option>
+<option value="luna/proactive.py">Improve review suggestions</option>
+<option value="luna/skill_catalog.py">Improve capability catalog</option>
+<option value="luna/goal_recipes.py">Improve safe goal recipes</option></select>
 <button id="assign">Queue development task</button>
 </div><p id="assigned" role="status"></p>
 </article>
