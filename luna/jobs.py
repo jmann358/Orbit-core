@@ -157,6 +157,10 @@ def worker_status():
         "scope": "allowlisted, bounded existing local job handlers",
         "auto_apply": False,
         "network_or_permission_expansion": False,
+        # Distinct from an enabled flag: this is evidence from actual ticks.
+        "heartbeat": __import__(
+            "luna.worker_heartbeat", fromlist=["status"]
+        ).status(),
     }
 
 
