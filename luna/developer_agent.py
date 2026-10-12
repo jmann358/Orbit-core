@@ -129,8 +129,8 @@ def queue_mission(db_path, path, *, source="owner", now=None):
         raise ValueError("Invalid mission source")
     stamp = _stamp(now)
     with job_connect(db_path) as db:
-        _setup(db)
         db.execute("BEGIN IMMEDIATE")
+        _setup(db)
         active = db.execute(
             "SELECT COUNT(*) FROM developer_missions WHERE state IN ('queued','working')"
         ).fetchone()[0]
@@ -212,8 +212,8 @@ def _reserve_model_attempt(db_path, ident):
     stamp = _stamp()
     day = stamp[:10]
     with job_connect(db_path) as db:
-        _setup(db)
         db.execute("BEGIN IMMEDIATE")
+        _setup(db)
         row = db.execute(
             "SELECT state FROM developer_missions WHERE id=?", (ident,)
         ).fetchone()
@@ -245,8 +245,8 @@ def _reserve_validation_retry(db_path, ident):
     """Count one more proposal attempt under the existing daily hard limit."""
     stamp = _stamp()
     with job_connect(db_path) as db:
-        _setup(db)
         db.execute("BEGIN IMMEDIATE")
+        _setup(db)
         day = stamp[:10]
         row = db.execute(
             "SELECT state FROM developer_missions WHERE id=?", (ident,)

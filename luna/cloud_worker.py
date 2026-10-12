@@ -20,13 +20,16 @@ def utcnow():
 
 @contextmanager
 def connect(path):
-    """One transaction scope with deterministic closure on every outcome.
+    """Commit successful writes, roll back failed writes, and always close.
 
     sqlite3.Connection.__exit__ does not close its file descriptor.
     All existing callers use the context-manager API; consent reservations
-    must commit once, and failures must roll back.
+    must commit once, and failures must roll back. Ordinary DML begins a
+    deferred transaction; read/modify/write callers issue BEGIN IMMEDIATE
+    before any setup writes to reserve the writer atomically. Schema setup
+    before the first DML is not covered by the implicit transaction.
     """
-    db = sqlite3.connect(path, timeout=5, isolation_level=None)
+    db = sqlite3.connect(path, timeout=5, isolation_level="DEFERRED")
     try:
         with db:
             db.execute("PRAGMA busy_timeout=5000")

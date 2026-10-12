@@ -68,7 +68,9 @@ def test_corrupted_sqlite_fails_closed_and_removes_bad_backup():
         assert not backups.exists() or list(backups.iterdir()) == []
 
 
-def test_self_build_refuses_start_if_memory_snapshot_fails():
+def test_self_build_refuses_start_if_memory_snapshot_fails(monkeypatch):
+    # Exercise snapshot failure even when the owner's real Luna is running.
+    monkeypatch.setattr(start_luna_agent, "dashboard_port_occupied", lambda: False)
     ready = {
         "python_supported": True, "missing_dependencies": [],
         "developer_model_configured_unverified": False,

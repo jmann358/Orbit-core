@@ -6,6 +6,12 @@ import pytest
 from scripts import start_luna_agent
 
 
+@pytest.fixture(autouse=True)
+def offline_port_probe(monkeypatch):
+    # Backup-message tests use synthetic launch conditions, not host sockets.
+    monkeypatch.setattr(start_luna_agent, "dashboard_port_occupied", lambda: False)
+
+
 @pytest.mark.parametrize("backup,expected,forbidden", [
     ({"created": False, "reason": "recent_local_snapshot"},
      "recent verified private SQLite backup already exists",
