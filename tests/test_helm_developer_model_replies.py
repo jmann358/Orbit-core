@@ -3,6 +3,7 @@
 All calls are mocked in-process. Nothing reaches a model or real owner data.
 """
 import asyncio
+import json
 import os
 from unittest.mock import patch
 
@@ -28,7 +29,9 @@ GEMINI = {
 
 def _fixture_response(url, payload):
     return httpx.Response(
-        200, json=payload, request=httpx.Request("POST", url)
+        200, content=json.dumps(payload, ensure_ascii=True).encode("utf-8"),
+        headers={"content-type": "application/json"},
+        request=httpx.Request("POST", url)
     )
 
 
