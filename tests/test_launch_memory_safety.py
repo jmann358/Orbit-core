@@ -84,3 +84,50 @@ def test_self_build_refuses_start_if_memory_snapshot_fails():
                     with patch.object(start_luna_agent.subprocess, "Popen") as launch:
                         assert start_luna_agent.main(["--self-build"]) == 2
                         launch.assert_not_called()
+
+
+def test_backup_refuses_symlinked_destination_directory():
+    with tempfile.TemporaryDirectory() as temp:
+        root = Path(temp)
+        private = root / "actual.db"
+        _write_memory(private)
+        outside = root / "outside-folder"
+        outside.mkdir()
+        (root / "backups").symlink_to(outside, target_is_directory=True)
+        with pytest.raises(ValueError, match="symlinked memory backup directory"):
+            snapshot_existing_memory(private, project_root=root)
+        assert list(outside.iterdir()) == []
+        with sqlite3.connect(private) as db:
+            assert db.execute("SELECT content FROM messages").fetchone()[0] == (
+                "private approved history"
+            )
+
+
+def test_verify_launch_snapshots_memory_before_pulling_source():
+    launcher = (Path(__file__).resolve().parents[1]
+                / "scripts" / "verify_and_launch.sh").read_text()
+    assert launcher.index("snapshot_existing_memory(DB_PATH") < launcher.index(
+        "git pull --ff-only"
+    )
+    assert "cp -p luna_local.db" not in launcher
+
+
+def test_consistent_backup_in_wal_mode_for_custom_memory_path():
+    with tempfile.TemporaryDirectory() as temp:
+        root = Path(temp)
+        original = root / "custom-data" / "memory.sqlite"
+        original.parent.mkdir()
+        with sqlite3.connect(original) as db:
+            db.execute("PRAGMA journal_mode=WAL")
+            db.execute("CREATE TABLE memories (note TEXT NOT NULL)")
+            db.execute("INSERT INTO memories VALUES ('persistent approved information')")
+            db.commit()
+        backup = snapshot_existing_memory(original, project_root=root)
+        assert backup and backup.is_file()
+        with sqlite3.connect(backup) as db:
+            assert db.execute("PRAGMA integrity_check").fetchone() == ("ok",)
+            assert db.execute("SELECT note FROM memories").fetchone()[0] == (
+                "persistent approved information"
+            )
+        with sqlite3.connect(original) as db:
+            assert db.execute("SELECT COUNT(*) FROM memories").fetchone()[0] == 1
