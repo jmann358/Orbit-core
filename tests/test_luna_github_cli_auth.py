@@ -89,6 +89,7 @@ def test_single_setup_flag_enables_draft_prs_after_login():
          patch.object(setup, "ensure_ollama_command", return_value="/fake/ollama"), \
          patch.object(setup, "start_model_server"), \
          patch.object(setup, "ensure_local_model"), \
+         patch.object(setup, "verify_local_inference"), \
          patch.object(setup, "ensure_github_login",
                       side_effect=lambda: called.append("login")), \
          patch.object(setup, "run",
