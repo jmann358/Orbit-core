@@ -116,3 +116,50 @@ def test_default_interface_is_conversation_first_with_send_guard():
     assert "if(chatSending)return;" in html
     assert "/chat/readiness" in html
     assert "Your message may already be saved" in html
+
+
+def test_unconfigured_model_reports_notice_not_a_fake_assistant_turn():
+    with tempfile.TemporaryDirectory() as folder:
+        with patch.object(core, "DB_PATH", Path(folder) / "chat.db"):
+            with patch.dict("os.environ", {}, clear=True):
+                client = TestClient(app)
+                outcome = client.post("/chat", json={
+                    "session": "release-test", "message": "Can we talk?",
+                })
+                records = client.get("/history/page?session=release-test").json()["messages"]
+    assert outcome.status_code == 200
+    assert outcome.json()["kind"] == "notice"
+    assert [item["role"] for item in records] == ["user", "system"]
+    assert "no AI model is connected" in outcome.json()["reply"]
+
+
+def test_error_notice_excluded_from_future_model_context():
+    sent = {}
+
+    async def fake_provider(self, url, **kwargs):
+        sent.update(kwargs["json"])
+        return httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": "I'm connected now."}}]},
+            request=httpx.Request("POST", url),
+        )
+
+    with tempfile.TemporaryDirectory() as folder:
+        with patch.object(core, "DB_PATH", Path(folder) / "chat.db"):
+            with patch.dict("os.environ", {}, clear=True):
+                assert TestClient(app).post("/chat", json={
+                    "session": "release-test", "message": "First attempt",
+                }).json()["kind"] == "notice"
+            with patch.dict("os.environ", {
+                "LUNA_MODEL_URL": "http://127.0.0.1:11434/v1",
+                "LUNA_MODEL_NAME": "local-test-model",
+            }, clear=True):
+                with patch.object(httpx.AsyncClient, "post", fake_provider):
+                    good = TestClient(app).post("/chat", json={
+                        "session": "release-test", "message": "Second attempt",
+                    })
+    assert good.status_code == 200
+    assert good.json() == {"reply": "I'm connected now.", "kind": "reply"}
+    assert [item["role"] for item in sent["messages"]] == [
+        "system", "user", "user",
+    ]
