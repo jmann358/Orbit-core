@@ -60,6 +60,23 @@ def prepare_python():
     python = existing_python()
     if not python.is_file():
         run(sys.executable, "-m", "venv", str(ROOT / ".venv"))
+    # An old pre-existing virtualenv may silently point to an unsupported
+    # interpreter even when the Python executing setup is current.
+    try:
+        version = subprocess.run(
+            [str(python), "-I", "-c",
+             "import sys; print(sys.version_info.major, sys.version_info.minor)"],
+            capture_output=True, text=True, timeout=10, check=False,
+        )
+        pieces = version.stdout.strip().split()
+        supported = (version.returncode == 0 and len(pieces) == 2
+                     and tuple(int(v) for v in pieces) >= (3, 11))
+    except (OSError, subprocess.TimeoutExpired, ValueError):
+        supported = False
+    if not supported:
+        raise RuntimeError("The existing .venv uses unsupported Python. "
+                           "Use Python 3.11+ and recreate the virtualenv "
+                           "manually; existing files were not deleted.")
     # Only previously reviewed project dependencies are installed. No
     # provider keys, model subscriptions or external accounts are created.
     run(str(python), "-m", "pip", "install", "-r",
@@ -137,36 +154,38 @@ def ensure_local_model(ollama):
 
 
 def verify_local_inference():
-    """Actually exercise existing free local inference, not just list tags."""
-    available = model_names() or []
-    names = [name for name in available if isinstance(name, str) and name]
-    names.sort(key=lambda name: (not any(
-        tag in name.lower() for tag in ("coder", "code", "qwen")), name))
-    if not names:
-        raise RuntimeError("No Ollama model is installed")
+    """Test the exact local model/endpoint Luna will actually call."""
+    # Use the launcher's shared selection rules; discovering a tag alone
+    # does not prove that chat completions can run.
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from scripts.start_luna_agent import discover_ollama
+    selected = discover_ollama()
+    if not selected:
+        raise RuntimeError("No supported Ollama model is installed")
     request = Request(
-        "http://127.0.0.1:11434/api/generate",
+        "http://127.0.0.1:11434/v1/chat/completions",
         data=json.dumps({
-            "model": names[0],
-            "prompt": "Reply with the word OK.",
+            "model": selected,
+            "messages": [
+                {"role": "user", "content": "Respond with the word OK."}
+            ],
             "stream": False,
-            "options": {"num_predict": 12},
+            "max_tokens": 12,
         }).encode("utf-8"),
         headers={"Content-Type": "application/json"},
         method="POST",
     )
     try:
         with urlopen(request, timeout=120) as response:
-            answer = json.load(response)
-    except (OSError, ValueError, TypeError, URLError):
-        raise RuntimeError("The installed local AI model is not responding. "
-                           "Check Ollama and retry setup.") from None
-    if (not isinstance(answer, dict)
-            or not isinstance(answer.get("response"), str)
-            or not answer["response"].strip()):
-        raise RuntimeError("The local AI model did not return a usable reply")
-    print("Verified a real local AI model response without any cloud API.",
-          flush=True)
+            result = json.load(response)
+        answer = result["choices"][0]["message"]["content"]
+    except (OSError, ValueError, TypeError, KeyError, IndexError, URLError):
+        raise RuntimeError("The selected local AI model cannot complete a "
+                           "chat request. Check Ollama and retry setup.") from None
+    if not isinstance(answer, str) or not answer.strip():
+        raise RuntimeError("The selected local AI model returned an empty reply")
+    print("Verified Luna's actual local model chat endpoint.", flush=True)
 
 
 def ensure_github_login():
