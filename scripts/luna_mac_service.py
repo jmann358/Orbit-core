@@ -25,12 +25,23 @@ def service_file(home=None):
     return home / "Library" / "LaunchAgents" / PLIST_NAME
 
 
-def plist_config(root=ROOT, home=None):
+def plist_config(root=ROOT, home=None, *, enable_draft_prs=False):
     root = Path(root).resolve()
     home = Path.home() if home is None else Path(home)
     python = root / ".venv" / "bin" / "python"
     launcher = root / "scripts" / "start_luna_agent.py"
     logs = home / "Library" / "Logs" / "ORBIT-Luna"
+    environment = {
+        "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin",
+        "PYTHONUNBUFFERED": "1",
+        "LUNA_SERVICE_MODE": "1",
+    }
+    if enable_draft_prs:
+        environment.update({
+            "LUNA_GITHUB_PR_ENABLED": "1",
+            "LUNA_GITHUB_PR_AUTO_ENABLED": "1",
+            "LUNA_GITHUB_USE_GH_CLI": "1",
+        })
     return {
         "Label": LABEL,
         "ProgramArguments": [str(python), str(launcher), "--self-build"],
@@ -40,11 +51,7 @@ def plist_config(root=ROOT, home=None):
         "ThrottleInterval": 30,
         "StandardOutPath": str(logs / "luna.stdout.log"),
         "StandardErrorPath": str(logs / "luna.stderr.log"),
-        "EnvironmentVariables": {
-            "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin",
-            "PYTHONUNBUFFERED": "1",
-            "LUNA_SERVICE_MODE": "1",
-        },
+        "EnvironmentVariables": environment,
     }
 
 
@@ -77,7 +84,7 @@ def _launchctl(*args, allow_error=False):
     return process.returncode == 0
 
 
-def install(root=ROOT, home=None):
+def install(root=ROOT, home=None, *, enable_draft_prs=False):
     require_mac()
     preflight(root)
     root = Path(root).resolve()
@@ -90,7 +97,11 @@ def install(root=ROOT, home=None):
     if logdir.is_symlink():
         raise ValueError("Refusing a symlinked Luna log directory")
     logdir.mkdir(parents=True, exist_ok=True, mode=0o700)
-    expected = plist_config(root, home)
+    expected = plist_config(root, home, enable_draft_prs=enable_draft_prs)
+    if enable_draft_prs:
+        from luna.github_auth import token_for_draft_pr
+        if not token_for_draft_pr({"LUNA_GITHUB_USE_GH_CLI": "1"}):
+            raise ValueError("GitHub CLI must be logged in before enabling draft PRs")
     if target.exists():
         try:
             with target.open("rb") as handle:
@@ -99,10 +110,18 @@ def install(root=ROOT, home=None):
             raise ValueError("Existing Luna LaunchAgent is invalid") from None
         if existing.get("Label") != LABEL:
             raise ValueError("Refusing to replace a different LaunchAgent")
-        # Preserve unknown or owner-customized plist content rather than
-        # silently rewriting an existing service configuration.
+        # Only the two known, app-generated configurations may be switched
+        # by the owner. Unknown/customized service files are never rewritten.
+        allowed = (
+            plist_config(root, home, enable_draft_prs=False),
+            plist_config(root, home, enable_draft_prs=True),
+        )
         if existing != expected:
-            raise ValueError("Existing Luna LaunchAgent differs; review manually")
+            if existing not in allowed:
+                raise ValueError("Existing Luna LaunchAgent differs; review manually")
+            with target.open("wb") as handle:
+                plistlib.dump(expected, handle)
+            os.chmod(target, 0o600)
     else:
         with target.open("xb") as handle:
             plistlib.dump(expected, handle)
@@ -136,10 +155,13 @@ def main(argv=None):
     group.add_argument("--install", action="store_true")
     group.add_argument("--uninstall", action="store_true")
     group.add_argument("--status", action="store_true")
+    parser.add_argument("--enable-draft-prs", action="store_true",
+                        help="Use an existing GitHub CLI login to publish draft "
+                             "review PRs; never merge")
     args = parser.parse_args(argv)
     try:
         if args.install:
-            path = install()
+            path = install(enable_draft_prs=args.enable_draft_prs)
             print("Luna autostart installed:", path)
             print("Chat on this Mac: http://127.0.0.1:8000")
             print("Agent Studio: http://127.0.0.1:8000/agent/studio")
