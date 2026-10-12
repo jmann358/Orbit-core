@@ -11,7 +11,7 @@ def _short(value, limit=260):
     return " ".join(value.split())[:limit]
 
 
-def summarize(overview, activity, model, missions=(), designs=(), agents=(), agent_tasks=()):
+def summarize(overview, activity, model, missions=(), designs=(), agents=(), agent_tasks=(), developer_model=None):
     """Prioritize visible owner actions without inventing permissions or progress."""
     candidates = []
 
@@ -41,6 +41,18 @@ def summarize(overview, activity, model, missions=(), designs=(), agents=(), age
               _short(job.get("title") or job.get("kind") or "A task stopped before completion."),
               "This job reported an attention state. Inspect its recorded result before retrying; no retry happens automatically.",
               "activity", "Inspect stopped task", 105, job.get("id"))
+    # A chat model may be connected even when the separate developer model
+    # is disabled. Keep queued code work visible instead of implying it runs.
+    if developer_model is not None and not developer_model.get("ready", False):
+        for mission in active_missions:
+            if mission.get("state") == "queued":
+                offer("development_wait", "Luna's development mission is waiting",
+                      "Mission #" + str(mission.get("id")) +
+                      " is saved but development-model calls are not enabled.",
+                      "The conversational AI model cannot authorize development calls. "
+                      "Inspect the saved mission and its real prerequisites in Agent Studio. "
+                      "No code is currently being installed or merged.",
+                      "developer", "See what Luna needs", 90, mission.get("id"))
     for mission in dev_attention:
         offer("development", "A development task needs attention",
               _short(mission.get("summary") or mission.get("error_code") or "Luna could not finish a draft."),
