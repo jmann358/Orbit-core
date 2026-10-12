@@ -5,6 +5,7 @@ are never interpreted as Python, shell commands, URLs, or new permissions.
 """
 from datetime import datetime, timedelta, timezone
 from luna import core
+from luna.worker_heartbeat import status as heartbeat_status
 
 KINDS = ("project_health", "github_status", "development_plan",
          "self_improvement", "workshop_draft")
@@ -158,9 +159,7 @@ def worker_status():
         "auto_apply": False,
         "network_or_permission_expansion": False,
         # Distinct from an enabled flag: this is evidence from actual ticks.
-        "heartbeat": __import__(
-            "luna.worker_heartbeat", fromlist=["status"]
-        ).status(),
+        "heartbeat": heartbeat_status(),
     }
 
 
