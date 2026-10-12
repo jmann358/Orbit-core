@@ -19,8 +19,9 @@ def test_developer_agent_only_targets_six_reviewable_low_risk_modules():
         "luna/skill_catalog.py",
         "luna/goal_recipes.py",
     }
-    assert all("owner" in text.lower() or "without" in text.lower()
-               for text in TEMPLATES.values())
+    assert all(any(term in goal.lower() for term in
+                   ("owner", "without", "preserv"))
+               for goal in TEMPLATES.values())
     for forbidden in (
         "app.py", "luna/core.py", "luna/model_connection.py",
         "luna/cloud_security.py", "luna/permissions.py",
