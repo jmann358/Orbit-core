@@ -98,6 +98,7 @@ def test_one_time_setup_invokes_only_local_dependencies_and_autostart():
                                   side_effect=lambda: calls.append("server")):
                     with patch.object(setup, "ensure_local_model",
                                       side_effect=lambda _: calls.append("model")):
+                        with patch.object(setup, "verify_local_inference"):
                         with patch.object(setup, "run",
                                           side_effect=lambda *args, **kwargs:
                                           calls.append(args)):
