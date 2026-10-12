@@ -43,7 +43,10 @@ def test_baseline_environment_is_disposable_and_does_not_inherit_host_secrets(
     assert env["TMPDIR"] == str(workspace)
     assert env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] == "1"
     assert env["PYTHONNOUSERSITE"] == "1"
-    assert all(name not in env for name in sentinels if name != "LUNA_DB_PATH")
+    # HOME and LUNA_DB_PATH must be replaced, while every other inherited
+    # host setting is absent from the child environment.
+    assert all(name not in env for name in sentinels
+               if name not in ("LUNA_DB_PATH", "HOME"))
     assert all("should-not-reach-subprocess" not in v for v in env.values())
     assert set(env) == {
         "PATH", "HOME", "TMPDIR", "TMP", "TEMP",
