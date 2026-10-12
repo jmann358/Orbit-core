@@ -106,6 +106,7 @@ body #design-home-link{display:none!important}
  border-radius:13px;padding:12px;background:var(--paper,#fff)}
 #focus-advanced>summary{cursor:pointer;font-weight:700;color:var(--ink,#25324a)}
 #focus-advanced .orbit-actions{margin:14px 0}
+#control-review .control-card.focus-target-review{outline:3px solid var(--accent,#5264c9);outline-offset:2px}
 @media(hover:hover){#focus-primary:hover{filter:brightness(1.08)}}
 @media(max-width:740px){.focus-columns{grid-template-columns:1fr}
  #focus-hero{margin:14px 0}#focus-primary{width:100%}
@@ -132,11 +133,19 @@ FOCUS_SCRIPT = r"""
   event.preventDefault();
   openTools(!html.classList.contains('orbit-more-open'));
  });
- function navigate(action){
+ async function navigate(action,item){
   if(action==='review'){
    selectTab('home');
    const details=byId('focus-advanced');details.open=true;
-   byId('control-review').scrollIntoView({block:'start'});
+   await loadControl();
+   const kinds={request:'requests',task:'tasks',improvement:'improvements',
+    draft:'drafts',note:'notes',memory:'memories'};
+   const group=item&&kinds[item.kind];
+   const card=group?Array.from(document.querySelectorAll('#control-review .control-card'))
+    .find(el=>el.dataset.reviewKind===group && el.dataset.reviewId===String(item.id)):null;
+   if(card){card.classList.add('focus-target-review');card.setAttribute('tabindex','-1');
+    card.focus();card.scrollIntoView({block:'center'});}
+   else byId('control-review').scrollIntoView({block:'start'});
   }else if(action==='developer'){
    window.location.assign('/agent/studio');
   }else if(action==='design'){
@@ -171,7 +180,7 @@ FOCUS_SCRIPT = r"""
    const action=element('button','focus-item-action',item.button);
    action.type='button';action.title=item.why;
    action.setAttribute('aria-label',item.button+': '+item.title);
-   action.addEventListener('click',()=>navigate(item.action));
+   action.addEventListener('click',()=>navigate(item.action,item));
    row.append(name,detail,action);holder.append(row);
   }
   const hidden=Math.max(0,items.length-4)+remaining;
@@ -216,7 +225,7 @@ FOCUS_SCRIPT = r"""
    byId('focus-primary').textContent=next.button;
    byId('focus-primary').title=next.why;
    byId('focus-primary').disabled=false;
-   byId('focus-primary').onclick=()=>navigate(next.action);
+   byId('focus-primary').onclick=()=>navigate(next.action,next);
    byId('focus-waiting-count').textContent=String(data.waiting_count);
    fillWaiting(data.waiting,data.more_waiting);
    fillWork(data.work);
