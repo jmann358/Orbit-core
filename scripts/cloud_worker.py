@@ -55,7 +55,29 @@ def handlers():
     }
 
 
+_next_backup_check = 0.0
+
+
+def _service_backup_tick():
+    """Keep private recovery snapshots current even with no browser open."""
+    global _next_backup_check
+    if os.environ.get("LUNA_SERVICE_MODE") != "1":
+        return
+    now = time.monotonic()
+    if now < _next_backup_check:
+        return
+    _next_backup_check = now + 3600
+    try:
+        from luna.backup_schedule import maybe_backup
+        maybe_backup(db_path(), root=ROOT)
+    except (ValueError, OSError):
+        # Never print source database paths or private records into service logs.
+        print("Luna's local automatic backup needs attention.", file=sys.stderr,
+              flush=True)
+
+
 def run_once():
+    _service_backup_tick()
     maybe_queue_automatic(db_path())
     return process_one(db_path(), handlers())
 
