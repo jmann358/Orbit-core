@@ -127,7 +127,9 @@ def enhance_chat_mission(html):
     if html.count(end) != 1:
         raise ValueError("Unexpected dashboard script boundary")
     html = html.replace(end, SCRIPT + end, 1)
-    css_end = "</style><header>"
+    # The focused-home enhancer already injects additional style blocks, so
+    # the stable insertion boundary is the header, not </style><header>.
+    css_end = "<header>"
     if html.count(css_end) != 1:
-        raise ValueError("Unexpected dashboard style boundary")
-    return html.replace(css_end, "</style>" + STYLE + "<header>", 1)
+        raise ValueError("Unexpected dashboard header boundary")
+    return html.replace(css_end, STYLE + css_end, 1)
