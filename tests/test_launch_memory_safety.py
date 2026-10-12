@@ -175,3 +175,15 @@ def test_verified_launch_never_executes_fetched_tests_with_live_credentials():
     assert 'item.get("head_branch") == "main"' in script
     assert 'item.get("conclusion") == "success"' in script
     assert "No successful isolated CI run found" in script
+
+
+def test_failed_prior_update_cannot_import_any_app_module_on_retry():
+    script = (Path(__file__).resolve().parents[1]
+              / "scripts" / "verify_and_launch.sh").read_text()
+    precheck = 'verify_ci_commit "$(git rev-parse HEAD)"'
+    assert script.count(precheck) == 2
+    assert script.index(precheck) < script.index("from luna.core import DB_PATH")
+    assert script.index("from luna.core import DB_PATH") < script.index(
+        "git pull --ff-only"
+    )
+    assert script.rindex(precheck) > script.index("git pull --ff-only")
