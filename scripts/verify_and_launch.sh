@@ -7,12 +7,19 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   exit 1
 fi
 git pull --ff-only
-mkdir -p backups
-if [ -f luna_local.db ]; then
-  stamp="$(date -u +%Y%m%dT%H%M%SZ)"
-  cp -p luna_local.db "backups/luna_local-$stamp.db"
-  echo "Backed up local database."
-fi
+# Back up the configured SQLite database *before* running tests or launching.
+# This uses SQLite's online backup API, validates integrity and never copies a
+# live WAL database with an unsafe raw filesystem copy.
+python - <<'PY'
+from pathlib import Path
+from luna.core import DB_PATH
+from luna.launch_guard import snapshot_existing_memory
+snapshot = snapshot_existing_memory(DB_PATH, project_root=Path.cwd())
+if snapshot is not None:
+    print("Consistent private SQLite backup verified.")
+else:
+    print("No existing database to back up.")
+PY
 python -m compileall -q app.py luna tests
 if ! python -m pytest -q -p no:cacheprovider tests; then
   echo "Regression tests failed or pytest is missing. Luna was NOT started."
