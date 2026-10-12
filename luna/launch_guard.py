@@ -26,10 +26,12 @@ def snapshot_existing_memory(db_path, *, project_root):
     Return None if no source database existed. An error leaves the original
     database untouched and blocks the unattended launch.
     """
-    project_root = Path(project_root)
+    # abspath normalizes the caller-provided path WITHOUT following symlinks.
+    # Calling Path.resolve() here would let a raced root symlink silently
+    # retarget our later O_NOFOLLOW open to an external directory.
+    project_root = Path(os.path.abspath(os.fspath(project_root)))
     if project_root.is_symlink():
         raise ValueError("Refusing a symlinked project root")
-    project_root = project_root.resolve()
     requested = Path(db_path)
     if not requested.is_absolute():
         requested = project_root / requested
