@@ -6,34 +6,15 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   echo "Local source changes detected. Refusing to overwrite them."
   exit 1
 fi
-# This backup must run with the source that is ALREADY checked out.
-# Never import newly pulled, unverified application modules while the
-# owner's memory database is accessible.
-# Back up the configured SQLite database before pulling or running tests.
-# This uses SQLite's online backup API, validates integrity and never copies a
-# live WAL database with an unsafe raw filesystem copy.
-python - <<'PY'
-from pathlib import Path
-from luna.core import DB_PATH
-from luna.launch_guard import snapshot_existing_memory
-snapshot = snapshot_existing_memory(DB_PATH, project_root=Path.cwd())
-if snapshot is not None:
-    print("Consistent private SQLite backup verified.")
-else:
-    print("No existing database to back up.")
-PY
-# GitHub Actions runs new tests in a disposable cloud runner with no
-# access to the owner's memory, local files, API keys or host credentials.
-# Never execute newly pulled tests or app imports on the owner's host before
-# the exact commit has an isolated, successful main-branch CI run.
+# Require positive CI evidence *before importing application code*.
+# A failed update may leave the worktree at a new HEAD; checking only after
+# a pull is not enough to prevent the next launch importing that HEAD.
 if [ "$(git branch --show-current)" != "main" ]; then
   echo "Use the reviewed main branch to launch Luna." >&2
   exit 1
 fi
-git pull --ff-only
-export ORBIT_EXPECTED_SHA
-ORBIT_EXPECTED_SHA="$(git rev-parse HEAD)"
-python - <<'PY'
+verify_ci_commit() {
+  ORBIT_EXPECTED_SHA="$1" python - <<'PY'
 import json
 import os
 import sys
@@ -68,5 +49,27 @@ if not verified:
     sys.exit(1)
 print("Exact main commit passed isolated GitHub CI. No local tests executed.")
 PY
+}
+verify_ci_commit "$(git rev-parse HEAD)"
+
+# This backup must run with the previously reviewed and CI-verified source.
+# Never import newly pulled, unverified application modules while the
+# owner's memory database is accessible.
+# This uses SQLite's online backup API, not a raw copy of a live WAL file.
+python - <<'PY'
+from pathlib import Path
+from luna.core import DB_PATH
+from luna.launch_guard import snapshot_existing_memory
+snapshot = snapshot_existing_memory(DB_PATH, project_root=Path.cwd())
+if snapshot is not None:
+    print("Consistent private SQLite backup verified.")
+else:
+    print("No existing database to back up.")
+PY
+
+# Newly pulled tests run in isolated GitHub Actions, NOT on the owner's host
+# with live memory, GitHub permissions or model credentials.
+git pull --ff-only
+verify_ci_commit "$(git rev-parse HEAD)"
 echo "Starting Luna on localhost only."
 exec python -m uvicorn app:app --host 127.0.0.1 --port 8000
