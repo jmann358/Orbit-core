@@ -18,10 +18,11 @@ def test_design_preview_requires_approval_and_can_be_undone():
             assert '/design' in client.get("/").text
             assert 'sandbox=""' in client.get("/design").text
             assert 'visual-studio-theme' not in client.get("/").text
-            response = client.post("/design/proposals", json={"direction": "Simplify my home screen."})
-            # A model is not necessarily configured on test machines.
-            # The model-backed flow is tested separately with a mock.
-            assert response.status_code in (422, 503)
+            # Unit tests must never call a real provider.
+            with patch("luna.visual_studio_api.respond", new_callable=AsyncMock,
+                       return_value="Luna's memory is working, but no AI model is connected"):
+                response = client.post("/design/proposals", json={"direction": "Simplify my home screen."})
+                assert response.status_code == 503
             proposed = visual_studio.save("Make it simple and purple", visual_studio.EXAMPLE)
             pid = proposed["id"]
             assert proposed["status"] == "pending"
