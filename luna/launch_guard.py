@@ -42,6 +42,10 @@ def snapshot_existing_memory(db_path, *, project_root):
     source = requested.resolve(strict=True)
 
     backup_dir = project_root / "backups"
+    # Retain an actionable diagnostic for an already-linked destination.
+    # The root-relative O_NOFOLLOW open below also rejects race replacements.
+    if backup_dir.is_symlink():
+        raise ValueError("Refusing a symlinked memory backup directory")
 
     # Anchor *both* the root and backup directory. Opening only backups with
     # O_NOFOLLOW does not protect against replacing its parent directory.
