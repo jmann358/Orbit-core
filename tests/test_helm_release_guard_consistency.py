@@ -52,16 +52,17 @@ def test_missing_pin_fails_closed(tmp_path):
     assert check_release_guard.check(runner, workflow)["trusted_workflow"] is False
 
 
-def test_actual_candidate_pin_is_not_silently_retrusted():
+def test_first_mac_flight_preserves_exact_owner_trusted_workflow_pin():
     root = Path(__file__).resolve().parents[1]
     report = check_release_guard.check(
         root / "scripts" / "verify_and_launch.sh",
         root / ".github" / "workflows" / "orbit-checks.yml",
     )
-    # This review branch includes the Node 24 workflow upgrade but keeps the
-    # old explicit trusted pin. That *intentional* mismatch is an open release
-    # blocker, not a green light to bypass the launcher.
-    assert report["status"] == "blocked", report
-    assert report["reason"] == "workflow_pin_mismatch"
-    assert report["trusted_workflow"] is False
-    assert report["pinned_git_blob"] != report["current_workflow_git_blob"]
+    # The Node 24 CI maintenance was deliberately deferred on THIS isolated
+    # Mac-first release alternative. The existing pin and workflow must match
+    # byte-for-byte without changing any of the launcher's security controls.
+    assert report["status"] == "trusted", report
+    assert report["reason"] == "pin_matches"
+    assert report["trusted_workflow"] is True
+    assert report["pinned_git_blob"] == report["current_workflow_git_blob"]
+    assert report["pinned_git_blob"] == "3c13b96eb6a07782be68bf1e233eb6cdae7b048d"
