@@ -166,7 +166,7 @@ def test_frontend_uses_text_content_no_generated_html_injection():
     assert "innerHTML" not in FOCUS_SCRIPT
     assert ".textContent" in FOCUS_SCRIPT
     assert "next.why" in FOCUS_SCRIPT
-    assert "focus-target-review" in FOCUS_SCRIPT
+    assert "openLunaApprovals" in FOCUS_SCRIPT
     assert "await loadControl()" in FOCUS_SCRIPT
 
 
