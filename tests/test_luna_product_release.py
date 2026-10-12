@@ -163,3 +163,36 @@ def test_error_notice_excluded_from_future_model_context():
     assert [item["role"] for item in sent["messages"]] == [
         "system", "user", "user",
     ]
+
+
+def test_saved_chat_list_uses_readable_preview_without_internal_sessions():
+    with tempfile.TemporaryDirectory() as folder:
+        with patch.object(core, "DB_PATH", Path(folder) / "chat.db"):
+            core.add_message("user-chat", "user", "Let's continue building Luna tomorrow")
+            core.add_message("user-chat", "assistant", "Sure.")
+            core.add_message("plan-private", "user", "Internal planning prompt")
+            core.add_message("review-private", "user", "Internal code review")
+            entries = core.sessions()
+    assert len(entries) == 1
+    assert entries[0]["session"] == "user-chat"
+    assert entries[0]["preview"] == "Let's continue building Luna tomorrow"
+    assert len(entries[0]["preview"]) <= 72
+
+
+def test_long_chat_stays_saved_but_uses_bounded_model_context():
+    with tempfile.TemporaryDirectory() as folder:
+        with patch.object(core, "DB_PATH", Path(folder) / "chat.db"):
+            original = [
+                ("user", "a" * 12000),
+                ("assistant", "b" * 12000),
+                ("user", "Latest question?"),
+            ]
+            for role, content in original:
+                core.add_message("chat", role, content)
+            stored = core.history("chat")
+            context = core.model_history("chat")
+    assert stored == [{"role": role, "content": content} for role, content in original]
+    assert context[0]["role"] == "user"
+    assert context[-1] == {"role": "user", "content": "Latest question?"}
+    assert sum(len(item["content"]) for item in context) <= core.MAX_MODEL_HISTORY_CHARS
+    assert len(context) < len(stored)
