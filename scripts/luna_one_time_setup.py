@@ -124,10 +124,40 @@ def ensure_local_model(ollama):
         raise RuntimeError("Model download did not verify as available")
 
 
+def ensure_github_login():
+    """Optional one-time owner authorization, never collect or print tokens."""
+    gh = shutil.which("gh")
+    if not gh:
+        brew = shutil.which("brew")
+        if not brew:
+            raise RuntimeError("GitHub draft PRs require GitHub CLI. Install gh "
+                               "or omit --enable-draft-prs for local-only work.")
+        print("Installing free GitHub CLI through Homebrew...", flush=True)
+        run(brew, "install", "gh", timeout=900)
+        gh = shutil.which("gh") or "/opt/homebrew/bin/gh"
+    status = subprocess.run([gh, "auth", "status", "--hostname", "github.com"],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if status.returncode:
+        print("One-time GitHub authorization is needed for Luna to submit "
+              "draft pull requests. The GitHub CLI may request the 'repo' "
+              "OAuth scope, which can cover other repositories; Luna's "
+              "publisher is coded to target ORBIT only.", flush=True)
+        run(gh, "auth", "login", "--hostname", "github.com",
+            "--web", "--scopes", "repo", timeout=900)
+    status = subprocess.run([gh, "auth", "status", "--hostname", "github.com"],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if status.returncode:
+        raise RuntimeError("GitHub login could not be verified; no draft PR "
+                           "permissions were enabled")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Prepare Mac for Luna's self-building")
     parser.add_argument("--check", action="store_true",
                         help="Report blockers without installing anything")
+    parser.add_argument("--enable-draft-prs", action="store_true",
+                        help="Authorize GitHub CLI once so Luna can create draft "
+                             "review PRs automatically; no merges or deployments")
     args = parser.parse_args(argv)
     try:
         require_mac()
@@ -151,11 +181,23 @@ def main(argv=None):
         ollama = ensure_ollama_command()
         start_model_server()
         ensure_local_model(ollama)
-        run(str(python), str(ROOT / "scripts" / "luna_mac_service.py"), "--install")
+        if args.enable_draft_prs:
+            ensure_github_login()
+        command = [str(python), str(ROOT / "scripts" / "luna_mac_service.py"),
+                   "--install"]
+        if args.enable_draft_prs:
+            command.append("--enable-draft-prs")
+        run(*command)
         print("Luna is configured for supervised daily development drafts.")
         print("Chat: http://127.0.0.1:8000")
         print("Agent Studio: http://127.0.0.1:8000/agent/studio")
         print("She will restart after macOS login and if the agent exits.")
+        if args.enable_draft_prs:
+            print("GitHub draft PR publishing enabled for ORBIT. "
+                  "Owner review and merge are still required.")
+        else:
+            print("Draft PR publishing requires an explicit separate GitHub "
+                  "opt-in; local development drafts are still automatic.")
         print("Keep the Mac awake to allow unattended work. "
               "Secure phone access is not activated.")
     except (RuntimeError, OSError, subprocess.TimeoutExpired) as exc:
