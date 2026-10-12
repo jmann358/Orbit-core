@@ -223,3 +223,27 @@ def test_js_approval_buttons_are_real_events_when_node_available():
         checked = subprocess.run([node, "--check"], input=js,
                                  capture_output=True, text=True, timeout=10)
         assert checked.returncode == 0, checked.stderr[:900]
+
+
+def test_focused_home_stops_calling_oneoff_authorized_mission_unapproved():
+    with tempfile.TemporaryDirectory() as directory:
+        db = Path(directory) / "focus.db"
+        with patch.object(core, "DB_PATH", db), patch.dict(os.environ, CLOUD, clear=True):
+            client = TestClient(app)
+            started = client.post("/chat", json={"session": "owner",
+                        "message": "Luna, begin improving yourself"}).json()
+            ident = started["mission_id"]
+            first = client.get("/focus/summary").json()
+            assert any(x["kind"] == "development_wait" and x["id"] == ident
+                       for x in first["waiting"])
+            granted = client.post("/agent/self-build/authorize/" + str(ident),
+                                  json={"approve": True})
+            assert granted.status_code == 200
+            later = client.get("/focus/summary").json()
+            assert not any(x["kind"] == "development_wait" and x["id"] == ident
+                           for x in later["waiting"])
+            assert later["work"]["queued"] >= 1
+            developer_agent.set_paused(db, True)
+            assert not mission_consent.eligible(db, ident)
+            developer_agent.set_paused(db, False)
+            assert mission_consent.eligible(db, ident)
