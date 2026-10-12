@@ -33,7 +33,8 @@ def test_design_preview_requires_approval_and_can_be_undone():
             assert 'visual-studio-theme' in preview.text
             assert "#384FB5" in preview.text
             assert 'visual-focus' in preview.text
-            assert "visual-more-tools" in preview.text
+            assert 'id="focus-tools-toggle"' in preview.text
+            assert 'id="visual-more-tools"' not in preview.text
             assert visual_studio.active() is None
             assert client.post("/design/proposals/" + str(pid) + "/approve").status_code == 200
             assert visual_studio.active()["id"] == pid
@@ -123,7 +124,8 @@ def test_visual_editor_and_focused_navigation_scripts_parse_with_node():
             scripts = re.findall(r"<script>(.*?)</script>", TestClient(app).get("/design").text, re.S)
             scripts += re.findall(r"<script>(.*?)</script>",
                                   TestClient(app).get("/?design_preview=" + str(item["id"])).text, re.S)
-            assert len(scripts) >= 3
+            # Focused designs now reuse the one shared More tools control.
+            assert len(scripts) >= 2
             for source in scripts:
                 result = subprocess.run([node, "--check"], input=source,
                                         capture_output=True, text=True, timeout=10, check=False)
