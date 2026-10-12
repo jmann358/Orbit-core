@@ -249,11 +249,11 @@ async def respond(session, message):
                 "Configure LUNA_MODEL_URL and LUNA_MODEL_NAME to enable responses.")
 
     parsed = urlparse(endpoint)
-    local = parsed.scheme == "http" and parsed.hostname in ("localhost", "127.0.0.1") and not parsed.username and not parsed.password
-    # Fixed trusted host list prevents sending private chat history to arbitrary servers.
-    cloud_hosts = {"api.groq.com", "api.openai.com", "api.together.xyz", "openrouter.ai", "generativelanguage.googleapis.com"}
-    cloud = (parsed.scheme == "https" and parsed.hostname in cloud_hosts
-             and parsed.port in (None, 443) and not parsed.username and not parsed.password)
+    # The status banner and actual provider calls share this same allowlist.
+    from luna.model_connection import classify_endpoint
+    transport = classify_endpoint(endpoint)
+    local = transport == "local"
+    cloud = transport == "cloud"
     if not (local or cloud):
         return "Model endpoint blocked. Use localhost or a supported HTTPS AI provider."
     if cloud and not api_key:
