@@ -872,7 +872,8 @@ async function loadDrafts(){try{const r=await fetch('/project/drafts');if(!r.ok)
 async function loadTasks(){try{const r=await fetch('/autonomy/tasks');const tasks=await r.json();const panel=document.querySelector('#task-list');panel.textContent='';if(!tasks.length){panel.textContent='No proposed tasks yet.';return}tasks.forEach(t=>{const div=document.createElement('div');div.className='msg';const heading=document.createElement('strong');heading.textContent=t.title+' ('+t.status+')';const description=document.createElement('p');description.textContent=t.description;div.append(heading,description);if(t.status==='pending'){[['Approve','approved'],['Revise','revision_requested'],['Reject','rejected']].forEach(([label,decision])=>{const btn=document.createElement('button');btn.type='button';btn.textContent=label;btn.onclick=async()=>{await fetch('/autonomy/tasks/'+t.id+'/decision',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision})});loadTasks()};div.append(btn,document.createTextNode(' '))})}panel.append(div)})}catch(e){document.querySelector('#task-list').textContent='Could not load tasks'}}
 </script></html>"""
     from luna import visual_studio
-    return visual_studio.decorate_home(html, design_preview)
+    from luna.focus_ui import enhance_home
+    return visual_studio.decorate_home(enhance_home(html), design_preview)
 
 @app.get("/chat/readiness")
 def chat_readiness():
@@ -1652,6 +1653,21 @@ def control_autopilot_choice(choice: AutopilotChoice):
     record_agent_run("tier1_autopilot","enabled" if choice.enabled else "paused",
                      "Tier 1 bounded routine jobs; no code deployment or model calls")
     return result
+
+@app.get("/focus/summary")
+def focus_summary():
+    """One read-only, truthful view of owner decisions and Luna's recorded work."""
+    from luna import core, developer_agent, visual_studio
+    from luna.attention_feed import summarize
+    from luna.model_connection import inspect_model_configuration
+    return summarize(
+        control_overview(),
+        control_activity(),
+        inspect_model_configuration(),
+        developer_agent.list_missions(core.DB_PATH),
+        visual_studio.proposals(),
+    )
+
 
 @app.get("/control/overview")
 def control_overview():
