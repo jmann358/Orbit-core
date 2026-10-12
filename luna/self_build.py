@@ -246,7 +246,7 @@ def publish_review_pr(db_path, mission_id, *, environ=None, root=None,
                 "title": "Luna proposed improvement #" + str(mission_id),
                 "body": (
                     "Autonomously drafted source change. Owner review required.\n\n"
-                    "Target: \`" + item["path"] + "\`\n\n"
+                    "Target: \u0060" + item["path"] + "\u0060\n\n"
                     "Summary: " + item["summary"][:400] + "\n\n"
                     "**Only syntax/bytecode compilation checked locally; full "
                     "tests and security review still required.**\n"
