@@ -24,6 +24,22 @@ TEMPLATES = {
         "Improve the deterministic improvement-selection logic while preserving "
         "owner review, deduplication, and all existing external interfaces."
     ),
+    "luna/presentation.py": (
+        "Improve Luna's local presentation preferences without enabling voice, "
+        "microphone, device access, or unreviewed data storage."
+    ),
+    "luna/proactive.py": (
+        "Improve bounded, on-demand helpful suggestions without enabling "
+        "notifications, surveillance, account access, or automatic action."
+    ),
+    "luna/skill_catalog.py": (
+        "Improve the truthful offline capability catalog without making "
+        "unconnected integrations appear installed or usable."
+    ),
+    "luna/goal_recipes.py": (
+        "Improve fixed-scope planning and review recipes without adding "
+        "arbitrary commands, permissions, or unapproved execution."
+    ),
 }
 assert set(TEMPLATES) == set(ALLOWED_PATHS)
 MAX_ACTIVE = 3
@@ -333,7 +349,8 @@ def maybe_queue_automatic(db_path, *, environ=None, now=None):
         return {"queued": False, "reason": "paused_or_limit"}
     if sum(current["counts"].get(key, 0) for key in ("queued", "working")):
         return {"queued": False, "reason": "already_working"}
-    # Stable rotation by UTC day; never follow task text retrieved from the web.
+    # Stable rotation across reviewed low-risk modules; do not follow
+    # arbitrary issue text from the web or broaden repository permissions.
     now = now or datetime.now(timezone.utc)
     paths = tuple(sorted(TEMPLATES))
     path = paths[now.date().toordinal() % len(paths)]
