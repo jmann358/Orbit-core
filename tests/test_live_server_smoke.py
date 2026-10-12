@@ -87,3 +87,43 @@ def test_live_server_restart_preserves_chat_without_provider_calls():
             assert history["messages"][1]["role"] == "system"
             sessions = _get_json(url + "/sessions")
             assert any(item["session"] == "smoke-chat" for item in sessions)
+
+
+def test_real_http_chat_worker_receipt_survives_process_restart():
+    """Exercise the actual web worker loop, not a mocked task completion."""
+    with tempfile.TemporaryDirectory() as folder:
+        db_file = Path(folder) / "worker-smoke.sqlite"
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.bind(("127.0.0.1", 0))
+            port = sock.getsockname()[1]
+        with running_luna(port, db_file) as url:
+            queued = _get_json(url + "/chat", {
+                "session": "worker-smoke", "message": "Run a health check",
+            })
+            assert queued["kind"] == "queued_task"
+            job_id = queued["job_id"]
+            path = queued["receipt_url"]
+            assert path == f"/agent/jobs/{job_id}/receipt"
+
+            final = None
+            for _ in range(100):
+                candidate = _get_json(url + path)
+                if candidate["state"] in ("completed", "attention"):
+                    final = candidate
+                    break
+                time.sleep(0.2)
+            assert final is not None, "Real worker did not finish in 20 seconds"
+            assert final["state"] == "completed", final
+            assert final["recorded_result"].startswith("Health ")
+            assert final["worker_reported_complete"] is True
+            assert final["independently_verified"] is False
+            assert [event["event"] for event in final["events"]] == [
+                "queued", "claimed", "completed",
+            ]
+        with running_luna(port, db_file) as url:
+            restored = _get_json(url + path)
+            assert restored["receipt_id"] == f"job:{job_id}"
+            assert restored["state"] == "completed"
+            assert restored["recorded_result"] == final["recorded_result"]
+            saved = _get_json(url + "/history/page?session=worker-smoke")
+            assert saved["messages"][0]["content"] == "Run a health check"
