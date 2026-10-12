@@ -2,6 +2,38 @@
 
 ORBIT is a local-first, provider-independent assistant ecosystem. Luna is its conversational coordinator.
 
+## Fastest self-building start (local model, no API subscription)
+
+If Ollama is **already running** on this computer and has a downloaded model,
+start Luna's dashboard, local model-backed developer agent and independent
+worker together:
+
+```bash
+cd ~/Orbit-core
+git pull --ff-only
+source .venv/bin/activate
+python scripts/start_luna_agent.py --self-build
+```
+
+Open `http://127.0.0.1:8000` on **that computer**, then say
+**"Luna, start building yourself!"** in chat or use the Agent Studio button.
+The worker can independently draft one curated improvement per day, within
+the existing two model attempts per UTC day. The chat window can close while
+the worker continues, but **the computer and launcher must stay running**.
+
+The launcher automatically discovers an existing Ollama model, preferring
+a code-specialized model. It never installs Ollama, downloads a model,
+exposes a port, sets up paid services, or supplies a GitHub token. If no
+Ollama server/model is available, it exits with a clear message. GitHub
+PR auto-publishing is separately disabled until the owner explicitly
+configures scoped permissions and enables it. All generated code remains
+unapplied, with owner review required.
+
+This is **not** a hosted iPhone-accessible deployment, full unattended
+test/repair/merge cycle, or unrestricted source-code agent. If the command
+reports missing local model prerequisites, those must be installed and
+started on the intended always-on computer first.
+
 ## Luna chat + independent agent (integrated preview)
 
 Run both the conversational app and the persistent background worker with one local command:
