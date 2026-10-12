@@ -15,6 +15,10 @@ from luna.core import record_shared_task, list_shared_task_results, add_message,
 VERSION = "1.0.0-rc.1"
 
 app=FastAPI(title="ORBIT · Luna " + VERSION, docs_url=None, redoc_url=None, openapi_url=None)
+# Cloud mode is disabled by default; when explicitly enabled, every route
+# requires the owner gate. No proxy, account, or deployment is provisioned.
+from luna.cloud_security import CloudOwnerGate
+app.add_middleware(CloudOwnerGate)
 
 class Chat(BaseModel):
     session: str = Field(default="default",max_length=100)
