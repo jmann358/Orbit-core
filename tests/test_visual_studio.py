@@ -108,3 +108,23 @@ def test_invalid_model_does_not_save_or_apply_design():
                                                 json={"direction": "Try a different style"})
                 assert response.status_code == 422
                 assert visual_studio.active() is None
+
+
+def test_visual_editor_and_focused_navigation_scripts_parse_with_node():
+    import re
+    import shutil
+    import subprocess
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("Optional Node runtime not installed")
+    with tempfile.TemporaryDirectory() as folder:
+        with patch.object(core, "DB_PATH", Path(folder) / "design.sqlite"):
+            item = visual_studio.save("Use simple navigation and muted colors", visual_studio.EXAMPLE)
+            scripts = re.findall(r"<script>(.*?)</script>", TestClient(app).get("/design").text, re.S)
+            scripts += re.findall(r"<script>(.*?)</script>",
+                                  TestClient(app).get("/?design_preview=" + str(item["id"])).text, re.S)
+            assert len(scripts) >= 3
+            for source in scripts:
+                result = subprocess.run([node, "--check"], input=source,
+                                        capture_output=True, text=True, timeout=10, check=False)
+                assert result.returncode == 0, result.stderr[:1500]
