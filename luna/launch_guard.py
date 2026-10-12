@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 import secrets
 import sqlite3
+from contextlib import closing
 from urllib.parse import quote
 
 
@@ -45,8 +46,8 @@ def snapshot_existing_memory(db_path, *, project_root):
     os.close(fd)
     try:
         uri = "file:" + quote(str(source), safe="/") + "?mode=ro"
-        with sqlite3.connect(uri, uri=True, timeout=5) as original:
-            with sqlite3.connect(destination, timeout=5) as copy:
+        with closing(sqlite3.connect(uri, uri=True, timeout=5)) as original:
+            with closing(sqlite3.connect(destination, timeout=5)) as copy:
                 original.backup(copy, pages=128, sleep=0.1)
                 result = copy.execute("PRAGMA integrity_check").fetchone()
                 if result != ("ok",):
