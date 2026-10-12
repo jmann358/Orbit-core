@@ -89,7 +89,7 @@ a{color:#394db1!important}details{border:1px solid var(--line);border-radius:12p
 .luna-face[data-mood="listening"] .luna-eyes i{height:17px}
 .luna-companion select{padding:6px;font-size:13px}.luna-companion p{margin:4px 0;font-size:14px}
 @media(prefers-reduced-motion:reduce){.luna-face,.luna-eyes i{transition:none}}
-</style><header><h1>☾ Luna</h1><small>v1.0.0-rc.1 · Agent Core</small></header><nav id="main-nav" class="orbit-banner" aria-label="ORBIT categories"><button type="button" data-tab="home" class="active">Overview <span class="nav-attention" data-alert="home" hidden></span></button><button type="button" data-tab="activity">Activity <span id="activity-nav-status" aria-live="polite">· Checking</span></button><button type="button" data-tab="chat">Chat</button><button type="button" data-tab="bridge">Bridge <span class="nav-attention" data-alert="bridge" hidden></span></button><button type="button" data-tab="memory">Memory <span class="nav-attention" data-alert="memory" hidden></span></button><button type="button" data-tab="goals">Goals</button><button type="button" data-tab="development">Development <span class="nav-attention" data-alert="development" hidden></span></button><button type="button" data-tab="testing">Testing <span class="nav-attention" data-alert="testing" hidden></span></button><button type="button" data-tab="approvals">Approvals <span class="nav-attention" data-alert="approvals" hidden></span></button></nav><main><section id="tab-home" class="tab-panel active"><h2>ORBIT command center</h2><p>One place to see priorities and review Luna's proposals. Approvals never deploy code.</p><div class="orbit-actions"><button type="button" id="control-refresh">Refresh overview</button><button type="button" id="control-diagnose">Run safe diagnostics</button><button type="button" id="control-suggest">Ask Luna for next improvement</button><button type="button" id="control-autopilot">Pause independent work</button></div><p id="control-status" role="status">Loading project overview…</p><div id="control-metrics" class="control-metrics"></div><h3>Needs your decision</h3><div id="control-review"></div><h3>Project inventory</h3><div id="control-inventory"></div><div id="control-diagnostics" role="status"></div></section><section id="tab-activity" class="tab-panel"><h2>Luna activity</h2><p>Recorded work only. Ordinary browser requests are not counted as tasks.</p><p id="activity-state" role="status">Checking activity…</p><p id="activity-counts"></p><h3>Live activity feed</h3><div id="activity-feed" aria-live="polite">Loading…</div><details><summary>Detailed job history and results</summary><div id="activity-history"></div></details><button type="button" id="activity-refresh">Refresh activity</button><p id="activity-updated"></p></section><section id="tab-bridge" class="tab-panel"><h2>Luna ↔ ChatGPT Bridge</h2><p>Visible, user-mediated conversations. Copy Luna's message here, send it in ChatGPT, then paste the reply below. Nothing is sent automatically.</p><button type="button" id="bridge-refresh">Refresh bridge</button><form id="bridge-new"><label for="bridge-title">Subject</label><input id="bridge-title" required minlength="3" maxlength="120" placeholder="What should Luna ask?"><label for="bridge-priority">Priority</label><select id="bridge-priority"><option value="medium">Medium</option><option value="high">High</option><option value="low">Low</option></select><textarea id="bridge-question" required minlength="5" maxlength="6000" rows="3" placeholder="Luna's question or technical request"></textarea><button type="submit">Create Luna request</button></form><p id="bridge-status" role="status"></p><div id="bridge-list"></div></section><section id="tab-chat" class="tab-panel active"><h2>Chat</h2><div class="luna-companion"><div class="luna-face" id="luna-face" data-mood="idle" role="img" aria-label="Luna's ghost-like avatar, resting"><div class="luna-eyes"><i></i><i></i></div><div class="luna-mouth"></div></div><div><strong>Luna</strong><p id="luna-expression" role="status">Here and listening.</p><label for="luna-expressions">Expression style</label> <select id="luna-expressions"><option value="expressive">Expressive</option><option value="subtle">Subtle</option><option value="still">Still</option></select><p><small>Visual reactions are interface cues, not a claim about feelings.</small></p></div></div><label for="sessions">Conversation:</label> <select id="sessions"></select> <button type="button" id="new-session">New chat</button><button type="button" id="load-older-history" hidden>Load earlier messages</button><div id="log"></div><form id="form"><input id="msg" placeholder="Talk to Luna…" maxlength="12000" required autocomplete="off"><button>Send</button></form></section><section id="tab-memory" class="tab-panel"><h2>Memory</h2>
+</style><header><h1>☾ Luna</h1><small>v1.0.0-rc.1 · Agent Core</small></header><nav id="main-nav" class="orbit-banner" aria-label="ORBIT categories"><button type="button" data-tab="home" class="active">Overview <span class="nav-attention" data-alert="home" hidden></span></button><button type="button" data-tab="activity">Activity <span id="activity-nav-status" aria-live="polite">· Checking</span></button><button type="button" data-tab="chat">Chat</button><button type="button" data-tab="bridge">Bridge <span class="nav-attention" data-alert="bridge" hidden></span></button><button type="button" data-tab="memory">Memory <span class="nav-attention" data-alert="memory" hidden></span></button><button type="button" data-tab="goals">Goals</button><button type="button" data-tab="ecosystem">Ecosystem</button><button type="button" data-tab="development">Development <span class="nav-attention" data-alert="development" hidden></span></button><button type="button" data-tab="testing">Testing <span class="nav-attention" data-alert="testing" hidden></span></button><button type="button" data-tab="approvals">Approvals <span class="nav-attention" data-alert="approvals" hidden></span></button></nav><main><section id="tab-home" class="tab-panel active"><h2>ORBIT command center</h2><p>One place to see priorities and review Luna's proposals. Approvals never deploy code.</p><div class="orbit-actions"><button type="button" id="control-refresh">Refresh overview</button><button type="button" id="control-diagnose">Run safe diagnostics</button><button type="button" id="control-suggest">Ask Luna for next improvement</button><button type="button" id="control-autopilot">Pause independent work</button></div><p id="control-status" role="status">Loading project overview…</p><div id="control-metrics" class="control-metrics"></div><h3>Needs your decision</h3><div id="control-review"></div><h3>Project inventory</h3><div id="control-inventory"></div><div id="control-diagnostics" role="status"></div></section><section id="tab-activity" class="tab-panel"><h2>Luna activity</h2><p>Recorded work only. Ordinary browser requests are not counted as tasks.</p><p id="activity-state" role="status">Checking activity…</p><p id="activity-counts"></p><h3>Live activity feed</h3><div id="activity-feed" aria-live="polite">Loading…</div><details><summary>Detailed job history and results</summary><div id="activity-history"></div></details><button type="button" id="activity-refresh">Refresh activity</button><p id="activity-updated"></p></section><section id="tab-bridge" class="tab-panel"><h2>Luna ↔ ChatGPT Bridge</h2><p>Visible, user-mediated conversations. Copy Luna's message here, send it in ChatGPT, then paste the reply below. Nothing is sent automatically.</p><button type="button" id="bridge-refresh">Refresh bridge</button><form id="bridge-new"><label for="bridge-title">Subject</label><input id="bridge-title" required minlength="3" maxlength="120" placeholder="What should Luna ask?"><label for="bridge-priority">Priority</label><select id="bridge-priority"><option value="medium">Medium</option><option value="high">High</option><option value="low">Low</option></select><textarea id="bridge-question" required minlength="5" maxlength="6000" rows="3" placeholder="Luna's question or technical request"></textarea><button type="submit">Create Luna request</button></form><p id="bridge-status" role="status"></p><div id="bridge-list"></div></section><section id="tab-chat" class="tab-panel active"><h2>Chat</h2><div class="luna-companion"><div class="luna-face" id="luna-face" data-mood="idle" role="img" aria-label="Luna's ghost-like avatar, resting"><div class="luna-eyes"><i></i><i></i></div><div class="luna-mouth"></div></div><div><strong>Luna</strong><p id="luna-expression" role="status">Here and listening.</p><label for="luna-expressions">Expression style</label> <select id="luna-expressions"><option value="expressive">Expressive</option><option value="subtle">Subtle</option><option value="still">Still</option></select><p><small>Visual reactions are interface cues, not a claim about feelings.</small></p></div></div><label for="sessions">Conversation:</label> <select id="sessions"></select> <button type="button" id="new-session">New chat</button><button type="button" id="load-older-history" hidden>Load earlier messages</button><div id="log"></div><form id="form"><input id="msg" placeholder="Talk to Luna…" maxlength="12000" required autocomplete="off"><button>Send</button></form></section><section id="tab-memory" class="tab-panel"><h2>Memory</h2>
 <h3>Conversation continuity</h3>
 <p><small>Search saved chats locally. Using older messages in Luna responses requires opt-in. Sending older excerpts to a cloud model requires a separate opt-in; these are never approved memories.</small></p>
 <button type="button" id="continuity-toggle">Checking continuity…</button>
@@ -101,7 +101,7 @@ a{color:#394db1!important}details{border:1px solid var(--line);border-radius:12p
 <div id="continuity-results"></div>
 <button type="button" id="continuity-insights">Preview project notes from this chat</button>
 <div id="continuity-insight-results"></div>
-<h3>Memory suggestions</h3><p><small>Off by default. When enabled, explicit “Remember that…” requests create pending suggestions. Sensitive-looking text is excluded; you approve permanent memories.</small></p><button type="button" id="memory-suggestion-toggle">Loading memory setting…</button><h3>Review suggested memories</h3><button type="button" id="memory-review-refresh">Refresh suggestions</button><div id="memory-suggestion-list"></div><h3>Project notebook</h3><form id="note-form"><input id="note-text" placeholder="Remember this about ORBIT…" maxlength="1000" required><button>Save note</button></form><div id="notes-list"></div></section><section id="tab-goals" class="tab-panel"><h2>Agent goals</h2><p><small>Define a goal and select safe steps. No execution until you approve the plan. Steps run sequentially, with results saved across restarts.</small></p><form id="goal-form"><input id="goal-objective" placeholder="Goal objective…" minlength="5" maxlength="500" required><label><input type="checkbox" class="goal-step" value="project_health" checked> Local health check</label><label><input type="checkbox" class="goal-step" value="github_status"> GitHub checks</label><label><input type="checkbox" class="goal-step" value="development_plan"> Development plan</label><button>Create goal plan</button></form><p id="goal-status"></p><h3>Guided delegation plans</h3><p><small>Choose a fixed, read-only plan. Preview it first. Nothing runs until you approve the proposed steps below.</small></p><label for="goal-recipe">Suggested plan</label><select id="goal-recipe"></select><button id="goal-recipe-suggest" type="button">Suggest safe plan</button><button id="goal-recipe-preview" type="button">Preview steps</button><button id="goal-recipe-create" type="button">Propose this plan</button><p id="goal-recipe-status" role="status"></p><div id="goal-recipe-details"></div><p id="goal-budget-status"></p><button id="goals-refresh" type="button">Refresh goals</button><div id="goals-list"></div></section><section id="tab-development" class="tab-panel"><h2>Development</h2><p><a href="https://github.com/jmann358/Orbit-core/actions" target="_blank" rel="noopener noreferrer" style="color:#d9b9ff">View automated GitHub tests ↗</a></p><p><small>GitHub checks code updates independently. Test results appear on GitHub; no credentials are stored in Luna.</small></p><h3>Luna’s improvement roadmap</h3><p><small>Luna proposes one new capability at a time. Proposals never change code.</small></p><button type="button" id="improvement-refresh">Refresh roadmap</button><div id="improvement-list"></div><h3>Shared development tasks</h3><button type="button" id="shared-tasks-refresh">Refresh assignments</button><p id="shared-tasks-status">Not checked yet.</p><div id="shared-tasks-list"></div><h3>Completed assignments</h3><button type="button" id="shared-results-refresh">Refresh results</button><div id="shared-results-list"></div><p><small>Only specifically allowlisted tasks can be executed. Remote task instructions are never run as code.</small></p><h3>Latest GitHub checks</h3><button type="button" id="github-checks-refresh">Refresh GitHub checks</button><p id="github-checks-status">Not checked yet.</p><div id="github-checks-list"></div><h3>☾ Luna's Design Studio</h3><p><small>Give Luna creative direction over her own interface. She reads the current dashboard, invents a visual direction, and saves a reviewable redesign proposal. Nothing is installed automatically.</small></p><button type="button" id="luna-design-mission">Let Luna redesign ORBIT</button><p id="luna-design-status" role="status"></p><details id="luna-design-details"><summary>Read Luna's design proposal</summary><pre id="luna-design-output" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details><h3>Draft a code improvement</h3><form id="draft-form"><input id="draft-goal" placeholder="What should Luna improve?" required><button>Prepare draft</button></form><p id="draft-status"></p><p id="draft-summary"></p><details id="draft-details"><summary>View proposed change</summary><pre id="draft-output" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details><h3>Saved code drafts</h3><button type="button" id="refresh-drafts">Refresh drafts</button><div id="saved-drafts"></div><h3>Project inspection</h3><button type="button" id="inspect">Inspect ORBIT</button><p id="inspect-status"></p><details id="inspect-details"><summary>View inspection report</summary><pre id="inspect-report" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details></section><section id="tab-testing" class="tab-panel"><h2>Testing</h2><h3>Project health</h3><button type="button" id="health-btn">Check project health</button><p id="health-result"></p><h3>Trusted baseline tests (temporary copy, not an OS sandbox)</h3><button type="button" id="test-btn">Run safe baseline tests</button><p id="test-result"></p></section><section id="tab-approvals" class="tab-panel"><h2>Task inbox</h2>
+<h3>Learn from chat (review only)</h3><p><small>Scan only saved messages from the selected chat. Nothing becomes a permanent memory until you approve the candidate. No cloud calls.</small></p><button type="button" id="memory-learning-preview">Preview possible memories</button><p id="memory-learning-status" role="status"></p><div id="memory-learning-list"></div><h3>Memory suggestions</h3><p><small>Off by default. When enabled, explicit “Remember that…” requests create pending suggestions. Sensitive-looking text is excluded; you approve permanent memories.</small></p><button type="button" id="memory-suggestion-toggle">Loading memory setting…</button><h3>Review suggested memories</h3><button type="button" id="memory-review-refresh">Refresh suggestions</button><div id="memory-suggestion-list"></div><h3>Project notebook</h3><form id="note-form"><input id="note-text" placeholder="Remember this about ORBIT…" maxlength="1000" required><button>Save note</button></form><div id="notes-list"></div></section><section id="tab-goals" class="tab-panel"><h2>Agent goals</h2><p><small>Define a goal and select safe steps. No execution until you approve the plan. Steps run sequentially, with results saved across restarts.</small></p><form id="goal-form"><input id="goal-objective" placeholder="Goal objective…" minlength="5" maxlength="500" required><label><input type="checkbox" class="goal-step" value="project_health" checked> Local health check</label><label><input type="checkbox" class="goal-step" value="github_status"> GitHub checks</label><label><input type="checkbox" class="goal-step" value="development_plan"> Development plan</label><button>Create goal plan</button></form><p id="goal-status"></p><h3>Guided delegation plans</h3><p><small>Choose a fixed, read-only plan. Preview it first. Nothing runs until you approve the proposed steps below.</small></p><label for="goal-recipe">Suggested plan</label><select id="goal-recipe"></select><button id="goal-recipe-suggest" type="button">Suggest safe plan</button><button id="goal-recipe-preview" type="button">Preview steps</button><button id="goal-recipe-create" type="button">Propose this plan</button><p id="goal-recipe-status" role="status"></p><div id="goal-recipe-details"></div><p id="goal-budget-status"></p><button id="goals-refresh" type="button">Refresh goals</button><div id="goals-list"></div></section><section id="tab-ecosystem" class="tab-panel"><h2>Ecosystem foundations</h2><p><small>Feature readiness and local evidence only. These controls do not unlock device access, connect external accounts, spend money, or deploy code.</small></p><button id="ecosystem-refresh" type="button">Refresh capability status</button><p id="ecosystem-status" role="status"></p><div id="ecosystem-cards"></div><h3>Local presentation preferences</h3><p><small>Luna's existing ghost-like CSS companion can change her mood on screen. Voice and independent 3D animation are not active.</small></p><label for="ecosystem-expression">Visual expressiveness</label><select id="ecosystem-expression"><option value="expressive">Expressive</option><option value="balanced">Balanced</option><option value="focused">Focused</option></select><label for="ecosystem-avatar">Companion</label><select id="ecosystem-avatar"><option value="ghost">Ghost</option><option value="minimal">Minimal</option><option value="none">Hidden</option></select><label for="ecosystem-motion">Motion</label><select id="ecosystem-motion"><option value="reduced">Reduced</option><option value="normal">Normal</option></select><button id="ecosystem-save-presentation" type="button">Save presentation preferences</button><p id="ecosystem-preferences-status" role="status"></p><h3>Proactive suggestions</h3><p><small>Only locally identified review items appear. Nothing is sent or acted on automatically.</small></p><button id="ecosystem-suggestions-refresh" type="button">Review suggested next actions</button><div id="ecosystem-suggestions"></div><h3>Before connecting other devices</h3><p><small>Authenticated owner sessions, revocable pairing, transport protection and local smoke tests still require explicit implementation approvals. Keep the current service on localhost.</small></p></section><section id="tab-development" class="tab-panel"><h2>Development</h2><p><a href="https://github.com/jmann358/Orbit-core/actions" target="_blank" rel="noopener noreferrer" style="color:#d9b9ff">View automated GitHub tests ↗</a></p><p><small>GitHub checks code updates independently. Test results appear on GitHub; no credentials are stored in Luna.</small></p><h3>Luna’s improvement roadmap</h3><p><small>Luna proposes one new capability at a time. Proposals never change code.</small></p><button type="button" id="improvement-refresh">Refresh roadmap</button><div id="improvement-list"></div><h3>Shared development tasks</h3><button type="button" id="shared-tasks-refresh">Refresh assignments</button><p id="shared-tasks-status">Not checked yet.</p><div id="shared-tasks-list"></div><h3>Completed assignments</h3><button type="button" id="shared-results-refresh">Refresh results</button><div id="shared-results-list"></div><p><small>Only specifically allowlisted tasks can be executed. Remote task instructions are never run as code.</small></p><h3>Latest GitHub checks</h3><button type="button" id="github-checks-refresh">Refresh GitHub checks</button><p id="github-checks-status">Not checked yet.</p><div id="github-checks-list"></div><h3>☾ Luna's Design Studio</h3><p><small>Give Luna creative direction over her own interface. She reads the current dashboard, invents a visual direction, and saves a reviewable redesign proposal. Nothing is installed automatically.</small></p><button type="button" id="luna-design-mission">Let Luna redesign ORBIT</button><p id="luna-design-status" role="status"></p><details id="luna-design-details"><summary>Read Luna's design proposal</summary><pre id="luna-design-output" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details><h3>Draft a code improvement</h3><form id="draft-form"><input id="draft-goal" placeholder="What should Luna improve?" required><button>Prepare draft</button></form><p id="draft-status"></p><p id="draft-summary"></p><details id="draft-details"><summary>View proposed change</summary><pre id="draft-output" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details><h3>Saved code drafts</h3><button type="button" id="refresh-drafts">Refresh drafts</button><div id="saved-drafts"></div><h3>Project inspection</h3><button type="button" id="inspect">Inspect ORBIT</button><p id="inspect-status"></p><details id="inspect-details"><summary>View inspection report</summary><pre id="inspect-report" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details></section><section id="tab-testing" class="tab-panel"><h2>Testing</h2><h3>Project health</h3><button type="button" id="health-btn">Check project health</button><p id="health-result"></p><h3>Trusted baseline tests (temporary copy, not an OS sandbox)</h3><button type="button" id="test-btn">Run safe baseline tests</button><p id="test-result"></p></section><section id="tab-approvals" class="tab-panel"><h2>Task inbox</h2>
 <p><small>Approved, allowlisted local tasks only. Pausing the worker prevents future claims; a task already running finishes first.</small></p>
 <div class="control-card"><strong>Supervised task worker</strong><p id="worker-status" role="status">Checking worker…</p>
 <button type="button" id="worker-toggle">Loading worker controls…</button></div><form id="job-form"><select id="job-kind"><option value="project_health">Project health</option><option value="github_status">GitHub status</option><option value="development_plan">Development plan</option><option value="self_improvement">Propose next self-improvement</option><option value="workshop_draft">Draft next roadmap improvement</option></select><input id="job-title" placeholder="Name this task" maxlength="120" required><button type="submit">Add task</button></form><p id="job-status"></p><button type="button" id="job-refresh">Refresh task inbox</button><div id="job-list"></div><h2>Autonomous maintenance</h2><p id="scheduler-status">Checking scheduler…</p><button type="button" id="scheduler-toggle">Loading…</button><p><small>Runs read-only project and GitHub checks every 30 minutes while this server is running. Disabled by default until you enable it.</small></p><h2>Routine tasks</h2><p><small>Luna can run these allowlisted read-only checks without changing source files.</small></p><button type="button" id="agent-run">Run routine maintenance</button><p id="agent-status"></p><h3>Recent activity</h3><div id="agent-history"></div><h2>Approvals</h2><h2>Autonomy · approval queue</h2><p><small>Tasks are proposals only. Approval records your choice; nothing runs automatically yet.</small></p><form id="plan-form"><input id="plan-goal" maxlength="1500" placeholder="What should Luna plan?" required><button type="submit">Create proposal</button></form><p id="plan-status"></p><div id="task-list"></div></section></main>
@@ -400,7 +400,147 @@ document.querySelector('#goal-form').onsubmit=async e=>{
  }catch(e){status.textContent=e.message}
 };
 loadGoalRecipes();refreshGoals();setInterval(refreshGoals,15000);
-const tabs=['home','activity','chat','bridge','memory','goals','development','testing','approvals'];function selectTab(name){if(!tabs.includes(name))name='home';document.querySelectorAll('.tab-panel').forEach(el=>el.classList.toggle('active',el.id==='tab-'+name));document.querySelectorAll('#main-nav button').forEach(el=>el.classList.toggle('active',el.dataset.tab===name));localStorage.setItem('luna-active-tab',name)}document.querySelectorAll('#main-nav button').forEach(el=>el.onclick=()=>selectTab(el.dataset.tab));selectTab(localStorage.getItem('luna-active-tab')||'home');
+
+async function ecosystemFetch(url,options){
+ const response=await fetch(url,options);
+ if(!response.ok){let payload={};try{payload=await response.json()}catch(e){}
+   throw Error(payload.detail||'Request failed ('+response.status+')')}
+ return response.json();
+}
+async function refreshEcosystem(){
+ const status=document.querySelector('#ecosystem-status'),
+   cards=document.querySelector('#ecosystem-cards');
+ status.textContent='Checking implemented local capabilities…';
+ try{
+   const [devices,usage,skills,gate,backup]=await Promise.all([
+     ecosystemFetch('/system/device-readiness'),
+     ecosystemFetch('/model/usage'),
+     ecosystemFetch('/skills/catalog'),
+     ecosystemFetch('/development/evidence-gate'),
+     ecosystemFetch('/system/backup-readiness'),
+   ]);
+   const details=[
+     ['Devices',devices.safe_to_expose_server?
+      'Network readiness verified':'Local-only. Mobile pairing and authentication not built.'],
+     ['Model usage',usage.usage_reported_events+' provider-reported replies / '+
+      usage.events_sampled+' recent replies · '+usage.reported_total_tokens+
+      ' reported tokens · price unknown'],
+     ['Skills',skills.skills.filter(x=>x.status==='existing').length+
+      ' existing / '+skills.skills.length+' catalog entries · no plugins installed'],
+     ['Self-improvement',gate.proposals+' roadmap proposals · no auto-apply or deploy'],
+     ['Backups',backup.database_exists?
+      'Local database found. Run verified offline backup on host.':
+      'No default database found on this host. Backup tool is available offline.'],
+   ];
+   cards.replaceChildren();
+   for(const [title,text] of details){
+     const article=document.createElement('article');article.className='control-card';
+     const heading=document.createElement('strong');heading.textContent=title;
+     const paragraph=document.createElement('p');paragraph.textContent=text;
+     article.append(heading,paragraph);cards.append(article);
+   }
+   status.textContent='Current local capability snapshot. No changes were applied.';
+ }catch(error){status.textContent=error.message}
+}
+function applyPresentation(prefs){
+ const avatar=document.querySelector('#luna-face');
+ const companion=document.querySelector('.luna-companion');
+ if(avatar){
+   avatar.hidden=prefs.avatar==='none';
+   avatar.style.opacity=prefs.avatar==='minimal'?'0.68':'1';
+ }
+ if(companion)companion.dataset.motion=prefs.motion;
+ if(document.querySelector('#luna-expressions')){
+   const visual={expressive:'expressive',balanced:'subtle',focused:'still'};
+   const value=visual[prefs.expression]||'expressive';
+   document.querySelector('#luna-expressions').value=value;
+   localStorage.setItem('luna-expression-style',value);
+   setLunaMood('idle');
+ }
+}
+async function loadPresentation(){
+ const status=document.querySelector('#ecosystem-preferences-status');
+ try{
+   const p=await ecosystemFetch('/presentation/settings');
+   for(const key of ['expression','avatar','motion'])
+     document.querySelector('#ecosystem-'+key).value=p[key];
+   applyPresentation(p);
+   status.textContent='Visual settings saved locally. Voice remains off.';
+ }catch(e){status.textContent=e.message}
+}
+document.querySelector('#ecosystem-save-presentation').onclick=async()=>{
+ const status=document.querySelector('#ecosystem-preferences-status');
+ const data={};
+ for(const key of ['expression','avatar','motion'])
+   data[key]=document.querySelector('#ecosystem-'+key).value;
+ try{
+   const prefs=await ecosystemFetch('/presentation/settings',{
+     method:'POST',headers:{'Content-Type':'application/json'},
+     body:JSON.stringify(data)});
+   applyPresentation(prefs);
+   status.textContent='Saved. Voice and device access remain disabled.';
+ }catch(e){status.textContent=e.message}
+};
+async function refreshEcosystemSuggestions(){
+ const target=document.querySelector('#ecosystem-suggestions');
+ try{
+   const payload=await ecosystemFetch('/assist/suggestions');
+   target.replaceChildren();
+   if(!payload.suggestions.length){target.textContent='No pending local suggestions.';return}
+   for(const item of payload.suggestions){
+     const card=document.createElement('article');card.className='control-card';
+     const strong=document.createElement('strong');strong.textContent=item.title;
+     const paragraph=document.createElement('p');paragraph.textContent=
+       item.explanation+' Next: '+item.action;
+     const button=document.createElement('button');button.type='button';
+     button.textContent='Save reminder to approvals inbox';
+     button.onclick=async()=>{button.disabled=true;try{
+       const result=await ecosystemFetch('/assist/suggestions/review',{
+         method:'POST',headers:{'Content-Type':'application/json'},
+         body:JSON.stringify({suggestion_id:item.id})});
+       button.textContent=result.created?'Saved for review':'Already saved';
+     }catch(e){button.textContent='Unavailable: '+e.message}
+     };
+     card.append(strong,paragraph,button);target.append(card);
+   }
+ }catch(e){target.textContent=e.message}
+}
+async function previewSessionMemories(){
+ const status=document.querySelector('#memory-learning-status'),
+   target=document.querySelector('#memory-learning-list');
+ status.textContent='Reading selected chat locally…';target.replaceChildren();
+ try{
+   const payload=await ecosystemFetch('/memory/learning/preview?session='+
+     encodeURIComponent(session));
+   if(!payload.candidates.length){
+     status.textContent='No eligible explicit preferences or project notes in this session.';
+     return;
+   }
+   status.textContent=payload.candidates.length+' candidates. Nothing approved automatically.';
+   for(const candidate of payload.candidates){
+     const row=document.createElement('article');row.className='control-card';
+     const content=document.createElement('p');content.textContent=candidate.content;
+     const source=document.createElement('small');source.textContent=
+       'Source: saved user message #'+candidate.message_id;
+     const button=document.createElement('button');button.type='button';
+     button.textContent='Queue for memory review';
+     button.onclick=async()=>{button.disabled=true;try{
+       await ecosystemFetch('/memory/learning/suggest',{
+         method:'POST',headers:{'Content-Type':'application/json'},
+         body:JSON.stringify({message_id:candidate.message_id})});
+       button.textContent='Queued · not approved';
+       refreshSuggestedMemories();
+     }catch(e){button.textContent=e.message}
+     };
+     row.append(content,source,button);target.append(row);
+   }
+ }catch(e){status.textContent=e.message}
+}
+document.querySelector('#memory-learning-preview').onclick=previewSessionMemories;
+document.querySelector('#ecosystem-refresh').onclick=refreshEcosystem;
+document.querySelector('#ecosystem-suggestions-refresh').onclick=refreshEcosystemSuggestions;
+refreshEcosystem();loadPresentation();refreshEcosystemSuggestions();
+const tabs=['home','activity','chat','bridge','memory','goals','ecosystem','development','testing','approvals'];function selectTab(name){if(!tabs.includes(name))name='home';document.querySelectorAll('.tab-panel').forEach(el=>el.classList.toggle('active',el.id==='tab-'+name));document.querySelectorAll('#main-nav button').forEach(el=>el.classList.toggle('active',el.dataset.tab===name));localStorage.setItem('luna-active-tab',name)}document.querySelectorAll('#main-nav button').forEach(el=>el.onclick=()=>selectTab(el.dataset.tab));selectTab(localStorage.getItem('luna-active-tab')||'home');
 async function refreshActivity(){
  const state=document.querySelector('#activity-state'),feed=document.querySelector('#activity-feed'),
  history=document.querySelector('#activity-history'),nav=document.querySelector('#activity-nav-status');
