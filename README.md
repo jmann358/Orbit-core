@@ -1,3 +1,11 @@
+## Current Luna version: pojo.1
+
+The application identifier shown in Luna's dashboard, browser title, and
+`/version` endpoint is **pojo.1**. This is an owner-chosen label, not a
+semantic-version number; it does not change any runtime permissions,
+capabilities, model settings, or deployment status. The earlier proposed
+`1.1.2.3` identifier was superseded.
+
 ## Approve one AI code draft from Luna, not another terminal session
 
 If Luna is already chatting through a trusted configured cloud model (such as
