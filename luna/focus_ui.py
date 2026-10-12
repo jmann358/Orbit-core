@@ -37,6 +37,7 @@ FOCUS_HOME = """<div class="focus-top">
 <nav class="focus-shortcuts" aria-label="Everyday actions">
   <button id="focus-talk" type="button" class="focus-secondary"
     title="Open your saved conversations with Luna">Talk to Luna</button>
+  <a href="/agents" title="Approve Luna's helpers and review the tasks they really completed">My agents</a>
   <a href="/design" title="Ask Luna for a new appearance, preview it, then approve it">Change her look</a>
   <a href="/agent/studio" title="Inspect development tasks and review Luna's code proposals">Agent Studio</a>
 </nav>
@@ -146,6 +147,8 @@ FOCUS_SCRIPT = r"""
    if(card){card.classList.add('focus-target-review');card.setAttribute('tabindex','-1');
     card.focus();card.scrollIntoView({block:'center'});}
    else byId('control-review').scrollIntoView({block:'start'});
+  }else if(action==='agents'){
+   window.location.assign('/agents');
   }else if(action==='developer'){
    window.location.assign('/agent/studio');
   }else if(action==='design'){
