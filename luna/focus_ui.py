@@ -236,12 +236,12 @@ FOCUS_SCRIPT = r"""
    }
    const actions=element('div','focus-goal-actions','');
    const saved=document.createElement('a');
-   saved.href='/agent/goals/'+goal.id+'/receipt';
+   saved.href='/agent/goals/'+goal.id+'/view';
    saved.textContent='Open saved outcome and audit';
    actions.append(saved);
    if(goal.state==='proposed'){
     holder.append(element('p','focus-status',
-      'This approval authorizes exactly the listed fixed steps. No purchases, new permissions, source installation or outside services.'));
+      'This approval authorizes exactly the listed fixed steps. No purchases, new permissions, source installation or outside services. To change the proposal, reject it and create a new plan for separate approval.'));
     for(const [label,approve] of [['Approve listed steps',true],['Reject plan',false]]){
      const button=element('button','',label);button.type='button';
      button.addEventListener('click',async()=>{
@@ -262,7 +262,7 @@ FOCUS_SCRIPT = r"""
      });
      actions.append(button);
     }
-    const edit=element('button','','Review or change plan');edit.type='button';
+    const edit=element('button','','Review plan details');edit.type='button';
     edit.addEventListener('click',()=>selectTab('goals'));
     actions.append(edit);
    }

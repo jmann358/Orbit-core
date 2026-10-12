@@ -393,7 +393,7 @@ async function refreshGoals(){
      details.addEventListener('toggle',()=>{if(details.open)renderGoalDetails(g,content)});
      card.append(details);
      const receiptLink=document.createElement('a');
-     receiptLink.href='/agent/goals/'+g.id+'/receipt';
+     receiptLink.href='/agent/goals/'+g.id+'/view';
      receiptLink.textContent='Open saved goal receipt #'+g.id;
      receiptLink.setAttribute('aria-label','Open goal '+g.id+' result and audit receipt');
      card.append(receiptLink);target.append(card);
@@ -768,7 +768,7 @@ form.onsubmit=async event=>{
     if(result.job_id && result.receipt_url){
      const item=document.createElement('p');
      const link=document.createElement('a');
-     link.href=result.receipt_url;
+     link.href='/agent/jobs/'+Number(result.job_id)+'/view';
      link.textContent='Open task #'+result.job_id+' live result and audit trail';
      item.append(link);log.append(item);
     }
@@ -1530,6 +1530,23 @@ def agent_job_receipt(job_id:int):
     if receipt is None:
         raise HTTPException(404,"Job not found")
     return receipt
+def _receipt_html_response(receipt):
+    from luna.receipt_views import render_receipt
+    return HTMLResponse(render_receipt(receipt), headers={
+        "Cache-Control": "private, no-store",
+        "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; "
+                                   "base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Referrer-Policy": "no-referrer",
+    })
+
+
+@app.get("/agent/jobs/{job_id}/view", response_class=HTMLResponse)
+def agent_job_view(job_id:int):
+    """Owner-readable projection; the /receipt JSON contract is unchanged."""
+    return _receipt_html_response(agent_job_receipt(job_id))
+
 
 
 @app.post("/agent/jobs/{job_id}/retry")
@@ -2063,6 +2080,12 @@ def agent_goal_receipt(goal_id:int):
     if receipt is None:
         raise HTTPException(404,"Goal not found")
     return receipt
+
+@app.get("/agent/goals/{goal_id}/view", response_class=HTMLResponse)
+def agent_goal_view(goal_id:int):
+    """Human-readable result with links to persisted child job receipts."""
+    return _receipt_html_response(agent_goal_receipt(goal_id))
+
 
 
 class AgentGoalControl(BaseModel):
