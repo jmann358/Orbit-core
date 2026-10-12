@@ -24,6 +24,8 @@ jobs:
           cache: pip
       - name: Install test dependencies
         run: python -m pip install -r requirements-dev.txt
+      - name: Check case-insensitive Mac checkout compatibility
+        run: python scripts/check_case_safe.py
       - name: Check Python syntax
         run: python -m compileall -q app.py luna tests
       - name: Run regression tests
