@@ -59,7 +59,13 @@ def status(*, stale_after_seconds=30, now=None):
         recorded = datetime.fromisoformat(row[1])
         if recorded.tzinfo is None:
             raise ValueError("Untrusted naive timestamp")
-        age = max(0.0, (instant - recorded.astimezone(timezone.utc)).total_seconds())
+        raw_age = (instant - recorded.astimezone(timezone.utc)).total_seconds()
+        # A clock correction or corrupted future timestamp must not make a
+        # stopped worker appear recently observed for minutes or hours.
+        # Allow a small wall-clock adjustment without fabricating long uptime.
+        if raw_age < -5:
+            raise ValueError("Heartbeat timestamp is implausibly in the future")
+        age = max(0.0, raw_age)
     except (ValueError, TypeError, OverflowError):
         return {
             "worker": WORKER, "state": "unknown", "updated_at": None,
