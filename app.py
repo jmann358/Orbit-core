@@ -707,8 +707,23 @@ earlierButton.onclick=async()=>{
  }catch(error){earlierButton.textContent='Older messages unavailable'}
  finally{earlierButton.disabled=false}
 };
-async function loadSessions(){try{const r=await fetch('/sessions');if(!r.ok)throw Error('sessions');const items=await r.json();selector.textContent='';const ids=[session,...items.map(x=>x.session)].filter((v,i,a)=>a.indexOf(v)===i);ids.forEach((id,i)=>{const option=document.createElement('option');option.value=id;option.textContent=id===session?'Current conversation':('Previous chat '+(i+1));selector.append(option)});selector.value=session}catch(e){show('system','Could not load saved conversations')}}
-selector.onchange=()=>{session=selector.value;localStorage.setItem('luna-session',session);loadHistory()};
+async function loadSessions(){
+ try{
+  const r=await fetch('/sessions');if(!r.ok)throw Error('sessions');
+  const items=await r.json(),saved=new Map(items.map(item=>[item.session,item]));
+  selector.textContent='';
+  const ids=[session,...items.map(item=>item.session)].filter((id,i,a)=>a.indexOf(id)===i);
+  ids.forEach(id=>{
+   const option=document.createElement('option'),entry=saved.get(id);
+   const preview=entry&&entry.preview?entry.preview:'Empty conversation';
+   option.value=id;
+   option.textContent=(id===session?'Current: ':'Saved: ')+preview;
+   selector.append(option);
+  });
+  selector.value=session;
+ }catch(error){show('system','Could not load saved conversations')}
+}
+selector.onchange=()=>{session=selector.value;localStorage.setItem('luna-session',session);loadHistory();loadSessions()};
 document.querySelector('#new-session').onclick=()=>{session=crypto.randomUUID();localStorage.setItem('luna-session',session);loadHistory();loadSessions()};
 let chatSending=false;
 form.onsubmit=async event=>{
