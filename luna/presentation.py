@@ -29,7 +29,8 @@ def preferences():
         "avatar": options.get("presentation_avatar", DEFAULTS["avatar"]),
         "motion": options.get("presentation_motion", DEFAULTS["motion"]),
         "voice": "off",
-        "voice_available": False, "avatar_renderer_available": True,\n        "avatar_renderer_scope": "built-in CSS mood states only",
+        "voice_available": False, "avatar_renderer_available": True,
+        "avatar_renderer_scope": "built-in CSS mood states only",
         "microphone_enabled": False,
         "actual_model_personality_updated": False,
     }
