@@ -112,7 +112,7 @@ def test_dashboard_opens_on_focus_and_retains_all_original_controls():
             assert "selectTab(localStorage.getItem('luna-active-tab')||'chat')" not in html
             assert 'id="control-review"' in html
             assert 'id="control-autopilot"' in html
-            assert 'id="tab-chat" class="tab-panel active"' in html  # fallback before JS
+            assert 'id="tab-home" class="tab-panel active"' in html  # visible before scripts run
             assert html.count('class="tab-panel active"') == 1
             assert 'id="tab-development"' in html
             assert 'id="tab-testing"' in html
