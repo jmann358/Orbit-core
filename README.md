@@ -2,6 +2,19 @@
 
 ORBIT is a local-first, provider-independent assistant ecosystem. Luna is its conversational coordinator.
 
+## Start Luna now (local preview)
+
+On the computer where the repo is checked out, activate its Python virtual environment and run:
+
+```bash
+cd ~/Orbit-core
+source .venv/bin/activate
+python scripts/start_luna.py --check
+python scripts/start_luna.py
+```
+
+Then open **http://127.0.0.1:8000** on that computer. The check reports missing packages and whether model configuration is present **without displaying keys**. Install missing packages with `python -m pip install -r requirements.txt` if necessary. The launcher doesn't pull code, install anything, start cloud calls, or change network access. It launches the existing dashboard; it is **not** authenticated iPhone/iPad access. Chat model-backed replies still require a configured working provider, and local-only access must remain on `127.0.0.1`.
+
 ## Priorities 6–14: local-first foundations (under development)
 
 The next milestone adds review-only chat memory extraction, traceable
