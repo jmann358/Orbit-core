@@ -34,9 +34,10 @@ def test_readiness_uses_flags_not_credentials():
 
 def test_readiness_is_non_mutating(tmp_path, capsys):
     with patch.object(starter, "ROOT", tmp_path):
-        with patch("os.chdir"):
+        with patch("os.chdir") as change_directory:
             with patch.object(starter, "REQUIRED", ()):
                 assert starter.main(["--check"]) == 0
+            change_directory.assert_not_called()
     report = json.loads(capsys.readouterr().out)
     assert report["missing_dependencies"] == []
     assert report["dashboard_url"] == "http://127.0.0.1:8000"
@@ -47,5 +48,5 @@ def test_dashboard_starts_with_only_one_visible_panel():
     from fastapi.testclient import TestClient
     from app import app
     html = TestClient(app).get("/").text
-    assert 'id="tab-home" class="tab-panel active"' in html
+    assert 'id="tab-chat" class="tab-panel active"' in html
     assert html.count('class="tab-panel active"') == 1
