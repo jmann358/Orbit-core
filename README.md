@@ -1,3 +1,36 @@
+## Design with Luna: generate → preview → approve
+
+Luna can now propose a new **visual appearance** without giving generated code
+permission to run. After launching the dashboard with a configured, working
+AI model, open **http://127.0.0.1:8000/design**, or use the
+**Design with Luna** link on the home screen.
+
+1. Describe your desired layout in ordinary language (for example, "Simplify
+   the screen, show fewer navigation buttons, give chat room to breathe").
+2. Luna produces a validated proposal; its real dashboard preview renders in a
+   **script-disabled iframe**, without changing the currently used design.
+3. Say what to change next and generate another proposal to refine it. Press
+   **Approve and use this design** only when satisfied, or **Discard**.
+4. **Restore original layout** undoes the active design. Previous approved
+   designs remain locally available to restore.
+
+These are safe appearance tokens: colors, dashboard width, spacing, corner
+roundness, and focused/full navigation. Focused navigation keeps the omitted
+tabs reachable through **More tools**. Luna cannot add arbitrary widgets,
+rearrange the underlying HTML, execute generated code, change app functionality
+or install source patches via this studio. The older text-only
+**Luna's Design Studio** in Development remains an unapplied code proposal
+path for more extensive redesigns.
+
+Design records live in the same local SQLite database as the app and follow
+its backup and host-lifetime rules. Model generation uses the existing configured
+chat model, so configured cloud providers may receive the design instructions
+and existing approved context and may incur their normal usage charges.
+Nothing is sent to GitHub. The interface remains **localhost-only** with no
+remote login. The preview is visual rather than a functional browser test;
+verify interactions after approval. All designs are reversible without
+editing source files.
+
 ## Mac mini: one-time Luna handoff
 
 For the intended always-on **Mac M4 mini**, once you have the approved
