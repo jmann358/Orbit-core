@@ -42,6 +42,20 @@ def test_more_tools_css_cannot_override_the_open_state():
         assert "/api/tools" not in html
 
 
+def test_approvals_remain_visible_with_focused_design_applied():
+    from luna.visual_studio import style_for
+    css = style_for(visual_studio.EXAMPLE)
+    assert 'button[data-tab="approvals"]{display:none' not in css
+    with tempfile.TemporaryDirectory() as directory, patch.object(
+            core, "DB_PATH", Path(directory) / "db.sqlite"):
+        draft = visual_studio.save("Keep everything simple", visual_studio.EXAMPLE)
+        visual_studio.approve(draft["id"])
+        page = TestClient(app).get("/").text
+        assert 'class="visual-focus"' in page
+        assert 'data-tab="approvals"' in page
+        assert 'id="approval-inbox"' in page
+
+
 def test_pending_approvals_are_real_and_risk_categorized():
     with tempfile.TemporaryDirectory() as directory, patch.object(
             core, "DB_PATH", Path(directory) / "db.sqlite"), patch.dict(
