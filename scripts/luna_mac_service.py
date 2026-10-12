@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import plistlib
 import shutil
+import stat
 import subprocess
 import sys
 
@@ -25,6 +26,38 @@ def service_file(home=None):
     return home / "Library" / "LaunchAgents" / PLIST_NAME
 
 
+def _memory_path(root, value=None):
+    """Carry over an existing custom SQLite path without any other env secrets."""
+    raw = os.environ.get("LUNA_DB_PATH") if value is None else value
+    if not raw:
+        return None
+    if not isinstance(raw, str) or len(raw) > 2048 or "\\x00" in raw:
+        raise ValueError("Invalid configured memory path")
+    path = Path(raw).expanduser()
+    if not path.is_absolute():
+        path = Path(root) / path
+    if path.is_symlink():
+        raise ValueError("Refusing a symlinked Luna memory database")
+    if path.exists() and not path.is_file():
+        raise ValueError("The configured memory path is not a database file")
+    return str(path.resolve(strict=False))
+
+
+def _verify_owner_control(path, *, allow_executable_link=False):
+    """Refuse persistent autostart under writable-by-others source paths."""
+    path = Path(path)
+    if path.is_symlink() and not allow_executable_link:
+        raise ValueError("Refusing symlinked source for persistent autostart")
+    resolved = path.resolve(strict=True)
+    for component in (resolved, *resolved.parents):
+        info = component.stat()
+        if info.st_mode & 0o022:
+            raise ValueError("Persistent source path is writable by other users")
+        if info.st_uid not in (0, os.getuid()):
+            raise ValueError("Persistent source path is owned by another user")
+    return resolved
+
+
 def plist_config(root=ROOT, home=None, *, enable_draft_prs=False):
     root = Path(root).resolve()
     home = Path.home() if home is None else Path(home)
@@ -36,6 +69,9 @@ def plist_config(root=ROOT, home=None, *, enable_draft_prs=False):
         "PYTHONUNBUFFERED": "1",
         "LUNA_SERVICE_MODE": "1",
     }
+    saved_database = _memory_path(root)
+    if saved_database:
+        environment["LUNA_DB_PATH"] = saved_database
     if enable_draft_prs:
         environment.update({
             "LUNA_GITHUB_PR_ENABLED": "1",
@@ -68,6 +104,13 @@ def preflight(root=ROOT):
     if missing:
         raise ValueError("First run Luna's one-time setup: missing " +
                          ", ".join(missing))
+    _verify_owner_control(root)
+    _verify_owner_control(root / "scripts")
+    _verify_owner_control(root / ".venv")
+    _verify_owner_control(root / ".venv" / "bin")
+    _verify_owner_control(needed[0], allow_executable_link=True)
+    _verify_owner_control(needed[1])
+    _memory_path(root)
     if not shutil.which("launchctl"):
         raise ValueError("macOS launchctl is unavailable")
     # Never install a restarting broken launcher without an existing model.
