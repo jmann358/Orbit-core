@@ -1,3 +1,35 @@
+## Approve one AI code draft from Luna, not another terminal session
+
+If Luna is already chatting through a trusted configured cloud model (such as
+Groq) or an existing local model, you don't need to turn on blanket cloud
+developer permissions just to test **one** code improvement.
+
+1. In Chat, say **"Luna, begin improving yourself."** She saves an actual
+   health-check job and one bounded development mission, and shows its real ID.
+2. Click **Approve one AI code draft** beside that mission (or open
+   **Agent Studio**, then find the queued mission and click its approval).
+3. Read the displayed model/provider and warning. Click **Confirm** only
+   if you explicitly authorize up to **two model requests**, potentially
+   billable by your provider, for **that one mission**.
+4. Luna's already running background development worker may now draft and
+   syntax-check a single allowlisted source replacement, saving an *unapplied*
+   diff in **Agent Studio**. Use **Refresh** there to inspect the real result.
+
+This consent expires after **60 minutes** and is bound to the specific
+model and endpoint. Changing models, a revoked grant, an expired consent or
+a paused worker blocks subsequent work. Calls are reserved *before* sending
+a provider request; an interruption does not trigger an automatic replay.
+An unused grant can be revoked in Agent Studio. The regular two-attempt
+daily developer budget still applies. Consent does not authorize future
+missions, new permissions, automatic GitHub writes, merging or deployment.
+The API key stays in the host environment, not the consent database.
+
+**A cloud provider's free tier is not a guaranteed price cap.** The owner
+must explicitly approve a call that may be billable. The model may return
+invalid source or an error; the resulting mission then needs review rather
+than claiming success. No connection to this ChatGPT conversation or its
+tools is implied.
+
 ## Tell Luna to improve herself (real work, not copy-and-paste scripts)
 
 In Luna's existing Chat, say: **"Luna, begin improving yourself."**

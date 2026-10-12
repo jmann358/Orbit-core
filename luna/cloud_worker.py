@@ -92,13 +92,23 @@ def claim(path, *, now=None):
         # model opt-in is absent. The rest of Luna's read-only work continues.
         from luna.developer_model import configuration
         development_available = not paused and configuration()["ready"]
-        row = db.execute(
+        rows = db.execute(
             "SELECT id,kind,attempts,payload FROM cloud_jobs "
-            "WHERE status='queued' AND available_at<=? "
-            + ("" if development_available else "AND kind!='development_draft' ")
-            + "ORDER BY id LIMIT 1",
+            "WHERE status='queued' AND available_at<=? ORDER BY id LIMIT 200",
             (stamp,),
-        ).fetchone()
+        ).fetchall()
+        row = None
+        for candidate in rows:
+            ident, kind, attempts, payload = candidate
+            if kind == "development_draft":
+                if paused:
+                    continue
+                if not development_available:
+                    from luna.mission_consent import eligible_in_db
+                    if not eligible_in_db(db, payload):
+                        continue
+            row = candidate
+            break
         if row is None:
             return None
         job_id, kind, attempts, payload = row

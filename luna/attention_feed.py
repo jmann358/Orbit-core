@@ -11,7 +11,7 @@ def _short(value, limit=260):
     return " ".join(value.split())[:limit]
 
 
-def summarize(overview, activity, model, missions=(), designs=(), agents=(), agent_tasks=(), developer_model=None):
+def summarize(overview, activity, model, missions=(), designs=(), agents=(), agent_tasks=(), developer_model=None, authorized_missions=()):
     """Prioritize visible owner actions without inventing permissions or progress."""
     candidates = []
 
@@ -45,7 +45,7 @@ def summarize(overview, activity, model, missions=(), designs=(), agents=(), age
     # is disabled. Keep queued code work visible instead of implying it runs.
     if developer_model is not None and not developer_model.get("ready", False):
         for mission in active_missions:
-            if mission.get("state") == "queued":
+            if mission.get("state") == "queued" and mission.get("id") not in authorized_missions:
                 offer("development_wait", "Luna's development mission is waiting",
                       "Mission #" + str(mission.get("id")) +
                       " is saved but development-model calls are not enabled.",

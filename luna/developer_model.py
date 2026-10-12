@@ -56,7 +56,7 @@ def configuration(environ=None):
     ready = (
         enabled and bool(model) and bool(kind)
         and (kind != "cloud" or (bool(key) and env.get("LUNA_AGENT_ALLOW_CLOUD") == "1"))
-        and bool(re.fullmatch(r"[A-Za-z0-9._:-]{1,120}", model))
+        and bool(re.fullmatch(r"[A-Za-z0-9._:-]{1,120}(?:/[A-Za-z0-9._:-]{1,120})?", model))
     )
     return {
         "ready": ready,
@@ -68,13 +68,26 @@ def configuration(environ=None):
     }
 
 
-async def propose(prompt):
-    """One explicitly permitted model call; no retries or fallback providers."""
+async def propose(prompt, *, mission_id=None, db_path=None):
+    """One explicitly permitted model call; no retries or fallback providers.
+
+    A single-mission approval authorizes up to two already-budgeted calls for
+    only the exact reviewed mission, not future developer tasks or other tools.
+    """
     if not isinstance(prompt, str) or not 1 <= len(prompt) <= 40_000:
         raise AgentModelUnavailable("Invalid bounded development prompt")
     cfg = configuration()
     if not cfg["ready"]:
-        raise AgentModelUnavailable("Agent model not enabled or configured")
+        # Existing global opt-in is not required when the owner separately
+        # approved THIS mission, provider and model in the local dashboard.
+        # Reserve one of two calls *before* contacting any provider.
+        if db_path is None or type(mission_id) is not int or mission_id < 1:
+            raise AgentModelUnavailable("Agent model not enabled or configured")
+        from luna import mission_consent
+        try:
+            mission_consent.consume_for_request(db_path, mission_id)
+        except ValueError:
+            raise AgentModelUnavailable("Mission-specific model approval is unavailable") from None
     endpoint = os.environ["LUNA_MODEL_URL"].rstrip("/")
     model = os.environ["LUNA_MODEL_NAME"].strip()
     key = os.environ.get("LUNA_API_KEY") or ""

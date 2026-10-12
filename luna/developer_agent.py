@@ -323,13 +323,21 @@ async def run_mission(db_path, ident, *, model=None, root=None):
     if record is None or record["state"] != "queued":
         raise ValueError("Mission is missing or no longer queued")
     if model is None and not configuration()["ready"]:
-        raise ValueError("Explicitly enabled development model required")
+        from luna.mission_consent import eligible
+        if not eligible(db_path, ident):
+            raise ValueError("Explicitly enabled or per-mission approved development model required")
+
+    async def infer(text):
+        if model is not None:
+            return await model(text)
+        return await propose(text, mission_id=ident, db_path=db_path)
+
     try:
         original, digest = _source(root, record["path"])
         _reserve_model_attempt(db_path, ident)
         prompt = _instructions(record["path"], original, digest)
         try:
-            answer = await (model or propose)(prompt)
+            answer = await infer(prompt)
             data = _candidate(answer, record["path"], digest)
             staged = stage_proposal(root, [{
                 "path": record["path"], "base_sha256": digest,
@@ -342,7 +350,7 @@ async def run_mission(db_path, ident, *, model=None, root=None):
             # Never include the failed answer, secrets or personal memories.
             if not _reserve_validation_retry(db_path, ident):
                 raise ValueError("Development draft needs manual attention") from None
-            answer = await (model or propose)(
+            answer = await infer(
                 prompt + "\\nThe first response failed strict JSON or "
                 "revision-locked Python syntax validation. Respond with ONLY "
                 "the exact requested JSON object and valid Python source."
