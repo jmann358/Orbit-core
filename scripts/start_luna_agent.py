@@ -137,14 +137,23 @@ def main(argv=None):
             if os.environ.get("LUNA_SERVICE_MODE") == "1":
                 from luna.backup_schedule import maybe_backup
                 result = maybe_backup(DB_PATH, root=ROOT)
-                snapshot = result["created"]
+                snapshot = bool(result["created"])
+                snapshot_reason = result["reason"]
             else:
                 snapshot = snapshot_existing_memory(DB_PATH, project_root=ROOT)
+                snapshot_reason = "backed_up" if snapshot is not None else "new_database"
         except ValueError as exc:
             print(str(exc), file=sys.stderr)
             return 2
-        if snapshot is not None:
+        if snapshot:
             print("Created a private SQLite safety snapshot before self-building.",
+                  flush=True)
+        elif snapshot_reason == "recent_local_snapshot":
+            print("A recent verified private SQLite backup already exists; "
+                  "no new snapshot was created.", flush=True)
+        else:
+            print("No existing SQLite database was available to back up. "
+                  "A backup will be required once Luna has saved data.",
                   flush=True)
     if args.auto_drafts:
         if not ready["developer_model_configured_unverified"] and not args.self_build:
