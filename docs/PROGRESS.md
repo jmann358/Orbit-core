@@ -1,3 +1,43 @@
+## 2026-10-13 — connect a verified finding to bounded drafting (source review)
+
+Base draft #69: `a96af679efefd865de7f0854f2516380708d72b8`. Source review and
+developer missions were disconnected: drafting used generic templates without
+preserving the observed finding. A new explicit source-review request now accepts
+only a fresh, verified syntax finding in an already allowlisted draft target.
+It freezes the job/attempt, report and source fingerprints, path, line and narrow
+success condition. No finding or a protected target yields no draft.
+
+The existing developer queue/model consent/budget remain authoritative. Repeated
+requests for identical evidence return the same mission even after it reaches
+review; collisions with other active drafts do not attach or overwrite evidence.
+Before model attempts and before accepting a proposal, the evidence is rechecked.
+Changed evidence stops at attention. Model prompts receive only the bounded
+source finding, never arbitrary job text or private conversations. Source reads
+now use the existing pinned no-follow read primitive. Candidate code remains
+unexecuted and unapplied; syntax validation is not functional verification.
+
+The saved source-result page links to a review request in Agent Studio, where
+the owner explicitly queues the observed repair. A disposable browser check
+followed that link, queued one mission and inspected its retained evidence.
+No model or startup worker was enabled in the preview; it was stopped afterward.
+
+Baseline: 48 relevant tests passed. Final Mac/Python 3.13 suite: **578 passed,
+13 warnings, zero skips in 37.00 seconds**; compilation and diff checks pass.
+Seven new cases use synthetic source, SQLite and an injected fake model to prove
+evidence-to-candidate persistence, source unchanged, no model call on stale
+evidence, mid-call change rejection, collisions, concurrent duplicate requests
+and refusal to broaden target scope. These are not live-model or isolated
+candidate-execution results.
+
+Read-only host checks observed macOS 27.0.1, Mac16,10, 16 GiB RAM and 10 logical
+CPUs. No container/Docker/Podman/Orb executable was on the inspected PATH. The
+existing execution runner is Linux-only; no Mac isolation is claimed. An Apple
+container evaluation proposal is prepared separately for owner review; no runtime,
+image, dependency or service was installed. Independent backup/recovery and
+host-change approval remain pending. Partial D07-A/C source progress only:
+Mac isolation attacks, real bounded repair/test loop, exact Git tree manifests,
+independent review and live promotion remain open.
+
 ## 2026-10-13 — evidence-based local development recommendations (source review)
 
 Base: draft #68, `f46e201a38dfc134c5abcfba1beb97a1914d6304`. The existing

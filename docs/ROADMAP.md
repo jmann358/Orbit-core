@@ -1,5 +1,13 @@
 # Current roadmap — THRONE
 
+Current source milestone on draft #69: verified source findings can explicitly
+queue one evidence-bound draft through the existing developer engine. 578 tests
+pass; the synthetic finding-to-request browser flow passed. This is D07-A/C
+preparation, not a safe self-modification loop. The next execution gate is an
+owner-approved Mac VM boundary plus hostile-fixture proof; no suitable runner
+was found on the inspected host PATH. Continue authorized non-executing source
+work while backup/recovery and host setup remain pending.
+
 Current source milestone on draft #68: the generic development-plan placeholder
 is replaced by a persisted source review, prioritized finding and recommendation.
 A separate observation checker and the two-step local recipe pass the real
