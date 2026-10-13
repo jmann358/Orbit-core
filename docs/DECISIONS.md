@@ -1,3 +1,26 @@
+## 2026-10-13 — bind approval to an immutable mission revision
+
+Continue authorized source work while independent backup/recovery is pending.
+Build on draft #67, preserving the installed checkout and private state.
+Keep the existing fixed-step queue and one SQLite transaction boundary rather
+than introducing a second execution engine. An HTTP caller must send the exact
+displayed revision/digest; ambiguous old decision payloads are rejected. Trusted
+in-process test/owner callers retain the explicit decision function.
+
+Modification creates a new goal ID linked to its predecessor, with a revision
+number and fresh approval requirement. Historical approval/outcomes are retained.
+Tasks carry their originating mission/revision/digest to prevent missing step
+links from turning delegated work into standalone authority. A legacy approval
+without a frozen plan is preserved as unbound history and requires review.
+Cancellation and replacement wait for in-flight or interrupted outcomes; neither
+claims to undo an action already started. Unknown outcomes remain review-needed.
+
+Shared Home/Chat controls prioritize underway work and show other approvals
+separately. Timeout handling queries stored state before presenting another
+decision. These changes grant no provider, installation, generated-code or
+external-effect authority. Full mission acceptance and owner/device checks
+remain open despite the 558 passing source tests.
+
 ## 2026-10-12 — THRONE reconciliation package
 
 Owner directed alignment of old/new plans and retirement of obsolete station

@@ -6,7 +6,7 @@ This is a durable source record, not a chat memory service. Access to this repos
 ## Minimum read, not another full audit
 
 1. Read **`docs/orbit/STATE.json`**, then execute `python scripts/orbit_resume.py --json` and **`python scripts/orbit_resume.py --audit`** in a checkout. The audit checks reference hashes and the acceptance ledger without running Luna; fail closed on invalid metadata.
-2. Check current GitHub `main`, the actual head of [PR #58](https://github.com/jmann358/Orbit-core/pull/58), and newer comments in [issue #52](https://github.com/jmann358/Orbit-core/issues/52). Live THRONE status requires a host check. Treat conflicting reports as **unknown** until reconciled; don't downgrade new evidence because an old document disagrees.
+2. Check current GitHub `main`, the candidate and its stacked PRs in `STATE.json`, and newer comments in [issue #52](https://github.com/jmann358/Orbit-core/issues/52). Live THRONE status requires a host check. Treat conflicting reports as **unknown** until reconciled; don't downgrade new evidence because an old document disagrees.
 3. State in two sentences: **current priority** and **first executable next step / precise blocker**. Don't replan completed source-review and design work.
 4. Before editing, check the changed-file set, target SHA and any active owner or agent workstream. Never overwrite unmerged work. Check `DEVELOPMENT_POLICY.md` for sensitive permission gates.
 5. Work on only the next unblocked task in `STATE.json`, with tests, evidence and explicit stop conditions. Prefer the 333-case ledger and specs in `docs/orbit/reference/` over requesting that the owner upload old ZIPs.
@@ -15,10 +15,11 @@ This is a durable source record, not a chat memory service. Access to this repos
 
 ## Right now (2026-10-13 checkpoint, not live host telemetry)
 
-- **Current focus P0-0:** Inspect THRONE's installed `560419d` and protect newer Mac memory with separately approved independent encrypted recovery before further changes. Mac is currently unavailable; stop any host action.
-- **Next once unblocked:** privacy provider-egress gate, independent task evidence, immutable mission revisions, then a real verified multi-step mission. Credit-aware routing is its own queued work item (`P1-CREDIT`), not contingent on cloud standby or Mac sandbox.
+- **Current source focus P0-3:** immutable mission revisions and inline lifecycle controls on top of draft #67. 558 local source tests pass; full contract acceptance remains open. Next source step: bounded multi-step evidence/recommendation mission. Continue one source workstream; do not treat unverified dependencies as completed.
+- **Live-update gate P0-0:** read-only Git inspection verified installed `560419d` with 12 tracked edits. Preserve those edits. The owner confirms independent encrypted backup/recovery is still pending and explicitly requests continued source work. No private database, installation or service change is authorized by this checkpoint.
+- Privacy gate and the 40-attempt ceiling are in inspected `main`; health verification is stacked drafts #66/#67. Credit-aware routing remains its own queued work item (`P1-CREDIT`).
 - Source-reviewed and design-ready: eight contracts and 333 proposed scenarios. `NOT_RUN` means exactly that; past 502-pass CI applies only to PR #58's existing suite, not these new requirements.
-- Published `main`: `pojo.2` (`baf96ab`); candidate/installed-by-report: **draft #58** at `560419d`, **not merged or released**. Update this line from verified evidence when it changes.
+- Inspected `main`: `b707f80`; release label remains `pojo.2`. Candidate base: draft #67 at `9d012c2`, itself on #66 at `357f8fc`. Mission changes continue on `codex/luna-mission-revisions`. This source stack is unmerged and is distinct from the installed checkout. Re-fetch before acting.
 - No new spending, new provider accounts, public exposure, generated-code application, or private-data upload is authorized by project documents.
 
 ## Drift control — the respectful checkpoint

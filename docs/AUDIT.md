@@ -4,6 +4,19 @@
 
 # Repository audit — 2026-10-12
 
+## Targeted follow-up — 2026-10-13, mission revisions on draft #67
+
+Existing focused goal/UI tests passed before changes. New tests reproduced
+approval without displayed-plan identity, simultaneous step/job edits reusing
+old authority, and a cancellation reporting final state before a running child
+settled. Source fixes bind immutable proposals and dispatched jobs, preserve
+linked replacement history and wait on uncertain results. A browser check
+also reproduced a newer approval hiding current work; shared selection now
+keeps running work first. Final source suite: 558 passed, 13 warnings, zero
+skips; temporary Mac browser and actual loopback worker/restart tests passed.
+See the dated progress entry for exact scope and remaining acceptance gates.
+No installed Luna or private data migration was exercised.
+
 ## Targeted follow-up — 2026-10-13, PR #66 at 357f8fc
 
 The original six source-verification tests and four mission-receipt tests pass.

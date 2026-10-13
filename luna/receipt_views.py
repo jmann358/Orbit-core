@@ -75,6 +75,20 @@ def _goal_content(record):
     return (
         "<p class='eyebrow'>Saved goal #" + _text(record["id"]) + "</p>" +
         "<h1>" + _text(record["objective"]) + "</h1>" +
+        "<p>Plan revision: " + _text(record.get("revision")) + "</p>" +
+        "<dl>" + _line("Approval event", record.get("approval_event_id")) +
+        _line("Created", record.get("created_at")) +
+        _line("Updated", record.get("updated_at")) + "</dl>" +
+        ("<p><a href='/agent/goals/" + str(record["predecessor_id"]) +
+         "/view'>View previous revision and its results</a></p>"
+         if type(record.get("predecessor_id")) is int and record["predecessor_id"] > 0 else "") +
+        ("<p><a href='/agent/goals/" + str(record["successor_id"]) +
+         "/view'>View replacement revision</a></p>"
+         if type(record.get("successor_id")) is int and record["successor_id"] > 0 else "") +
+        ("<p class='caution'>A started task may still finish. Cancellation does not undo it.</p>"
+         if record.get("in_flight") else "") +
+        ("<p class='caution'>An interrupted task has an uncertain outcome; it has not been replayed.</p>"
+         if record.get("outcome_uncertain") else "") +
         "<p class='state'>Recorded status: <strong>" + _text(record["state"]) + "</strong></p>" +
         "<p class='caution'>Step completion is worker-reported, not independently "
         "verified. No additional authority is granted by this page.</p>" +

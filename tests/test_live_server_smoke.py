@@ -151,6 +151,18 @@ def test_live_multistep_goal_runs_only_after_approval_and_survives_restart():
             })
             assert proposed["state"] == "proposed"
             goal_id = proposed["id"]
+            original_id = goal_id
+            original = _get_json(url + f"/agent/goals/{original_id}/report")
+            replacement = _get_json(url + f"/agent/goals/{original_id}/replace", {
+                "expected_revision": original["revision"],
+                "expected_digest": original["plan_digest"],
+                "objective": "Revised local health and development review",
+                "steps": ["project_health", "development_plan"],
+            })
+            assert replacement["state"] == "proposed"
+            assert replacement["revision"] == 2
+            goal_id = replacement["id"]
+            assert _get_json(url + f"/agent/goals/{original_id}/receipt")["state"] == "superseded"
             receipt_url = f"/agent/goals/{goal_id}/receipt"
             before = _get_json(url + receipt_url)
             assert before["state"] == "proposed"
@@ -159,7 +171,7 @@ def test_live_multistep_goal_runs_only_after_approval_and_survives_restart():
 
             # The only authorization is the real owner-facing API contract.
             approved = _get_json(
-                url + f"/agent/goals/{goal_id}/decision", {"approve": True}
+                url + f"/agent/goals/{goal_id}/decision", {"approve": True, "expected_revision": before["revision"], "expected_digest": before["plan_digest"]}
             )
             assert approved["state"] == "approved"
 
@@ -204,6 +216,10 @@ def test_live_multistep_goal_runs_only_after_approval_and_survives_restart():
         with running_luna(port, db_file) as url:
             again = _get_json(url + receipt_url)
             assert again["state"] == "completed"
+            assert again["revision"] == 2
+            assert again["predecessor_id"] == original_id
+            assert again["approval_event_id"] is not None
+            assert again["approval_digest"] == before["plan_digest"]
             assert [s["job_id"] for s in again["steps"]] == ids
             assert again["events"] == done["events"]
             # Other explicitly configured schedulers may create their own
@@ -212,7 +228,7 @@ def test_live_multistep_goal_runs_only_after_approval_and_survives_restart():
             assert all(all_ids.count(goal_job) == 1 for goal_job in ids)
             denied = Request(
                 url + f"/agent/goals/{goal_id}/decision",
-                data=json.dumps({"approve": True}).encode(),
+                data=json.dumps({"approve": True, "expected_revision": before["revision"], "expected_digest": before["plan_digest"]}).encode(),
                 headers={"Content-Type": "application/json"},
                 method="POST",
             )
@@ -220,6 +236,6 @@ def test_live_multistep_goal_runs_only_after_approval_and_survives_restart():
             try:
                 urlopen(denied, timeout=3)
             except HTTPError as error:
-                assert error.code == 404
+                assert error.code == 409
             else:
                 raise AssertionError("Completed goal unexpectedly reapproved")

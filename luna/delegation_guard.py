@@ -13,11 +13,17 @@ def authorize_claim(db, job_id, kind):
     Caller must hold BEGIN IMMEDIATE and perform the job state transition in
     that same transaction. No external calls or model-generated instructions.
     """
+    binding = db.execute(
+        "SELECT goal_id,goal_revision,goal_plan_digest,max_attempts FROM work_items WHERE id=?", (job_id,)
+    ).fetchone()
     if not db.execute(
         "SELECT 1 FROM sqlite_master WHERE type='table' "
         "AND name='agent_goal_steps'"
     ).fetchone():
-        return "allow", "standalone task", None, None
+        return (("deny", "Bound mission is missing", None, None)
+                if binding and binding[0] is not None else ("allow", "standalone task", None, None))
+    from luna import goals
+    goals._setup(db)
     rows = db.execute(
         """SELECT s.id,s.goal_id,s.kind,s.state,s.position,g.state
            FROM agent_goal_steps s
@@ -25,7 +31,8 @@ def authorize_claim(db, job_id, kind):
            WHERE s.job_id=? LIMIT 2""", (job_id,),
     ).fetchall()
     if not rows:
-        return "allow", "standalone task", None, None
+        return (("deny", "Bound mission step is missing", binding[0], None)
+                if binding and binding[0] is not None else ("allow", "standalone task", None, None))
     if len(rows) != 1:
         return "deny", "Multiple steps reference one job", None, None
     step_id, goal_id, assigned_kind, step_state, position, goal_state = rows[0]
@@ -33,6 +40,13 @@ def authorize_claim(db, job_id, kind):
         return "defer", "Owner paused this goal", goal_id, step_id
     if goal_state not in ("approved", "running"):
         return "deny", "Goal has no active approval", goal_id, step_id
+    if not goals.plan_integrity(db, goal_id, approved=True):
+        return "deny", "Approved plan revision changed", goal_id, step_id
+    revision, digest = db.execute(
+        "SELECT revision,approval_digest FROM agent_goals WHERE id=?", (goal_id,)
+    ).fetchone()
+    if binding != (goal_id, revision, digest, goals.jobs._attempt_limit(kind)):
+        return "deny", "Job is not bound to the approved mission revision", goal_id, step_id
     if assigned_kind != kind or step_state != "running":
         return "deny", "Task differs from approved step", goal_id, step_id
     try:

@@ -18,7 +18,7 @@ MANUAL_RETRY_KINDS = frozenset({
 RETRY_AFTER_SECONDS = (30, 120)
 FIELDS = ("id", "kind", "title", "detail", "state", "result",
           "created_at", "updated_at", "attempt_count", "max_attempts",
-          "next_attempt_at")
+          "next_attempt_at", "goal_id", "goal_revision", "goal_plan_digest")
 
 
 def _now():
@@ -38,6 +38,8 @@ def _attempt_limit(kind):
 
 
 def _setup(db):
+    if not db.in_transaction:
+        db.execute("BEGIN IMMEDIATE")
     db.execute("""CREATE TABLE IF NOT EXISTS work_items (
         id INTEGER PRIMARY KEY, kind TEXT NOT NULL, title TEXT NOT NULL,
         detail TEXT NOT NULL, state TEXT NOT NULL, result TEXT NOT NULL DEFAULT '',
@@ -48,6 +50,8 @@ def _setup(db):
         ("attempt_count", "INTEGER NOT NULL DEFAULT 0"),
         ("max_attempts", "INTEGER NOT NULL DEFAULT 1"),
         ("next_attempt_at", "TEXT NOT NULL DEFAULT ''"),
+        ("goal_id", "INTEGER"), ("goal_revision", "INTEGER"),
+        ("goal_plan_digest", "TEXT NOT NULL DEFAULT ''"),
     ):
         if name not in columns:
             db.execute("ALTER TABLE work_items ADD COLUMN " + name + " " + declaration)
@@ -220,7 +224,7 @@ def claim_next(now=None):
                             (goal_id,),
                         ).fetchone()
                         if current and current[0] not in (
-                            "cancelled", "completed", "rejected"
+                            "cancelled", "completed", "rejected", "superseded"
                         ):
                             db.execute(
                                 "UPDATE agent_goals SET state='attention',"

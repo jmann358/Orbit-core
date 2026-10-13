@@ -63,6 +63,12 @@ def test_goal_api_requires_approval():
             goal_id=response.json()["id"]
             assert response.json()["requires_approval"] is True
             assert client.get("/agent/goals").json()[0]["state"]=="proposed"
-            assert client.post("/agent/goals/"+str(goal_id)+"/decision",json={"approve":True}).status_code==200
+            assert client.post("/agent/goals/"+str(goal_id)+"/decision",json=approval_payload(client, goal_id, True)).status_code==200
             assert client.get("/agent/goals").json()[0]["state"]=="approved"
             assert client.post("/agent/goals",json={"objective":"Run forbidden action","steps":["run_shell"]}).status_code==400
+
+
+def approval_payload(client, ident, approve):
+    displayed = client.get(f"/agent/goals/{ident}/report").json()
+    return {"approve": approve, "expected_revision": displayed["revision"],
+            "expected_digest": displayed["plan_digest"]}

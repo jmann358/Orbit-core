@@ -200,7 +200,7 @@ def test_recipe_and_budget_api_fail_closed_and_require_approval():
             "recipe_id": "arbitrary-shell", "objective": "Check ORBIT status",
         }).status_code == 400
         assert client.post(f"/agent/goals/{ident}/decision",
-                           json={"approve": True}).status_code == 200
+                           json=approval_payload(client, ident, True)).status_code == 200
         assert client.get("/agent/delegation/status").json()["active_goals"] == 1
         assert client.get(f"/agent/goals/{ident}/report").json()["events"][-1]["event"] == "approved"
 
@@ -319,3 +319,9 @@ def test_api_suggestion_does_not_propose_or_dispatch():
         assert goals.list_goals() == []
         assert jobs.list_jobs() == []
         assert 'id="goal-recipe-suggest"' in client.get("/").text
+
+
+def approval_payload(client, ident, approve):
+    displayed = client.get(f"/agent/goals/{ident}/report").json()
+    return {"approve": approve, "expected_revision": displayed["revision"],
+            "expected_digest": displayed["plan_digest"]}

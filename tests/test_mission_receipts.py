@@ -65,7 +65,8 @@ def test_goal_receipt_tracks_owner_decision_child_job_and_outcome(tmp_path):
         assert pending["worker_reported_complete"] is False
         assert pending["steps"][0]["job_id"] is None
         approved = client.post(f"/agent/goals/{goal_id}/decision", json={
-            "approve": True
+            "approve": True, "expected_revision": pending["revision"],
+            "expected_digest": pending["plan_digest"]
         })
         assert approved.status_code == 200
         goals.advance_goals()
