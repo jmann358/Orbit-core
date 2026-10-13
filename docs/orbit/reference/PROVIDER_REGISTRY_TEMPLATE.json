@@ -1,0 +1,17 @@
+{
+  "schema": "orbit-credit-broker/provider-registry-draft-v0",
+  "illustrative_only": true,
+  "no_accounts_connected": true,
+  "user_authorized_paid_spending_usd": 0,
+  "account_discovery_enabled": false,
+  "provider_api_requests_enabled": false,
+  "units_not_transferable_between_providers": true,
+  "providers": [
+    {"id":"ollama-local", "role":"local inference", "connection":"needs Mac runtime check", "owner_authorized": false, "balance":null,"notes":"Does not use third-party API credits; local capacity is not free of hardware cost."},
+    {"id":"gemini-api", "role":"generative inference", "connection":"not connected", "owner_authorized":false,"balance":null,"expiry":null,"native_units":["requests","tokens"],"notes":"Model-specific free tier; exact permitted data class/terms require review."},
+    {"id":"groqcloud", "role":"fast inference", "connection":"not connected", "owner_authorized":false,"balance":null,"expiry":null,"native_units":["requests","tokens"],"notes":"Per-model rate limits; live entitlements not known."},
+    {"id":"openrouter", "role":"multi-model inference", "connection":"not connected", "owner_authorized":false,"balance":null,"expiry":null,"native_units":["requests","tokens","currency"],"notes":"Free-model routing restrictions and privacy policies must be checked."},
+    {"id":"cloudflare-workers-ai", "role":"inference and vision", "connection":"not connected", "owner_authorized":false,"balance":null,"expiry":null,"native_units":["neurons"],"notes":"Daily nonbankable allocation; model access may differ by plan."},
+    {"id":"microsoft-bing-grounding", "role":"grounded web retrieval", "connection":"not connected", "owner_authorized":false,"balance":null,"expiry":null,"native_units":["transactions"],"notes":"Legacy Bing Search API retired; replacement is an Azure product and not assumed free."}
+  ]
+}
