@@ -1,0 +1,73 @@
+{
+  "_notice": "ALL SYNTHETIC EXAMPLES; NOT ACTUAL LUNA RECEIPTS; representative interface shape, not a deployed schema.",
+  "worker_complete_not_verified": {
+    "receipt_id": "goal:18",
+    "kind": "goal",
+    "id": 18,
+    "objective": "Inspect specified source health and candidate CI",
+    "goal_revision": "r1",
+    "worker_state": "completed",
+    "worker_reported_complete": true,
+    "verification_status": "inconclusive",
+    "independently_verified": false,
+    "verification_scope": "syntax app.py + selected GitHub checks for exact head",
+    "verified_at": null,
+    "verified_for_version": null,
+    "verification_limitations": [
+      "No completed exact-head CI retrieved",
+      "Mac service was not checked",
+      "Synthetic examples never establish a live proof"
+    ],
+    "evidence": [
+      {
+        "criterion_id": "health-syntax",
+        "status": "not_checked",
+        "origin_class": "synthetic_fixture",
+        "observed_at_utc": "2026-10-13T02:10:00Z",
+        "scope": "synthetic source syntax check only; not live verification",
+        "failure_code": "synthetic_only"
+      },
+      {
+        "criterion_id": "github-exact-sha",
+        "status": "inconclusive",
+        "origin_class": "synthetic_fixture",
+        "failure_code": "no_exact_head_run"
+      }
+    ],
+    "result_url": "/agent/goals/18/receipt",
+    "read_only": true,
+    "state": "completed"
+  },
+  "scoped_verified_job": {
+    "receipt_id": "job:42",
+    "kind": "job",
+    "id": 42,
+    "job_kind": "github_status",
+    "worker_state": "completed",
+    "worker_reported_complete": true,
+    "verification_status": "verified",
+    "independently_verified": true,
+    "verification_scope": "Expected GitHub workflow jobs passed for exact candidate SHA only",
+    "verified_at": "2026-10-13T02:11:00Z",
+    "verified_for_version": "5555555555555555555555555555555555555555",
+    "verification_limitations": [
+      "Does not prove THRONE installation or production readiness"
+    ],
+    "evidence": [
+      {
+        "criterion_id": "github-ci",
+        "status": "verified",
+        "origin_class": "authenticated_external",
+        "checker_id": "trusted.github-actions.verify-v1",
+        "observed_at_utc": "2026-10-13T02:11:00Z",
+        "source_commit_sha": "5555555555555555555555555555555555555555",
+        "evidence_ref": "github-actions-run:123456",
+        "scope": "synthetic example; assumed trusted checker fetched exact run"
+      }
+    ],
+    "result_url": "/agent/jobs/42/receipt",
+    "read_only": true,
+    "example_warning": "Do not use this example to claim an actual run 123456 or any actual independent verification.",
+    "state": "completed"
+  }
+}
