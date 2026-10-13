@@ -1,3 +1,44 @@
+## 2026-10-13 — evidence-based local development recommendations (source review)
+
+Base: draft #68, `f46e201a38dfc134c5abcfba1beb97a1914d6304`. The existing
+development-plan handler returned the same scheduler checklist for every task.
+After a 33-test baseline, a new regression reproduced that placeholder behavior.
+The handler now observes the existing ten-path source allowlist using bounded
+no-follow reads, saves a manifest and prioritized findings, and recommends a
+specific next review action. Clean inputs produce no invented defect. Neither
+source snippets, private data, model calls nor executable commands enter the
+artifact. Artifacts are immutable per job attempt and carry mission revision
+and approval digest when applicable.
+
+A separate checker reopens those paths and independently implements the
+presence/readability/syntax and priority checks. It does not call the worker's
+observer or report builder. Tests demonstrate rejection of a worker fed an old
+snapshot, source/result/artifact/binding changes, symlink parents and historical
+generic plans. Verification events preserve stale/restored history and deduplicate
+concurrent identical observations. This certifies only the named source checks
+and deterministic recommendation selection, not complete diagnosis or repair
+safety. Content fingerprints are not Git commit SHAs or authentication.
+
+The fixed local-development-review recipe runs health then development planning
+without a model or network. Mission receipts expose scoped per-step evidence
+and its aggregate; they still do not certify a free-text objective. Criteria
+IDs are frozen in new mission plans. Earlier review-build approvals whose
+contract lacks these criteria fail integrity checks and require a new proposal;
+no historical approval is silently upgraded.
+
+Final Mac/Python 3.13 suite: **571 passed, 13 warnings, zero skips in 36.36
+seconds**; compilation and diff checks pass. Thirteen new planning tests cover
+actual observations, clean/faulted fixtures, tampering, immutable attempts,
+stale/restored evidence, concurrent checks and durable HTTP results. The real
+loopback two-step worker test now checks both scoped evidence records and saves
+the identical plan artifact across a process restart. Browser inspection of a
+disposable completed plan confirms the result, recommendation, scope and evidence
+display. The preview was stopped. No live provider or installed Luna was touched.
+
+Partial P0-4 source milestone only. Broader issue discovery, exact-commit external
+CI evidence, autonomous patch/test/repair in OS isolation, owner acceptance and
+installed recovery remain open. The 333-case acceptance ledger remains NOT_RUN.
+
 ## 2026-10-13 — exact mission revisions and inline replacement (source review)
 
 Continuation from draft PR #67 at `9d012c2851492d2b37c423854c9e1ab63a038ed3`.

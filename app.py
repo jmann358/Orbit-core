@@ -1581,6 +1581,15 @@ def agent_job_view(job_id:int):
 
 
 
+@app.post("/agent/jobs/{job_id}/verify-source-plan")
+def agent_verify_source_plan(job_id:int):
+    from luna.source_plans import verify_plan
+    try:
+        return verify_plan(job_id)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+
+
 @app.post("/agent/jobs/{job_id}/retry")
 def agent_retry_job(job_id:int):
     from luna.jobs import retry_job
@@ -1638,7 +1647,8 @@ def _process_job(job):
         except HTTPException:
             return False,"GitHub unavailable"
     if kind=="development_plan":
-        return True,planning_report("DEV-003")
+        from luna.source_plans import prepare_plan
+        return prepare_plan(job)
     if kind=="workshop_draft":
         import asyncio
         proposals=list_improvements()

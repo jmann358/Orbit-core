@@ -52,6 +52,7 @@ def goal_receipt(goal_id):
     steps = []
     for step in report["steps"]:
         job = step["job"]
+        evidence = job_receipt(job['id']) if job else None
         steps.append({
             "position": step["position"],
             "kind": step["kind"],
@@ -59,6 +60,11 @@ def goal_receipt(goal_id):
             "state": step["state"],
             "job_id": step["job_id"],
             "job_state": job["state"] if job else None,
+            "verification_status": evidence.get('verification_status', 'not_checked') if evidence else 'not_checked',
+            "verification_scope": evidence.get('verification_scope', '') if evidence else '',
+            "scoped_evidence_verified": bool(evidence and evidence['independently_verified'] and
+                evidence['goal_id'] == goal_id and evidence['goal_revision'] == report['revision'] and
+                evidence['goal_plan_digest'] == report['approval_digest']),
             "recorded_result": job["result"] if job and job["state"] in (
                 "completed", "attention", "cancelled") else "",
             "result_url": "/agent/jobs/" + str(step["job_id"]) + "/receipt"
@@ -87,6 +93,8 @@ def goal_receipt(goal_id):
         "steps": steps,
         "events": report["events"],
         "worker_reported_complete": consistent_complete,
+        "all_steps_have_scoped_evidence": consistent_complete and all(s['scoped_evidence_verified'] for s in steps),
+        "verification_limitations": "Step evidence covers only each named check; it does not certify the free-text objective, whole project or a future repair.",
         "independently_verified": False,
         "inconsistent_completion_state": report["state"] == "completed"
             and not consistent_complete,

@@ -1,18 +1,18 @@
 {
   "schema_version": 1,
-  "revision": 5,
-  "current_focus": "P0-3",
+  "revision": 6,
+  "current_focus": "P0-4",
   "updated_at": "2026-10-13",
   "source": {
     "repository": "jmann358/Orbit-core",
     "checkpoint_url": "https://github.com/jmann358/Orbit-core/issues/52#issuecomment-6148394576",
     "published_release": "pojo.2",
     "published_main_sha": "b707f80f0c99f66e2fc9acb34e22567600567001",
-    "candidate_pr": "https://github.com/jmann358/Orbit-core/pull/67",
-    "candidate_sha": "9d012c2851492d2b37c423854c9e1ab63a038ed3",
+    "candidate_pr": "https://github.com/jmann358/Orbit-core/pull/68",
+    "candidate_sha": "f46e201a38dfc134c5abcfba1beb97a1914d6304",
     "reported_installed_revision": "560419de5f21102c9c9995de57dd4bb8890837f9",
     "host_live_state": "GIT_ONLY_VERIFIED_2026-10-13",
-    "source_evidence": "Read-only local Git check 2026-10-13 verified installed HEAD and 12 tracked edits; service, private state and backup/recovery remain unverified. Source continuation is codex/luna-mission-revisions on candidate PR 67.",
+    "source_evidence": "Read-only local Git check 2026-10-13 verified installed HEAD and 12 tracked edits; service, private state and backup/recovery remain unverified. Source continuation is codex/luna-evidence-based-plans on candidate PR 68.",
     "verified_local_head": "560419de5f21102c9c9995de57dd4bb8890837f9",
     "local_tracked_changes_count": 12
   },
@@ -138,7 +138,7 @@
     {
       "id": "P0-4",
       "title": "First genuine bounded autonomous issue mission",
-      "status": "pending",
+      "status": "review",
       "owner": "THRONE",
       "objective": "Project evidence \u2192 one prioritized issue \u2192 recommendation \u2192 verified receipt",
       "acceptance": "Multi-step mission demonstrably works after browser closes",
@@ -147,7 +147,7 @@
       ],
       "evidence": "",
       "blocker": "",
-      "updated_at": "2026-10-13"
+      "updated_at": "2026-10-13T16:01:43.858798+00:00"
     },
     {
       "id": "P0-5",
@@ -341,6 +341,18 @@
       "state_revision": 5,
       "prev_hash": "cf8a69e0a6017c8ea923401c70f8bcb156ee3cf44cabf4471c47e0f3cb0514e6",
       "event_hash": "785092603b61258d6b77e2cbbf0a26c0c4b47f5e9a5eb4dc2fe4d323c4ed9a7e"
+    },
+    {
+      "seq": 6,
+      "timestamp": "2026-10-13T16:01:43.858798+00:00",
+      "actor": "THRONE",
+      "work_id": "P0-4",
+      "status": "review",
+      "note": "Source-only continuation on draft 68 at f46e201. Replaced canned scheduler planning with bounded source observations, prioritized findings, recommendation artifact and separately implemented re-observation checker. Fixed local two-step recipe; frozen criterion IDs; scoped per-step receipt evidence. Final local suite 571 passed, 13 warnings, zero skips, plus disposable browser receipt inspection. Real loopback worker/restart preserves both scoped evidence and exact plan artifact. Partial P0-4 only; broader finding/repair, OS isolation, full acceptance and independent backup/live installation remain open.",
+      "evidence": "https://github.com/jmann358/Orbit-core/tree/codex/luna-evidence-based-plans",
+      "state_revision": 6,
+      "prev_hash": "785092603b61258d6b77e2cbbf0a26c0c4b47f5e9a5eb4dc2fe4d323c4ed9a7e",
+      "event_hash": "8b62aeaa650973b2d35ea17934c5c9c1414cd1cb2c20948cc5b114d4eec0296b"
     }
   ]
 }

@@ -35,10 +35,14 @@ def run_once(processor, now=None):
     state = result["state"]
     # The local health observer re-reads fixed source files independently.
     # A missing/stale/invalid result stays unverified, never becomes a false pass.
-    if state == "completed" and job["kind"] == "project_health":
+    if state == "completed" and job["kind"] in ("project_health", "development_plan"):
         try:
-            from luna.result_verification import verify_local_health
-            verify_local_health(job["id"])
+            if job["kind"] == "project_health":
+                from luna.result_verification import verify_local_health
+                verify_local_health(job["id"])
+            else:
+                from luna.source_plans import verify_plan
+                verify_plan(job["id"])
         except (ValueError, OSError):
             # Observation is an optional separate evidence operation; the
             # durable worker result remains available with no verified badge.

@@ -1,3 +1,26 @@
+## 2026-10-13 — replace generic planning with observable local findings
+
+Preserve the existing development-plan job and source allowlist. Its previous
+fixed scheduler paragraph did not use project evidence, so replace it with a
+bounded deterministic review and an immutable artifact tied to the attempt and
+mission. Choose syntax/encoding errors before incomplete inspection, then stable
+path ordering. No finding means no invented defect; recommend trusted runtime
+validation as further work. Broader reasoning and code repair remain separate.
+
+Register the checker version in new mission plans. A separately implemented
+read-only checker must reopen source and validate the facts; the worker's report
+builder cannot certify itself. Share only the pinned safe-read primitive and
+predeclared policy constants. Preserve each recheck event and expose the narrow
+scope. A content fingerprint does not prove a Git commit, a complete diagnosis,
+or a safe repair. The old generic reports remain unverified. Earlier frozen
+review-build plans lacking the new criterion IDs require a new approval rather
+than silently inheriting changed criteria.
+
+The local review recipe uses no inference provider, including ChatGPT. Future
+provider selection still follows the owner's data and cost boundaries. This
+source milestone leaves installation, generated-code application, OS isolation,
+full acceptance and independent backup/recovery gates in place.
+
 ## 2026-10-13 — bind approval to an immutable mission revision
 
 Continue authorized source work while independent backup/recovery is pending.
