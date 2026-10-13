@@ -1,0 +1,48 @@
+{
+  "section": "03",
+  "status": "DESIGN_READY_NOT_IMPLEMENTED",
+  "baseline_commit": "560419de5f21102c9c9995de57dd4bb8890837f9",
+  "baseline_pr": "https://github.com/jmann358/Orbit-core/pull/58",
+  "settled_owner_choice": {
+    "retention": "C: preserve original conversations and backups; no automated hard deletion absent approved policy",
+    "technical_decisions": "separate source-linked ledger, can capture confirmed decisions without separate personal-memory review",
+    "personal_memories": "explicit owner approval; Luna/owner only",
+    "other_agents": "no general private memory access; task-specific minimal sharing only",
+    "authority": "THRONE authoritative writer; free cloud companion only future restricted standby"
+  },
+  "data_classes": [
+    "raw_conversation_archive",
+    "personal_approved_memory",
+    "pending_personal_candidate",
+    "technical_decision",
+    "restricted_sensitive_input",
+    "provider_visible_context",
+    "task_scoped_agent_envelope",
+    "private_backup",
+    "metadata_audit"
+  ],
+  "permissions": {
+    "owner_Luna_local": [
+      "read_relevant_archive",
+      "read_active_approved_memory",
+      "review_pending",
+      "correct_and_deactivate",
+      "view_sources"
+    ],
+    "specialist_agent": [
+      "minimal_approved_task_context_only"
+    ],
+    "cloud_model": [
+      "separately_authorized_current_chat_or_data_class_and_provider_only"
+    ],
+    "blackout_companion": [
+      "future_owner_authorized_minimal_continuity_metadata_only"
+    ],
+    "GitHub_or_public_logs": []
+  },
+  "policy_notes": [
+    "Approval, model egress, network exposure, paid calls, destructive deletion, source merge and release remain separate permission boundaries.",
+    "No real cloud call, app install, backup/export, or memory mutation is authorized by this document.",
+    "Synthetic acceptance descriptions do not prove live privacy or restore success."
+  ]
+}
