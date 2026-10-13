@@ -4,6 +4,15 @@
 
 # Repository audit — 2026-10-12
 
+## Targeted follow-up — 2026-10-13, fixed test-input identity on #70
+
+Reproduced unchanged proposal identity after a selected test's committed bytes
+change. Added a distinct digest of bounded immutable Git inputs and candidate
+bytes, clean-source validation and durable review UI. Nine synthetic regressions
+and 587 full-suite passes support this non-executing preparation only. Existing
+Linux runner integration and dependency/VM identities remain unimplemented;
+this packet is neither a sandbox proof nor an execution grant.
+
 ## Targeted follow-up — 2026-10-13, evidence-to-draft on #69
 
 Inspected existing manifests, developer engine, model consent, staging, runner

@@ -1,3 +1,35 @@
+## 2026-10-13 — exact test inputs before candidate execution (source review)
+
+Base draft #70: `06dd34ef18cc17c1f48e2c016b3d274aa66ecccf`. The existing proposal
+fingerprint binds test names but not test bytes or imported source. A reproduced
+case changes a committed test without changing that old fingerprint. The new
+read-only preparation packet binds the candidate, selected tests, committed
+source blobs, base commit/tree and bounded source inventory to a new digest.
+Dirty inputs, uncommitted tests, symlinked inputs, case collisions and oversized
+blobs are rejected. Private files and environment files are outside the fixed
+inventory. No checkout, dependency install or candidate import/execution occurs.
+
+Agent Studio can save an idempotent durable test-input review against the exact
+displayed proposal. The first predefined test selection supports only the
+existing diagnostics target `luna/development.py`; other targets stop. Source
+finding evidence and mission state are rechecked before saving. A disposable
+browser preview inspected a synthetic proposal and saved its review, displaying
+its commit, tests and digest plus the explicit unverified runner/approval state.
+The preview was stopped afterward; no live Luna or private database was used.
+
+Baseline: 38 relevant tests passed. Final Mac/Python 3.13 suite: **587 passed,
+13 warnings, zero skips in 37.78 seconds**. Compilation and diff checks pass.
+Nine new cases cover input identity, stale/dirty source, bounds, symlinks and
+durable idempotent review. Candidate fixtures are strings only and never run.
+
+This is partial D07-A/C preparation. It is NOT integrated with the existing
+Linux runner and does not secure or authorize that execution path. Dependency
+image identity, complete environment reproduction, Mac VM isolation and hostile
+fixture checks, a real repair/test loop, independent review and live promotion
+remain open. Independent encrypted backup/recovery and host setup remain gated;
+the owner directs continued source work. The 333-case acceptance ledger remains
+NOT_RUN.
+
 ## 2026-10-13 — connect a verified finding to bounded drafting (source review)
 
 Base draft #69: `a96af679efefd865de7f0854f2516380708d72b8`. Source review and
