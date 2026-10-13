@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": 9,
+  "revision": 10,
   "current_focus": "P1-3",
   "updated_at": "2026-10-13",
   "source": {
@@ -8,11 +8,11 @@
     "checkpoint_url": "https://github.com/jmann358/Orbit-core/issues/52#issuecomment-6148394576",
     "published_release": "pojo.2",
     "published_main_sha": "b707f80f0c99f66e2fc9acb34e22567600567001",
-    "candidate_pr": "https://github.com/jmann358/Orbit-core/pull/71",
-    "candidate_sha": "b3f1e78dbd8f807ef3cb1f8af2b137497959f8fc",
+    "candidate_pr": "https://github.com/jmann358/Orbit-core/pull/72",
+    "candidate_sha": "5cb5b447561abc9d876d8481c89bf4171fa88ff3",
     "reported_installed_revision": "560419de5f21102c9c9995de57dd4bb8890837f9",
     "host_live_state": "GIT_ONLY_VERIFIED_2026-10-13",
-    "source_evidence": "Read-only Git check verified installed HEAD and 12 tracked edits. Host reports macOS 27.0.1, Mac16,10, 16 GiB and 10 logical CPUs; no container/Docker/Podman/Orb executable on inspected PATH. Service/private state/backup remain unverified. Source continuation: codex/luna-verified-test-snapshot on PR 71.",
+    "source_evidence": "Read-only Git check verified installed HEAD and 12 tracked edits. Host reports macOS 27.0.1, Mac16,10, 16 GiB and 10 logical CPUs; no container/Docker/Podman/Orb executable on inspected PATH. Service/private state/backup remain unverified. Source continuation: codex/luna-pinned-test-environment on PR 72.",
     "verified_local_head": "560419de5f21102c9c9995de57dd4bb8890837f9",
     "local_tracked_changes_count": 12
   },
@@ -221,7 +221,7 @@
       ],
       "evidence": "",
       "blocker": "",
-      "updated_at": "2026-10-13T16:41:27.619705+00:00"
+      "updated_at": "2026-10-13T16:52:17.552103+00:00"
     },
     {
       "id": "P2-1",
@@ -389,6 +389,18 @@
       "state_revision": 9,
       "prev_hash": "7227c7ee2303df62c76b97be9a9ad03dc47494d521688ce8d59eb6d37055e0b7",
       "event_hash": "5fbcbf13f6cc63ed58eabae28ca38d81ad5931d520bf68c3e29f098f8bee768b"
+    },
+    {
+      "seq": 10,
+      "timestamp": "2026-10-13T16:52:17.552103+00:00",
+      "actor": "THRONE",
+      "work_id": "P1-3",
+      "status": "review",
+      "note": "Source-only dependency recipe on draft 72 at 5cb5b44. Pin official Linux ARM64 Python base manifest/config and 22 wheel hashes matching passing Mac package versions. Hash-required dry run and Linux dependency marker closure pass; no install/build/import/candidate execution. Apple container 1.5.0 source exposes host image-pull fallback despite guest network none; pin application/init/kernel and prove offline execution before adoption. Image digest remains null and guest/isolation NOT_RUN. Backup and host approvals pending.",
+      "evidence": "https://github.com/jmann358/Orbit-core/tree/codex/luna-pinned-test-environment",
+      "state_revision": 10,
+      "prev_hash": "5fbcbf13f6cc63ed58eabae28ca38d81ad5931d520bf68c3e29f098f8bee768b",
+      "event_hash": "98d72de9038e27236514f8b48aeeb61cec2f92664731ba3aa0d8c5ebf57cd30c"
     }
   ]
 }

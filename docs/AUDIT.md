@@ -4,6 +4,15 @@
 
 # Repository audit — 2026-10-12
 
+## Targeted follow-up — 2026-10-13, dependency and runtime preparation on #72
+
+Pinned 22 Linux ARM64 wheels to versions matching the passing Mac environment
+and verified their hashes by non-installing resolution. Pinned the official
+Python base manifest/config; prepared a minimal build context, not a built image.
+Apple container 1.5.0 source shows host-side missing-image pulls despite guest
+network denial. Application/init image and kernel identities plus independently
+proved offline execution are prerequisites. No runtime or candidate was started.
+
 ## Targeted follow-up — 2026-10-13, verified snapshot consumption on #71
 
 The Linux runner copied mutable source after review. Replaced that path with

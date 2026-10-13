@@ -1,3 +1,17 @@
+## 2026-10-13 — separate dependency preparation from candidate execution
+
+Prepare a minimal trusted Linux ARM64 dependency recipe before any candidate can
+run. Pin the base image, versions and wheel hashes; download only in an approved
+preparation stage and install offline in the final image. Match tested package
+versions rather than accepting an incidental upgrade. Do not call an unbuilt
+recipe an attested environment; record its resulting image digest only after
+an actual approved build and guest baseline.
+
+Apple's release source demonstrates registry fallback during creation. A guest
+network flag and prior cache inspection are not a host offline guarantee. Require
+application/init/kernel identities and external evidence of candidate-time
+network denial before choosing the execution adapter. No runtime authority changes.
+
 ## 2026-10-13 — consume immutable reviewed bytes at the runner boundary
 
 Require the saved test-input identity in the existing manual Linux runner and
