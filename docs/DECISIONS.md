@@ -1,3 +1,15 @@
+## 2026-10-13 — consume immutable reviewed bytes at the runner boundary
+
+Require the saved test-input identity in the existing manual Linux runner and
+revalidate before staging. Reuse a pure source loader that returns verified Git
+and replacement bytes; never recopy working files after validation. Preserve
+manual approval and platform requirements. Bind result receipts to commit/tree
+and input digest; explicitly report dependency environment as unverified.
+
+Saved developer context remains metadata rather than authority. This change
+provides no Mac runner, candidate execution permission, dependency installation
+or unattended execution. Isolation still requires external hostile-fixture proof.
+
 ## 2026-10-13 — bind tests and source before requesting execution
 
 Retain the existing proposal fingerprint, but give test preparation a separate

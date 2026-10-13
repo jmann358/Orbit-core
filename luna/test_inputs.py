@@ -45,7 +45,7 @@ def _digest(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True).encode()).hexdigest()
 
 
-def prepare_test_inputs(root, manifest, replacements, *, expected_proposal):
+def _prepare(root, manifest, replacements, *, expected_proposal):
     """Bind the candidate and selected trusted tests to one clean source commit."""
     normalized = validate_manifest(manifest)
     compare_proposal_fingerprint(normalized, expected_proposal)
@@ -99,7 +99,7 @@ def prepare_test_inputs(root, manifest, replacements, *, expected_proposal):
         raise ValueError('Total source input exceeds review limit')
     # Size-check immutable objects before collecting their bounded contents.
     content = _git(root, 'cat-file', '--batch', data=requests)
-    offset, files = 0, []
+    offset, files, contents = 0, [], {}
     candidates = {item['path']: item for item in normalized['files']}
     for (name, oid), size_row in zip(selected, sizes):
         end = content.index(b'\n', offset)
@@ -118,6 +118,7 @@ def prepare_test_inputs(root, manifest, replacements, *, expected_proposal):
         replacement = candidates.get(name)
         if replacement and replacement['base_sha256'] != base_hash:
             raise ValueError('Candidate base differs from the committed source')
+        contents[name] = replacements[name].encode('utf-8') if replacement else raw
         files.append({'path': name, 'git_blob': oid, 'base_sha256': base_hash,
                       'input_sha256': replacement['replacement_sha256'] if replacement else base_hash,
                       'bytes': len(replacements[name].encode()) if replacement else size,
@@ -131,4 +132,36 @@ def prepare_test_inputs(root, manifest, replacements, *, expected_proposal):
               'candidate_execution_authorized': False, 'tests_run': False,
               'runner_attested': False, 'network_authorized': False,
               'limitations': 'Input integrity only. No dependency-image identity, runner isolation, semantic test result or execution approval is established.'}
-    return {**packet, 'inputs_fingerprint': _digest(packet)}
+    return {**packet, 'inputs_fingerprint': _digest(packet)}, contents
+
+
+def prepare_test_inputs(root, manifest, replacements, *, expected_proposal):
+    """Review identities only; no candidate bytes are executed or written."""
+    return _prepare(root, manifest, replacements, expected_proposal=expected_proposal)[0]
+
+
+def verified_input_contents(root, packet, replacements, *, expected_inputs):
+    """Revalidate an exact reviewed packet and return immutable source bytes.
+
+    Bytes come from verified Git objects and replacement hashes, never a later
+    copy of mutable working files. This is input integrity, not isolation or
+    execution authority. Developer context is digest-bound metadata only.
+    """
+    if not isinstance(packet, dict) or not isinstance(expected_inputs, str):
+        raise ValueError('An exact reviewed test-input packet is required')
+    # API response envelope fields are not part of the saved packet's identity.
+    body = {k: v for k, v in packet.items() if k not in ('review_id', 'created_at', 'inputs_fingerprint')}
+    if not re.fullmatch(r'[0-9a-f]{64}', expected_inputs) or packet.get('inputs_fingerprint') != expected_inputs or _digest(body) != expected_inputs:
+        raise ValueError('Test-input identity does not match review')
+    context = {'developer_mission_id', 'original_proposal_fingerprint', 'source_evidence'}
+    if set(body) & context and not context.issubset(body):
+        raise ValueError('Incomplete developer review context')
+    manifest = body.get('manifest')
+    if not isinstance(manifest, dict):
+        raise ValueError('Missing reviewed manifest')
+    current, contents = _prepare(root, manifest, replacements,
+                                 expected_proposal=body.get('proposal_fingerprint'))
+    current.pop('inputs_fingerprint')
+    if {k: v for k, v in body.items() if k not in context} != current:
+        raise ValueError('Reviewed source or test inputs changed; prepare a new review')
+    return contents

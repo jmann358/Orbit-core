@@ -115,7 +115,122 @@ def test_saved_developer_input_review_is_idempotent(repository, monkeypatch):
     first = developer_agent.prepare_test_review(core.DB_PATH, ident, fingerprint, root=root)
     again = developer_agent.prepare_test_review(core.DB_PATH, ident, fingerprint, root=root)
     assert first == again
+    from luna.test_inputs import verified_input_contents
+    contents = verified_input_contents(root, first, replacements, expected_inputs=first['inputs_fingerprint'])
+    assert contents['luna/development.py'] == replacements['luna/development.py'].encode()
     assert first['tests'] == ['tests/test_development.py', 'tests/test_development_engine.py']
     with pytest.raises(ValueError, match='Displayed proposal changed'):
         developer_agent.prepare_test_review(core.DB_PATH, ident, '0' * 64, root=root)
     assert developer_agent.mission(core.DB_PATH, ident)['state'] == 'review'
+
+
+def test_verified_contents_do_not_copy_later_working_edits(repository, monkeypatch):
+    from luna import test_inputs
+    root, _, replacements = repository
+    packet = prepare(repository)
+    original = test_inputs._prepare
+    def concurrent_edit(*args, **kwargs):
+        result = original(*args, **kwargs)
+        (root / 'luna/core.py').write_text('UNREVIEWED = True\n')
+        return result
+    monkeypatch.setattr(test_inputs, '_prepare', concurrent_edit)
+    contents = test_inputs.verified_input_contents(root, packet, replacements,
+        expected_inputs=packet['inputs_fingerprint'])
+    assert contents['luna/core.py'] == b'CORE = 1\n'
+    assert contents['luna/development.py'] == replacements['luna/development.py'].encode()
+    assert 'private.sqlite' not in contents and '.env' not in contents
+
+
+@pytest.mark.parametrize('tamper', ['digest', 'test', 'extra', 'authority', 'partial_context'])
+def test_packet_tampering_is_rejected(repository, tamper):
+    from luna.test_inputs import verified_input_contents, _digest
+    root, _, replacements = repository
+    packet = prepare(repository)
+    if tamper == 'digest':
+        packet['inputs_fingerprint'] = '0' * 64
+    else:
+        if tamper == 'test':
+            packet['inputs'][0]['input_sha256'] = '0' * 64
+        elif tamper == 'extra':
+            packet['extra_authority'] = True
+        elif tamper == 'authority':
+            packet['candidate_execution_authorized'] = True
+        else:
+            packet['developer_mission_id'] = 1
+        packet['inputs_fingerprint'] = _digest({k: v for k, v in packet.items() if k != 'inputs_fingerprint'})
+    with pytest.raises(ValueError):
+        verified_input_contents(root, packet, replacements, expected_inputs=packet['inputs_fingerprint'])
+
+
+def test_saved_packet_cannot_follow_new_commit(repository):
+    from luna.test_inputs import verified_input_contents
+    root, _, replacements = repository
+    packet = prepare(repository)
+    (root / 'tests/test_development.py').write_text('def test_new(): assert True\n')
+    git(root, 'add', '.')
+    git(root, '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'New tests')
+    with pytest.raises(ValueError, match='inputs changed'):
+        verified_input_contents(root, packet, replacements, expected_inputs=packet['inputs_fingerprint'])
+
+
+def test_runner_missing_or_stale_input_review_never_executes(repository, monkeypatch):
+    from luna import restricted_runner
+    root, manifest, replacements = repository
+    packet = prepare(repository)
+    monkeypatch.setattr(restricted_runner, '_runner_binary', lambda: '/usr/bin/bwrap')
+    def forbidden(*args, **kwargs):
+        pytest.fail('Candidate execution must never be reached')
+    monkeypatch.setattr(restricted_runner, '_execute', forbidden)
+    with pytest.raises(ValueError, match='reviewed test-input packet'):
+        restricted_runner.run_verified_candidate(root, manifest, replacements,
+            expected_fingerprint=proposal_fingerprint(manifest), approved=True)
+    (root / 'tests/test_development.py').write_text('def test_changed(): assert True\n')
+    with pytest.raises(ValueError, match='Working source or tests differ'):
+        restricted_runner.run_verified_candidate(root, manifest, replacements,
+            expected_fingerprint=proposal_fingerprint(manifest), approved=True,
+            input_review=packet, expected_inputs_fingerprint=packet['inputs_fingerprint'])
+
+
+def test_runner_stages_only_reviewed_bytes_and_reports_identity(repository, monkeypatch):
+    from luna import restricted_runner
+    import subprocess
+    root, manifest, replacements = repository
+    packet = prepare(repository)
+    monkeypatch.setattr(restricted_runner, '_runner_binary', lambda: '/usr/bin/bwrap')
+    seen = []
+    def inspect_command(binary, work, tests):
+        seen.append(work)
+        assert (work / 'luna/development.py').read_bytes() == replacements['luna/development.py'].encode()
+        for entry in packet['inputs']:
+            assert hashlib.sha256((work / entry['path']).read_bytes()).hexdigest() == entry['input_sha256']
+        assert sorted(str(p.relative_to(work)) for p in work.rglob('*') if p.is_file()) == sorted(e['path'] for e in packet['inputs'])
+        assert tests == packet['tests']
+        return ['never-executed']
+    monkeypatch.setattr(restricted_runner, '_command', inspect_command)
+    monkeypatch.setattr(restricted_runner, '_execute', lambda *a, **k: subprocess.CompletedProcess([], 0))
+    report = restricted_runner.run_verified_candidate(root, manifest, replacements,
+        expected_fingerprint=proposal_fingerprint(manifest), approved=True,
+        input_review=packet, expected_inputs_fingerprint=packet['inputs_fingerprint'])
+    assert report['inputs_fingerprint'] == packet['inputs_fingerprint']
+    assert report['base_commit_sha'] == packet['base_commit_sha']
+    assert not report['dependency_environment_verified']
+    assert not seen[0].exists()
+    assert (root / 'luna/development.py').read_text() == 'VALUE = 1\n'
+
+
+def test_cli_refuses_old_proposal_fingerprint_as_input_approval(repository, monkeypatch, capsys):
+    from luna import restricted_runner
+    import json
+    root, manifest, replacements = repository
+    packet = prepare(repository)
+    document = root / 'review.json'
+    document.write_text(json.dumps(dict(manifest=manifest, replacements=replacements, input_review=packet)))
+    monkeypatch.chdir(root)
+    monkeypatch.setattr(restricted_runner.sys, 'argv', ['restricted_runner', str(document)])
+    monkeypatch.setattr('builtins.input', lambda prompt: proposal_fingerprint(manifest))
+    def forbidden(*args, **kwargs):
+        pytest.fail('No runner should be reached before exact input approval')
+    monkeypatch.setattr(restricted_runner, 'run_verified_candidate', forbidden)
+    with pytest.raises(SystemExit, match='not approved'):
+        restricted_runner.main()
+    assert packet['inputs_fingerprint'] in capsys.readouterr().out

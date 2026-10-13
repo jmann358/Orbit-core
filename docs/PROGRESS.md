@@ -1,3 +1,33 @@
+## 2026-10-13 — consume exact reviewed test inputs (source review)
+
+Base draft #71: `b3f1e78dbd8f807ef3cb1f8af2b137497959f8fc`. The manual Linux
+runner still copied mutable working files after review. It now requires the
+separate saved input packet and exact input fingerprint, reconstructs its full
+bounded source identity, and stages only verified immutable Git bytes plus
+hash-matching candidate text. Missing, altered, stale or mismatched reviews stop.
+The CLI validates before confirmation and again before staging; typing the old
+proposal-only fingerprint is insufficient. Results retain commit/tree/input
+identity and explicitly report unverified dependency environment.
+
+This creates a reusable verified source loader for a future Mac runner without
+installing or invoking one. Developer context is digest-bound metadata, not
+authentication or an execution grant. API/scheduler execution remains absent.
+The existing manual approval and Linux isolation requirements remain in place.
+No candidate code was executed: candidate process calls are mocked in tests.
+
+Baseline: 20 relevant tests passed. Final Mac/Python 3.13 suite: **597 passed,
+13 warnings, zero skips in 39.39 seconds**. Compilation and diff checks passed.
+Ten new cases cover packet tampering, changed commits, missing/stale reviews,
+exact staged bytes, cleanup, saved API-envelope compatibility and refusal of
+proposal-only CLI approval. A concurrent working edit after observation cannot
+change the returned immutable bytes. Tests do not prove OS containment.
+
+Partial P1-3 source progress only. Next gaps: immutable dependency environment,
+owner-approved Mac VM setup, externally observed hostile-fixture containment,
+real bounded repair/test/review, backup/recovery and live promotion. The 333-case
+acceptance ledger remains NOT_RUN. No live Luna, private data, dependencies,
+providers or services were changed.
+
 ## 2026-10-13 — exact test inputs before candidate execution (source review)
 
 Base draft #70: `06dd34ef18cc17c1f48e2c016b3d274aa66ecccf`. The existing proposal

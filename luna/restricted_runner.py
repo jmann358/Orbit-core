@@ -2,9 +2,8 @@
 
 NOT called by the web API, jobs, scheduler, or Luna. Never applies live changes.
 This runner executes proposed Python in an OS namespace ONLY when the owner
-supplies an exact, currently verified proposal fingerprint through the CLI.
+supplies an exact, currently verified test-input fingerprint through the CLI.
 """
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -16,6 +15,7 @@ import tempfile
 
 from luna.patch_manifest import validate_manifest, proposal_fingerprint
 from luna.workshop import stage_proposal
+from luna.test_inputs import verified_input_contents
 
 TIMEOUT_SECONDS = 30
 MEMORY_BYTES = 768 * 1024 * 1024
@@ -29,29 +29,6 @@ def _regular_source(path, root):
     if not 0 <= path.stat().st_size <= COPY_LIMIT:
         raise ValueError("Source exceeds allowed size: " + str(path))
     return path.read_bytes()
-
-
-def _copy_trusted_snapshot(root, destination):
-    """Copy only source/tests needed by trusted tests, never secrets or .git."""
-    for name in ("app.py", "requirements.txt"):
-        data = _regular_source(root / name, root)
-        (destination / name).write_bytes(data)
-    for directory, rule in (
-        ("luna", lambda name: name.endswith(".py")),
-        ("tests", lambda name: name.startswith("test_") and name.endswith(".py")),
-    ):
-        source = root / directory
-        if source.is_symlink() or not source.is_dir():
-            raise ValueError("Missing or unsafe source directory")
-        target = destination / directory
-        target.mkdir()
-        for item in source.iterdir():
-            if item.is_symlink():
-                raise ValueError("Symlink in trusted source directory")
-            if not item.is_file():
-                continue
-            if rule(item.name):
-                (target / item.name).write_bytes(_regular_source(item, root))
 
 
 def _runner_binary():
@@ -118,7 +95,13 @@ def _limit_child():
     resource.setrlimit(resource.RLIMIT_NOFILE, (64, 64))
 
 
-def run_verified_candidate(root, manifest, replacements, *, expected_fingerprint, approved=False):
+def _execute(*args, **kwargs):
+    """Only candidate-process boundary; tests replace this without mocking Git."""
+    return subprocess.run(*args, **kwargs)
+
+
+def run_verified_candidate(root, manifest, replacements, *, expected_fingerprint, approved=False,
+                           input_review=None, expected_inputs_fingerprint=None):
     """Run bounded trusted tests against staged replacements, never the live tree.
 
     approved=True represents only an explicit CLI action, NOT network/API auth.
@@ -151,21 +134,24 @@ def run_verified_candidate(root, manifest, replacements, *, expected_fingerprint
         _regular_source(root / name, root)
     bwrap = _runner_binary()  # reject missing isolation BEFORE staging runnable sources
 
+    contents = verified_input_contents(root, input_review, replacements,
+                                       expected_inputs=expected_inputs_fingerprint)
+    if input_review['manifest'] != normalized or input_review['proposal_fingerprint'] != digest:
+        raise ValueError('Input review belongs to a different proposal')
+
     with tempfile.TemporaryDirectory(prefix="orbit-sandbox-") as temporary:
         work = Path(temporary) / "work"
         work.mkdir()
-        _copy_trusted_snapshot(root, work)
-        for entry in normalized["files"]:
-            target = work / entry["path"]
-            if hashlib.sha256(target.read_bytes()).hexdigest() != entry["base_sha256"]:
-                raise ValueError("Base revision changed while copying")
-            target.write_text(replacements[entry["path"]], encoding="utf-8")
+        for name, data in contents.items():
+            target = work / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(data)
         # bubblewrap binds this host workspace read-only and provides only /tmp writable.
         # The caller's working tree and credentials are never mounted in the sandbox.
         command = _command(bwrap, work, normalized["tests"])
         with (Path(temporary) / "test-output.log").open("w+b") as log:
             try:
-                result = subprocess.run(
+                result = _execute(
                     command, stdin=subprocess.DEVNULL, stdout=log,
                     stderr=subprocess.STDOUT, timeout=TIMEOUT_SECONDS,
                     env={"PATH": "/usr/bin:/bin", "LANG": "C"},
@@ -181,6 +167,10 @@ def run_verified_candidate(root, manifest, replacements, *, expected_fingerprint
         "exit_code": code, "timed_out": timed_out,
         "output": output,
         "fingerprint": digest,
+        "inputs_fingerprint": expected_inputs_fingerprint,
+        "base_commit_sha": input_review["base_commit_sha"],
+        "base_tree_sha": input_review["base_tree_sha"],
+        "dependency_environment_verified": False,
         "tests": normalized["tests"],
         "runner": "bubblewrap",
         "network_requested": False,
@@ -195,18 +185,30 @@ def main():
         raise SystemExit("Usage: python -m luna.restricted_runner PROPOSAL.json")
     path = Path(sys.argv[1])
     document = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(document, dict) or set(document) != {"manifest", "replacements"}:
-        raise SystemExit("Proposal JSON must contain exactly manifest and replacements")
+    if not isinstance(document, dict) or set(document) != {"manifest", "replacements", "input_review"}:
+        raise SystemExit("Proposal JSON must contain exactly manifest, replacements and input_review")
     manifest = validate_manifest(document["manifest"])
     fingerprint = proposal_fingerprint(manifest)
     print("Candidate fingerprint:", fingerprint)
     print("Tests:", ", ".join(manifest["tests"]) or "(none)")
-    print("Only run a proposal whose full fingerprint you already reviewed.")
-    supplied = input("Type the FULL fingerprint to approve this one sandbox run: ").strip()
-    if supplied != fingerprint:
+    review = document['input_review']
+    if not isinstance(review, dict):
+        raise SystemExit('Missing saved input review; no tests were run')
+    inputs_fingerprint = review.get('inputs_fingerprint')
+    # Verify before displaying approval, then again immediately before staging.
+    verified_input_contents(Path.cwd(), review, document['replacements'], expected_inputs=inputs_fingerprint)
+    if review['manifest'] != manifest or review['proposal_fingerprint'] != fingerprint:
+        raise SystemExit('Input review belongs to a different proposal')
+    print('Source commit:', review['base_commit_sha'])
+    print('Test-input fingerprint:', inputs_fingerprint)
+    print('Dependency environment and OS isolation are not attested by this review.')
+    print("Only run inputs whose full fingerprint you already reviewed.")
+    supplied = input("Type the FULL test-input fingerprint to approve this one sandbox run: ").strip()
+    if supplied != inputs_fingerprint:
         raise SystemExit("Fingerprint not approved; no tests were run")
     report = run_verified_candidate(Path.cwd(), manifest, document["replacements"],
-                                    expected_fingerprint=fingerprint, approved=True)
+                                    expected_fingerprint=fingerprint, approved=True,
+                                    input_review=review, expected_inputs_fingerprint=supplied)
     print(json.dumps(report, indent=2))
     raise SystemExit(0 if report["passed"] else 1)
 

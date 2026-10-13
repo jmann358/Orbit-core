@@ -44,34 +44,35 @@ source tree. No user-provided shell commands or test selectors are accepted.
 `luna/restricted_runner.py` is a **local CLI only**. It cannot be started
 through the web API, scheduler, GitHub shared tasks, or an autonomous agent.
 
-The owner must review the manifest, diffs and full SHA-256 fingerprint.
-Prepare a local `candidate.json` document containing exactly two keys:
+The owner must review the manifest, diffs, base commit/tree, selected tests and
+full **test-input** SHA-256 fingerprint. A proposal fingerprint alone is no longer
+sufficient because it identifies test names without binding their contents.
+Prepare a local `candidate.json` with exactly these keys:
 
-```json
-{
-  "manifest": {
-    "files": [{
-      "path": "luna/development.py",
-      "base_sha256": "<original digest>",
-      "replacement_sha256": "<candidate digest>"
-    }],
-    "tests": ["tests/test_development_engine.py"]
-  },
-  "replacements": {"luna/development.py": "<complete candidate source>"}
-}
-```
+- `input_review`: the complete saved test-input packet (the API response may
+  include its `review_id` and `created_at` envelope).
+- `manifest`: the normalized `manifest` inside that packet, including its tests.
+- `replacements`: a map from the candidate path to the complete proposed source.
 
-The `manifest` is the `manifest` returned from the preview API; the
-`replacements` are the precise code text originally submitted, not the diff.
+Agent Studio prepares a saved review for the predefined diagnostics selection.
+For a separately reviewed manual proposal, `luna.test_inputs.prepare_test_inputs`
+prepares identities without executing it. The repository must have a committed,
+clean fixed-scope source/test inventory; untracked tests cannot become trusted
+inputs. Developer context in a packet is metadata, not an execution grant.
 
-From the repo root, after reviewing the full fingerprint:
+On a separately approved and verified Linux host, from the repository root:
 
 ```bash
 python -m luna.restricted_runner candidate.json
 ```
 
-The CLI prints the expected fingerprint and asks the owner to **type it in
-full**, for one test run only. No response or wrong response means no tests.
+The CLI revalidates the packet before asking for its full input fingerprint,
+then revalidates again immediately before staging. Wrong, stale or missing
+identity stops the run. Staging uses only the verified immutable Git bytes and
+hash-matching replacement, never a later copy of the working folder. Results
+include the input fingerprint and base commit/tree. The temporary snapshot is
+removed afterward. Neither this CLI nor any generated fixture was executed as
+a candidate test during this source change; process calls were mocked in tests.
 
 Requires Linux, a *preinstalled* system `bubblewrap` executable, and
 kernel support for unprivileged user namespaces. The runner never installs
@@ -85,7 +86,10 @@ libraries, a private writable `/tmp`, cleared environment variables, a
 only listed pre-existing trusted test paths. It makes no modifications to
 live source and deletes its candidate snapshot afterwards.
 
-**Limits:** OS sandboxing is defense in depth, not a guarantee against
+**Limits:** Dependency environment identity remains unverified and is explicitly
+reported as such. Source fingerprints do not attest to installed libraries or
+prove isolation. The Mac VM runner and hostile-fixture acceptance remain pending.
+OS sandboxing is defense in depth, not a guarantee against
 kernel or sandbox vulnerabilities. A usable Python environment and
 namespaces are platform-specific. Kernel isolation has not been exercised
 on the Chromebook or Mac. The Mac is not Linux and requires a separately
