@@ -30,7 +30,6 @@
     "docs/orbit/reference/FIRST_MISSION_DEMONSTRATION.md": "2a371cd4e8e0c56052058a770032be122c5c85ba96f44a1e8d54da63a7076f0b",
     "docs/orbit/reference/LEGACY_PR_DISPOSITION.md": "73761d7c9cb8a5323eba9231f7069df1a909924b7c67da7b5f02700276f700cb",
     "docs/orbit/reference/PROVIDER_REGISTRY_TEMPLATE.json": "46ae4cd55b0a29f9ccd40c1e028ffc6f66bdea93a89ea84ac0b92da33b97c249",
-    "docs/orbit/reference/PROVIDER_SOURCE_CHECKLIST.md": "d44f39187b9ac85161e2f4aefb3b4c8665102a95e529df13d5e51060e2127abe",
     "docs/orbit/reference/REQUIREMENTS_CROSSWALK.csv": "f15fe99a08409c33a88882a5062432c7fcb41ca1712e61b2b58a9a5de0d2fd8b",
     "docs/orbit/reference/SECTION_LOCK_REGISTER.md": "8cefb52747c4049309ee8794e128a2b5d139bb6615406f9c1383de4bfec69f5a",
     "docs/orbit/reference/THRONE_ACTION_QUEUE.csv": "451d9128091e2555a49a50f44f857e6ac88ef0199f2529772eaa94bfcda584da",
@@ -40,5 +39,6 @@
   "checks": {
     "all_test_ids_unique": true,
     "acceptance_ledger_all_not_run": true
-  }
+  },
+  "publication_note": "One optional provider source checklist was omitted from GitHub publication; this manifest enumerates only committed reference files. Verify provider-specific terms afresh before any service connection."
 }
