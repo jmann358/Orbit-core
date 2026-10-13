@@ -130,4 +130,6 @@ def test_worker_automatically_saves_independent_evidence_for_eligible_health(tmp
         assert receipt["independently_verified"] is True
         # The independent operation did not enqueue, run or change source.
         assert jobs.list_jobs()[0]["id"] == ident
-        assert (tmp_path / "app.py").read_text() == "def start():\\n    return True\\n"
+        assert (tmp_path / "app.py").read_text().splitlines() == [
+            "def start():", "    return True"
+        ]
