@@ -28,6 +28,11 @@ _RECIPES = {
         "Prepare a non-executing plan for review",
         ("development_plan",),
     ),
+    "local-development-review": (
+        "Inspect source and recommend the next step",
+        "Check local health, then save a source-based finding and recommendation with scoped evidence; no model or network calls",
+        ("project_health", "development_plan"),
+    ),
 }
 RECIPES = MappingProxyType(_RECIPES)
 

@@ -129,6 +129,9 @@ def _setup(db):
 
 def verification_for_job(record):
     """Read only; recheck source freshness without writing a new event."""
+    if record and record["kind"] == "development_plan":
+        from luna.source_plans import verification_for_plan
+        return verification_for_plan(record)
     response = _baseline()
     if not record or record["kind"] != "project_health":
         return response

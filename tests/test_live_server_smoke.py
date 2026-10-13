@@ -202,7 +202,13 @@ def test_live_multistep_goal_runs_only_after_approval_and_survives_restart():
                 "completed", "completed"
             ]
             assert done["steps"][0]["recorded_result"].startswith("Health ")
-            assert "Scheduler design:" in done["steps"][1]["recorded_result"]
+            assert "source review" in done["steps"][1]["recorded_result"]
+            plan_receipt = _get_json(url + done['steps'][1]['result_url'])
+            assert plan_receipt['independently_verified'] is True
+            assert plan_receipt['source_review']['job_id'] == ids[1]
+            assert plan_receipt['source_review']['goal_revision'] == 2
+            assert plan_receipt['source_review']['tests_run'] is False
+            assert done['all_steps_have_scoped_evidence'] is True
             events = [event["event"] for event in done["events"]]
             assert events.count("approved") == 1
             assert events.count("dispatched") == 2
@@ -222,6 +228,8 @@ def test_live_multistep_goal_runs_only_after_approval_and_survives_restart():
             assert again["approval_digest"] == before["plan_digest"]
             assert [s["job_id"] for s in again["steps"]] == ids
             assert again["events"] == done["events"]
+            assert again['all_steps_have_scoped_evidence'] is True
+            assert _get_json(url + again['steps'][1]['result_url'])['source_review'] == plan_receipt['source_review']
             # Other explicitly configured schedulers may create their own
             # routine jobs. Only assert this goal owns exactly its two steps.
             all_ids = [item["id"] for item in _get_json(url + "/agent/jobs")]

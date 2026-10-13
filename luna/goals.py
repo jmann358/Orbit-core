@@ -70,6 +70,8 @@ def _contract(db, goal_id):
         "schema_version": 1, "goal_id": goal_id, "objective": row[0],
         "revision": row[1], "predecessor_id": row[2],
         "steps": [{"position": position, "kind": kind,
+                   "evidence_criterion": {"project_health": "local-source-health-v1",
+                                          "development_plan": "bounded-source-review-v1"}.get(kind, "not_checked"),
                    "max_attempts": jobs._attempt_limit(kind)} for position, kind in steps],
         "scope": "Fixed allowlisted diagnostics and non-executing planning only",
         "limits": {"max_steps": MAX_STEPS, "daily_dispatch_limit": MAX_DAILY_DISPATCHES,

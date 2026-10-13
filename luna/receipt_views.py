@@ -48,9 +48,23 @@ def _job_content(record):
         _line("Verified at", record.get("verified_at")) +
         _line("Created", record["created_at"]) +
         _line("Updated", record["updated_at"]) + "</dl></section>" +
+        _source_review(record.get('source_review')) +
         "<details><summary>Saved audit events</summary>" +
         _events(record["events"]) + "</details>"
     )
+
+
+def _source_review(report):
+    if not isinstance(report, dict):
+        return ''
+    manifest = report.get('manifest', [])
+    return ("<section><h2>Source review and next action</h2><p>" +
+            _text(report.get('recommendation')) + "</p><p>" +
+            _text(report.get('limitations')) + "</p><dl>" +
+            _line('Observation fingerprint', report.get('observation_sha256')) +
+            _line('Priority rule', report.get('priority_rule')) + "</dl><ul>" +
+            ''.join('<li>' + _text(item.get('path')) + ': ' + _text(item.get('status')) + '</li>'
+                    for item in manifest if isinstance(item, dict)) + '</ul></section>')
 
 
 def _goal_content(record):
@@ -67,6 +81,8 @@ def _goal_content(record):
             "</strong><p>Recorded step: " + _text(step.get("state")) +
             "; job: " + _text(step.get("job_state") or "not queued") + "</p>" +
             ("<p class='result'>" + _text(outcome) + "</p>" if outcome else "") +
+            "<p>Scoped evidence: " + _text(step.get('verification_status', 'not_checked')) +
+            ". " + _text(step.get('verification_scope', '')) + "</p>" +
             link + "</li>"
         )
     inconsistent = ("<p class='caution'>Warning: the completion record and "

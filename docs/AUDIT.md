@@ -4,6 +4,16 @@
 
 # Repository audit — 2026-10-12
 
+## Targeted follow-up — 2026-10-13, development planning on draft #68
+
+Reproduced the unconditional `DEV-003` scheduler template in every development
+plan. Replaced it with fixed-scope observations, saved findings and a bounded
+recommendation. Independent checker code reopens source rather than trusting
+the worker builder; the stale-worker regression rejects false fresh evidence.
+571 tests pass, including actual loopback worker/restart and thirteen new source
+planning cases. Browser receipt inspection passed on disposable data. This is
+source evidence only; see the progress entry for limits and unchanged live gates.
+
 ## Targeted follow-up — 2026-10-13, mission revisions on draft #67
 
 Existing focused goal/UI tests passed before changes. New tests reproduced

@@ -1,5 +1,12 @@
 # Current roadmap — THRONE
 
+Current source milestone on draft #68: the generic development-plan placeholder
+is replaced by a persisted source review, prioritized finding and recommendation.
+A separate observation checker and the two-step local recipe pass the real
+loopback worker/restart scenario; the complete suite passes 571 tests. Partial
+P0-4 is ready for review. Broader findings and a genuinely isolated patch/test/
+repair cycle remain the next capability gaps; no live handoff is claimed.
+
 October 13 next source milestone: exact approved mission revisions, immutable
 successors, claim-time job binding and shared inline editing are ready for
 review on top of draft #67. The complete local suite passes 558 tests; a
