@@ -70,9 +70,16 @@ def record_model_tokens(count):
         db.execute("UPDATE overnight_settings SET used_model_tokens=used_model_tokens+? WHERE id=1",(count,))
 
 def tick():
-    """Queue at most one approved, allowlisted task per tick. Never executes model code."""
+    """Queue one allowlisted task and link its job in ONE SQLite transaction.
+
+    BEGIN IMMEDIATE serializes simultaneous worker ticks and covers the
+    budget check, task selection, queued job and event, and final task link.
+    An exception rolls all of them back; a process interruption cannot leave
+    a committed orphan job or a stranded 'dispatching' task.
+    """
     day=datetime.now(timezone.utc).date().isoformat()
     with core.connect() as db:
+        db.execute("BEGIN IMMEDIATE")
         _setup(db)
         enabled,cap,token_cap,used,session_day=db.execute(
             "SELECT enabled,max_jobs,max_model_tokens,used_model_tokens,session_day FROM overnight_settings WHERE id=1").fetchone()
@@ -83,25 +90,28 @@ def tick():
             return {"queued":False,"reason":"paused"}
         if token_cap and used >= token_cap:
             return {"queued":False,"reason":"token_budget"}
-        rows=db.execute("SELECT id,title,kind FROM development_backlog WHERE owner='luna' AND state='open' AND kind!='' ORDER BY priority,id").fetchall()
         queued_today=db.execute("""SELECT COUNT(*) FROM development_backlog b JOIN work_items w ON w.id=b.job_id
                                    WHERE substr(w.created_at,1,10)=?""",(day,)).fetchone()[0]
         if queued_today >= cap:
             return {"queued":False,"reason":"job_budget"}
-        if not rows:
+        row=db.execute(
+            "SELECT id,title,kind FROM development_backlog "
+            "WHERE owner='luna' AND state='open' AND kind!='' "
+            "ORDER BY priority,id LIMIT 1"
+        ).fetchone()
+        if row is None:
             return {"queued":False,"reason":"no_eligible_tasks"}
-        task_id,title,kind=rows[0]
-        # This transaction commits before creating a job; retry-safe reconciliation below.
-        db.execute("UPDATE development_backlog SET state='dispatching' WHERE id=? AND state='open'",(task_id,))
-    try:
-        job_id=jobs.create_job(kind,title)
-    except Exception:
-        with core.connect() as db:
-            db.execute("UPDATE development_backlog SET state='attention' WHERE id=? AND state='dispatching'",(task_id,))
-        raise
-    with core.connect() as db:
-        db.execute("UPDATE development_backlog SET state='queued',job_id=? WHERE id=? AND state='dispatching'",(job_id,task_id))
-    return {"queued":True,"task_id":task_id,"job_id":job_id}
+        task_id,title,kind=row
+        if kind not in ALLOWED:
+            raise ValueError("Backlog task is not authorized for unattended dispatch")
+        job_id=jobs._create_job_in_transaction(db,kind,title)
+        changed=db.execute(
+            "UPDATE development_backlog SET state='queued',job_id=? "
+            "WHERE id=? AND state='open'", (job_id,task_id),
+        )
+        if changed.rowcount != 1:
+            raise ValueError("Backlog task changed while being dispatched")
+        return {"queued":True,"task_id":task_id,"job_id":job_id}
 
 def reconcile():
     with core.connect() as db:

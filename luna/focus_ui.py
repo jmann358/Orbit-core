@@ -18,6 +18,14 @@ FOCUS_HOME = """<div class="focus-top">
   <button id="focus-primary" class="focus-primary" type="button" disabled
     aria-describedby="focus-explanation">Checking…</button>
 </section>
+<section id="focus-active-goal" class="focus-pane" aria-labelledby="focus-goal-title">
+  <div class="focus-pane-top">
+    <h3 id="focus-goal-title">Current saved goal</h3>
+    <button id="focus-goal-refresh" class="focus-link-button" type="button">Refresh goal</button>
+  </div>
+  <p id="focus-goal-status" role="status">Loading actual goal state…</p>
+  <div id="focus-goal-details"></div>
+</section>
 <div class="focus-columns">
   <section class="focus-pane" aria-labelledby="focus-waiting-title">
     <div class="focus-pane-top"><h3 id="focus-waiting-title">Waiting for you</h3>
@@ -29,6 +37,7 @@ FOCUS_HOME = """<div class="focus-top">
       <button id="focus-refresh" class="focus-link-button" type="button"
         title="Recheck saved local tasks without starting new work">Refresh</button></div>
     <p id="focus-work-summary" role="status">Reading Luna's saved work history…</p>
+    <p id="focus-worker-observation" role="status">Worker activity not yet checked.</p>
     <div id="focus-recent"></div>
   </section>
 </div>
@@ -84,6 +93,12 @@ body #design-home-link{display:none!important}
  background:var(--paper,#fff);padding:17px;min-width:0}
 .focus-pane-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .focus-pane h3{font-size:1.12rem;margin:0 0 7px;color:var(--ink,#25324a)}
+#focus-active-goal{margin:17px 0}
+#focus-active-goal p{overflow-wrap:anywhere}
+#focus-active-goal .focus-goal-actions{display:flex;gap:9px;flex-wrap:wrap}
+#focus-active-goal .focus-goal-actions button{padding:10px 14px;border-radius:8px}
+#focus-active-goal .focus-goal-actions a{align-self:center;font-weight:700;text-decoration:underline}
+#focus-active-goal .focus-goal-step{margin:5px 0;padding:5px 0;border-bottom:1px solid var(--line,#dce5ef)}
 #focus-waiting-count{font-size:.9rem;font-weight:750;color:var(--muted,#64748b)}
 .focus-item{border-top:1px solid var(--line,#dce5ef);padding:11px 0;display:block}
 .focus-item strong{display:block;font-size:.94rem;overflow-wrap:anywhere}
@@ -186,6 +201,92 @@ FOCUS_SCRIPT = r"""
    holder.append(button);
   }
  }
+
+ async function refreshFocusedGoal(){
+  const holder=byId('focus-goal-details'),status=byId('focus-goal-status');
+  try{
+   const listResponse=await fetch('/agent/goals',{cache:'no-store'});
+   if(!listResponse.ok)throw Error('Saved goals unavailable');
+   const list=await listResponse.json();
+   if(!list.length){
+    status.textContent='No saved goals yet. Set one up in Agent goals.';
+    holder.replaceChildren();return;
+   }
+   const active=['proposed','approved','running','waiting_budget','waiting_queue','paused','attention'];
+   const selected=list.find(g=>active.includes(g.state))||list[0];
+   const response=await fetch('/agent/goals/'+selected.id+'/report',{cache:'no-store'});
+   if(!response.ok)throw Error('Goal report unavailable');
+   const goal=await response.json();
+   holder.replaceChildren();
+   status.textContent='Goal #'+goal.id+' · '+goal.objective+
+      ' · recorded state: '+goal.state+
+      ' · '+goal.completed_steps+'/'+goal.total_steps+' steps recorded complete'+
+      (goal.blocked_reason?' · Waiting: '+goal.blocked_reason:'');
+   const detail=element('p','focus-status',
+      'Approved goal steps use existing read-only allowlisted workers. A saved running state is not a live worker heartbeat.');
+   holder.append(detail);
+   for(const step of goal.steps){
+    const row=element('p','focus-goal-step',
+      (step.position+1)+'. '+step.label+' ['+step.state+']'+
+      (step.job?' · task #'+step.job.id+' '+step.job.state:''));
+    holder.append(row);
+    if(step.job&&step.job.result){
+     holder.append(element('p','focus-status','Recorded result: '+step.job.result));
+    }
+   }
+   const actions=element('div','focus-goal-actions','');
+   const saved=document.createElement('a');
+   saved.href='/agent/goals/'+goal.id+'/view';
+   saved.textContent='Open saved outcome and audit';
+   actions.append(saved);
+   if(goal.state==='proposed'){
+    holder.append(element('p','focus-status',
+      'This approval authorizes exactly the listed fixed steps. No purchases, new permissions, source installation or outside services. To change the proposal, reject it and create a new plan for separate approval.'));
+    for(const [label,approve] of [['Approve listed steps',true],['Reject plan',false]]){
+     const button=element('button','',label);button.type='button';
+     button.addEventListener('click',async()=>{
+      button.disabled=true;
+      status.textContent='Saving your explicit decision for goal #'+goal.id+'…';
+      try{
+       const response=await fetch('/agent/goals/'+goal.id+'/decision',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({approve})
+       });
+       if(!response.ok)throw Error('The goal changed or the decision was not accepted');
+       await refreshFocusedGoal();
+       refresh();
+      }catch(error){
+       status.textContent='Decision not saved: '+error.message;
+       button.disabled=false;
+      }
+     });
+     actions.append(button);
+    }
+    const edit=element('button','','Review plan details');edit.type='button';
+    edit.addEventListener('click',()=>selectTab('goals'));
+    actions.append(edit);
+   }
+   holder.append(actions);
+  }catch(error){
+   status.textContent='Goal status unavailable; no action taken. '+error.message;
+   holder.replaceChildren();
+  }
+ }
+ byId('focus-goal-refresh').addEventListener('click',refreshFocusedGoal);
+ async function refreshWorkerObservation(){
+  const target=byId('focus-worker-observation');
+  try{
+   const response=await fetch('/agent/worker',{cache:'no-store'});
+   if(!response.ok)throw Error('worker status unavailable');
+   const state=await response.json();
+   const pulse=state.heartbeat||{};
+   const observation=pulse.recently_observed
+    ?'Last observed: '+pulse.state+' · '+pulse.age_seconds+' seconds ago.'
+    :'No recent worker heartbeat detected.';
+   target.textContent='Worker '+(state.enabled?'enabled':'paused by owner')+
+      '. '+observation+' A heartbeat is not proof that work has completed.';
+  }catch(error){target.textContent='Worker activity unverified: '+error.message}
+ }
  function fillWork(work){
   const holder=byId('focus-recent');holder.replaceChildren();
   byId('focus-work-summary').textContent=
@@ -225,6 +326,7 @@ FOCUS_SCRIPT = r"""
    byId('focus-waiting-count').textContent=String(data.waiting_count);
    fillWaiting(data.waiting,data.more_waiting);
    fillWork(data.work);
+   await Promise.all([refreshFocusedGoal(),refreshWorkerObservation()]);
    byId('focus-error').textContent='';
   }catch(err){
    byId('focus-title').textContent='Luna could not load the task list';

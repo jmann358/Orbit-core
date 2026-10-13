@@ -391,7 +391,12 @@ async function refreshGoals(){
      const summary=document.createElement('summary');summary.textContent='Progress, outcomes and audit';
      const content=document.createElement('div');details.append(summary,content);
      details.addEventListener('toggle',()=>{if(details.open)renderGoalDetails(g,content)});
-     card.append(details);target.append(card);
+     card.append(details);
+     const receiptLink=document.createElement('a');
+     receiptLink.href='/agent/goals/'+g.id+'/view';
+     receiptLink.textContent='Open saved goal receipt #'+g.id;
+     receiptLink.setAttribute('aria-label','Open goal '+g.id+' result and audit receipt');
+     card.append(receiptLink);target.append(card);
      if(expanded.has(String(g.id))){details.open=true}
    }
  }catch(e){target.textContent='Goals unavailable: '+e.message}
@@ -760,6 +765,13 @@ form.onsubmit=async event=>{
    }else{
     show('Luna',result.reply||'No response received');
     setLunaMood('happy');status.textContent='Reply saved to this conversation.';
+    if(result.job_id && result.receipt_url){
+     const item=document.createElement('p');
+     const link=document.createElement('a');
+     link.href='/agent/jobs/'+Number(result.job_id)+'/view';
+     link.textContent='Open task #'+result.job_id+' live result and audit trail';
+     item.append(link);log.append(item);
+    }
     if(result.mission_id){
      const missionId=result.mission_id;
      const item=document.createElement('p');
@@ -838,6 +850,7 @@ form.onsubmit=async event=>{
   }
  }finally{
   chatSending=false;sendButton.disabled=false;refreshChatReadiness();
+  if(window.refreshChatMissionCard)window.refreshChatMissionCard();
  }
 };
 loadHistory();loadSessions();loadTasks();
@@ -943,7 +956,11 @@ async function loadTasks(){try{const r=await fetch('/autonomy/tasks');const task
 </script></html>"""
     from luna import visual_studio
     from luna.focus_ui import enhance_home
-    return visual_studio.decorate_home(enhance_home(html.replace("__LUNA_VERSION__", VERSION)), design_preview)
+    from luna.chat_mission_ui import enhance_chat_mission
+    return visual_studio.decorate_home(
+        enhance_chat_mission(enhance_home(html.replace("__LUNA_VERSION__", VERSION))),
+        design_preview,
+    )
 
 @app.get("/chat/readiness")
 def chat_readiness():
@@ -1038,6 +1055,19 @@ def get_history(session: str="default"):
 
 @app.post("/chat")
 async def chat(request:Chat):
+    # Screen before *any* SQLite write, task routing or provider call.
+    # Positive matches are neither stored nor forwarded; this is only a
+    # conservative first barrier, not a comprehensive secrets vault.
+    from luna.sensitive_intake import screen
+    intake = screen(request.message)
+    if intake["decision"] != "allow":
+        return {
+            "reply": "Sensitive-looking credentials or identifiers were detected. "
+                     "This message was not saved or sent to a model. "
+                     "Remove those values and try again.",
+            "kind": "notice", "stored": False, "model_called": False,
+            "sensitive_intake": intake,
+        }
     add_message(request.session,"user",request.message)
     suggest_from_user_message(request.message)
     from luna.custom_agent_chat import parse as parse_agent_chat, handle as handle_agent_chat
@@ -1055,7 +1085,7 @@ async def chat(request:Chat):
         work_result = handle_workflow(workflow)
         reply = work_result["reply"]
         kind = work_result["kind"]
-        action_metadata = {k: work_result[k] for k in ("mission_id", "job_id")
+        action_metadata = {k: work_result[k] for k in ("mission_id", "job_id", "receipt_url")
                            if k in work_result}
     else:
         routed=route_chat_job(request.message)
@@ -1063,6 +1093,8 @@ async def chat(request:Chat):
             job_id=create_job(routed["kind"],routed["title"])
             reply="I queued "+routed["title"]+" as task #"+str(job_id)+". My worker will process it shortly. Check Approvals → Task inbox for the result."
             kind="queued_task"
+            action_metadata = {"job_id":job_id,
+                               "receipt_url":"/agent/jobs/"+str(job_id)+"/receipt"}
         else:
             reply=await respond(request.session,request.message)
             from luna.model_connection import is_operational_notice
@@ -1262,7 +1294,7 @@ def test_baseline():
     from pathlib import Path
     root=Path(__file__).resolve().parent
     with tempfile.TemporaryDirectory(prefix="orbit-check-") as temp:
-        workspace=Path(temp)
+        workspace=Path(temp).resolve()
         for name in ("app.py","requirements.txt"):
             src=root/name
             if src.is_file() and not src.is_symlink():
@@ -1273,18 +1305,19 @@ def test_baseline():
                 shutil.copytree(src,workspace/folder,ignore=shutil.ignore_patterns("__pycache__",".pytest_cache","*.pyc"))
         test_file=workspace/"tests"/"test_core.py"
         if not test_file.is_file():
-            return {"passed":False,"summary":"No test file found","isolated":True}
-        env=os.environ.copy()
-        env["PYTHONDONTWRITEBYTECODE"]="1"
-        env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"]="1"
+            return {"passed":False,"summary":"No test file found","isolated":True,"sandboxed":False}
+        # Never hand test subprocesses the owner's keys, model settings, or
+        # actual LUNA_DB_PATH. A temporary copy is NOT an OS security sandbox.
+        from luna.baseline_env import trusted_baseline_env
+        env=trusted_baseline_env(workspace)
         try:
             result=subprocess.run([sys.executable,"-m","pytest","-q","-p","no:cacheprovider","tests"],
                                   cwd=workspace,env=env,capture_output=True,text=True,timeout=20)
         except subprocess.TimeoutExpired:
-            return {"passed":False,"summary":"Tests timed out after 20 seconds","isolated":True}
+            return {"passed":False,"summary":"Tests timed out after 20 seconds","isolated":True,"sandboxed":False}
         output=(result.stdout+"\n"+result.stderr).strip()
         return {"passed":result.returncode==0,"summary":output[-900:] or "No test output",
-                "isolated":True,"draft_applied":False}
+                "isolated":True,"sandboxed":False,"draft_applied":False}
 
 @app.post("/agent/run-routine")
 def run_routine():
@@ -1508,6 +1541,32 @@ def agent_job_events(job_id:int):
     return {"id":job_id,"events":list_events(job_id),"read_only":True}
 
 
+@app.get("/agent/jobs/{job_id}/receipt")
+def agent_job_receipt(job_id:int):
+    from luna.receipts import job_receipt
+    receipt=job_receipt(job_id)
+    if receipt is None:
+        raise HTTPException(404,"Job not found")
+    return receipt
+def _receipt_html_response(receipt):
+    from luna.receipt_views import render_receipt
+    return HTMLResponse(render_receipt(receipt), headers={
+        "Cache-Control": "private, no-store",
+        "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; "
+                                   "base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Referrer-Policy": "no-referrer",
+    })
+
+
+@app.get("/agent/jobs/{job_id}/view", response_class=HTMLResponse)
+def agent_job_view(job_id:int):
+    """Owner-readable projection; the /receipt JSON contract is unchanged."""
+    return _receipt_html_response(agent_job_receipt(job_id))
+
+
+
 @app.post("/agent/jobs/{job_id}/retry")
 def agent_retry_job(job_id:int):
     from luna.jobs import retry_job
@@ -1578,37 +1637,64 @@ def _process_job(job):
 def _job_worker():
     from luna import autopilot, jobs
     from luna.job_operations import run_once
-    while not _job_stop.wait(5):
-        try:
-            # The persisted pause switch covers both automatic scheduling
-            # and execution of queued work. It never stops a running handler.
-            if not jobs.worker_status()["enabled"]:
+    from luna.worker_heartbeat import beat
+    # Heartbeats only record execution metadata from the actual worker
+    # thread. They do not prove real-world work or grant extra authority.
+    try:
+        beat("starting")
+        while not _job_stop.wait(5):
+            try:
+                # A disabled worker is alive but deliberately paused.
+                if not jobs.worker_status()["enabled"]:
+                    beat("paused")
+                    continue
+                beat("working")
+                advance_goals()
+                autopilot.tick()
+                backlog.reconcile()
+                backlog.tick()
+                run_once(_process_job)
+                # Route stopped goals to the local approval inbox once.
+                from luna.goal_escalations import tick as escalate_goals
+                escalate_goals()
+                beat("idle")
+            except Exception:
+                # Existing conservative policy: do not execute remote fixes
+                # or invent a success receipt after an interrupted cycle.
+                try:
+                    beat("attention")
+                except Exception:
+                    pass
                 continue
-            advance_goals()
-            autopilot.tick()
-            backlog.reconcile()
-            backlog.tick()
-            run_once(_process_job)
-            # Route stopped goals to the local approval inbox once.
-            from luna.goal_escalations import tick as escalate_goals
-            escalate_goals()
+    finally:
+        try:
+            beat("stopped")
         except Exception:
-            # Worker remains alive; no remote instructions are ever executed.
-            continue
+            pass
 
 @app.on_event("startup")
 def _start_job_worker():
     global _job_thread
+    # Do not recover/requeue work while a previous worker is still writing.
+    if _job_thread is not None and _job_thread.is_alive():
+        if _job_stop.is_set():
+            raise RuntimeError("Previous Luna job worker is still shutting down")
+        return
     recover_interrupted()
     backlog.reconcile()
-    if _job_thread is None or not _job_thread.is_alive():
-        _job_stop.clear()
-        _job_thread=_threading.Thread(target=_job_worker,daemon=True,name="orbit-jobs")
-        _job_thread.start()
+    _job_stop.clear()
+    _job_thread=_threading.Thread(target=_job_worker,daemon=True,name="orbit-jobs")
+    _job_thread.start()
 
 @app.on_event("shutdown")
 def _stop_job_worker():
+    global _job_thread
     _job_stop.set()
+    if _job_thread is not None:
+        _job_thread.join(timeout=15)
+        if _job_thread.is_alive():
+            raise RuntimeError("Luna job worker failed to stop cleanly")
+        _job_thread = None
 
 # Bounded helpers execute as a separate supervised background loop. No model
 # task retries after failures or restarts. Pausing the usual worker pauses them.
@@ -1626,17 +1712,26 @@ def _run_custom_agent_worker():
 @app.on_event("startup")
 def _start_custom_agents():
     global _custom_agent_thread
+    if _custom_agent_thread is not None and _custom_agent_thread.is_alive():
+        if _custom_agent_stop.is_set():
+            raise RuntimeError("Previous Luna helper worker is still shutting down")
+        return
     from luna import custom_agents
     custom_agents.recover_interrupted()
-    if _custom_agent_thread is None or not _custom_agent_thread.is_alive():
-        _custom_agent_stop.clear()
-        _custom_agent_thread = _threading.Thread(
-            target=_run_custom_agent_worker, daemon=True, name="orbit-helpers")
-        _custom_agent_thread.start()
+    _custom_agent_stop.clear()
+    _custom_agent_thread = _threading.Thread(
+        target=_run_custom_agent_worker, daemon=True, name="orbit-helpers")
+    _custom_agent_thread.start()
 
 @app.on_event("shutdown")
 def _stop_custom_agents():
+    global _custom_agent_thread
     _custom_agent_stop.set()
+    if _custom_agent_thread is not None:
+        _custom_agent_thread.join(timeout=15)
+        if _custom_agent_thread.is_alive():
+            raise RuntimeError("Luna helper worker failed to stop cleanly")
+        _custom_agent_thread = None
 
 class BridgeThreadPayload(BaseModel):
     title: str = Field(min_length=3,max_length=120)
@@ -2013,6 +2108,21 @@ def agent_goal_report(goal_id:int):
     if report is None:
         raise HTTPException(404,"Goal not found")
     return report
+
+
+@app.get("/agent/goals/{goal_id}/receipt")
+def agent_goal_receipt(goal_id:int):
+    from luna.receipts import goal_receipt
+    receipt=goal_receipt(goal_id)
+    if receipt is None:
+        raise HTTPException(404,"Goal not found")
+    return receipt
+
+@app.get("/agent/goals/{goal_id}/view", response_class=HTMLResponse)
+def agent_goal_view(goal_id:int):
+    """Human-readable result with links to persisted child job receipts."""
+    return _receipt_html_response(agent_goal_receipt(goal_id))
+
 
 
 class AgentGoalControl(BaseModel):

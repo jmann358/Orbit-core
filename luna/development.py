@@ -55,8 +55,9 @@ def static_draft_report(content):
     return {
         "python_blocks_found": len(fences),
         "blocks_checked": len(checks),
+        "truncated": len(fences) > len(checks),
         "checks": checks,
-        "all_checked_blocks_parse": bool(checks) and all(x["syntax"] == "valid" for x in checks),
+        "all_checked_blocks_parse": bool(checks) and len(fences) == len(checks) and all(x["syntax"] == "valid" for x in checks),
         "note": "Syntax-only screening. This does not prove correctness, safety, or applicability.",
         "executed": False,
         "applied": False

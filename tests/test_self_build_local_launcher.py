@@ -2,8 +2,15 @@
 import io
 import json
 from unittest.mock import patch
+import pytest
 
 from scripts import start_luna_agent as launcher
+
+
+@pytest.fixture(autouse=True)
+def offline_port_probe(monkeypatch):
+    # Model/bootstrap unit tests never probe the owner's live dashboard.
+    monkeypatch.setattr(launcher, "dashboard_port_occupied", lambda: False)
 
 
 class FakeResponse:

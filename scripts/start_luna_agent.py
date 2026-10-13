@@ -13,6 +13,7 @@ import subprocess
 import sys
 import time
 import json
+import socket
 from urllib.request import urlopen
 from urllib.error import URLError
 
@@ -70,6 +71,19 @@ def commands():
     ], [sys.executable, str(ROOT / "scripts" / "cloud_worker.py")]
 
 
+def dashboard_port_occupied():
+    """Probe only Luna's loopback HTTP port, without starting a worker.
+
+    A listener need not be Luna; refuse to launch a competing process either
+    way. This check is advisory and the OS still arbitrates later bind races.
+    """
+    try:
+        with socket.create_connection((HOST, PORT), timeout=0.2):
+            return True
+    except OSError:
+        return False
+
+
 def terminate(process):
     if process.poll() is not None:
         return
@@ -98,6 +112,7 @@ def main(argv=None):
         # Local probe only, no personal data, keys or network exposure.
         ready["existing_local_model_available"] = discover_ollama() is not None
         ready["self_build_requires_running_ollama"] = True
+        ready["dashboard_port_occupied"] = dashboard_port_occupied()
         print(json.dumps(ready, indent=2))
         return 0 if ready["python_supported"] and not ready["missing_dependencies"] else 1
     if not ready["python_supported"] or ready["missing_dependencies"]:
@@ -107,6 +122,12 @@ def main(argv=None):
     if os.environ.get("LUNA_CLOUD_MODE") == "1":
         print("This launcher is localhost-only, not a cloud deployment.", file=sys.stderr)
         return 1
+    if dashboard_port_occupied():
+        print("Local port 8000 already has a listener. Use the existing Luna "
+              "dashboard if it is running, or stop the other application "
+              "before launching Luna. No additional worker was started.",
+              file=sys.stderr)
+        return 3
     env = os.environ.copy()
     env["LUNA_WORKER_ENABLED"] = "1"
     if args.self_build:
@@ -137,14 +158,23 @@ def main(argv=None):
             if os.environ.get("LUNA_SERVICE_MODE") == "1":
                 from luna.backup_schedule import maybe_backup
                 result = maybe_backup(DB_PATH, root=ROOT)
-                snapshot = result["created"]
+                snapshot = bool(result["created"])
+                snapshot_reason = result["reason"]
             else:
                 snapshot = snapshot_existing_memory(DB_PATH, project_root=ROOT)
+                snapshot_reason = "backed_up" if snapshot is not None else "new_database"
         except ValueError as exc:
             print(str(exc), file=sys.stderr)
             return 2
-        if snapshot is not None:
+        if snapshot:
             print("Created a private SQLite safety snapshot before self-building.",
+                  flush=True)
+        elif snapshot_reason == "recent_local_snapshot":
+            print("A recent verified private SQLite backup already exists; "
+                  "no new snapshot was created.", flush=True)
+        else:
+            print("No existing SQLite database was available to back up. "
+                  "A backup will be required once Luna has saved data.",
                   flush=True)
     if args.auto_drafts:
         if not ready["developer_model_configured_unverified"] and not args.self_build:

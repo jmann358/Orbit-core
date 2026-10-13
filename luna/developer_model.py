@@ -68,7 +68,7 @@ def configuration(environ=None):
     }
 
 
-async def propose(prompt, *, mission_id=None, db_path=None):
+async def propose(prompt, *, mission_id=None, db_path=None, output_schema=None):
     """One explicitly permitted model call; no retries or fallback providers.
 
     A single-mission approval authorizes up to two already-budgeted calls for
@@ -106,27 +106,51 @@ async def propose(prompt, *, mission_id=None, db_path=None):
                 )
                 response.raise_for_status()
                 result = response.json()
-                answer = "".join(
-                    part.get("text", "")
-                    for part in result["candidates"][0]["content"]["parts"]
-                )
+                parts = result["candidates"][0]["content"]["parts"]
+                if (not isinstance(parts, list) or not parts
+                        or any(not isinstance(part, dict)
+                               or not isinstance(part.get("text"), str)
+                               for part in parts)):
+                    raise ValueError("Invalid Gemini developer-model parts")
+                answer = "".join(part["text"] for part in parts)
             else:
+                payload = {
+                    "model": model,
+                    "messages": [
+                        {"role": "system", "content": SYSTEM},
+                        {"role": "user", "content": prompt},
+                    ],
+                    "stream": False,
+                }
+                # Ollama's local OpenAI-compatible API supports JSON schemas.
+                # Do not silently change other providers or retry without the
+                # schema if the configured local server rejects the request.
+                parts = urlsplit(endpoint)
+                if (output_schema is not None and kind == "local"
+                        and parts.port == 11434 and parts.path == "/v1"):
+                    payload["response_format"] = {
+                        "type": "json_schema",
+                        "json_schema": {"name": "luna_proposal", "strict": True,
+                                        "schema": output_schema},
+                    }
+                    payload["temperature"] = 0
                 response = await client.post(
                     endpoint + "/chat/completions",
                     headers={"Authorization": "Bearer " + key} if kind == "cloud" else {},
-                    json={
-                        "model": model,
-                        "messages": [
-                            {"role": "system", "content": SYSTEM},
-                            {"role": "user", "content": prompt},
-                        ],
-                        "stream": False,
-                    },
+                    json=payload,
                 )
                 response.raise_for_status()
                 answer = response.json()["choices"][0]["message"]["content"]
     except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as exc:
         raise AgentModelUnavailable("Developer model request failed") from None
-    if not isinstance(answer, str) or not 1 <= len(answer) <= MAX_RESPONSE_CHARS:
+    if (not isinstance(answer, str) or not answer.strip()
+            or len(answer) > MAX_RESPONSE_CHARS or "\x00" in answer):
         raise AgentModelUnavailable("Developer model returned an invalid response")
+    # SQLite, JSON proposal parsing and a later reviewer all require valid text.
+    # A lone surrogate may be accepted by Python strings but will fail while
+    # being encoded or persisted; reject it at this provider boundary.
+    try:
+        answer.encode("utf-8")
+    except UnicodeEncodeError:
+        raise AgentModelUnavailable("Developer model returned an invalid response") from None
     return answer

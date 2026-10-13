@@ -5,6 +5,7 @@ are never interpreted as Python, shell commands, URLs, or new permissions.
 """
 from datetime import datetime, timedelta, timezone
 from luna import core
+from luna.worker_heartbeat import status as heartbeat_status
 
 KINDS = ("project_health", "github_status", "development_plan",
          "self_improvement", "workshop_draft")
@@ -74,27 +75,38 @@ def _active_count(db):
                       "('queued','running','retry_wait')").fetchone()[0]
 
 
-def create_job(kind, title, detail=""):
+def _create_job_in_transaction(db, kind, title, detail=""):
+    """Create an allowlisted job/event in the caller's current transaction.
+
+    The caller must have obtained a SQLite write lock with BEGIN IMMEDIATE.
+    Backlog dispatch uses this helper so its source task and the new job
+    cannot commit independently or leave an orphan after interruption.
+    """
+    if not db.in_transaction:
+        raise ValueError("Job creation requires an active write transaction")
     if kind not in KINDS:
         raise ValueError("Unsupported job kind")
     if not isinstance(title, str) or not 1 <= len(title.strip()) <= 120:
         raise ValueError("Invalid job title")
     if not isinstance(detail, str) or len(detail) > 1200:
         raise ValueError("Invalid job detail")
+    _setup(db)
+    if _active_count(db) >= MAX_ACTIVE:
+        raise ValueError("Task queue is full; review existing work")
+    stamp = _now()
+    cursor = db.execute(
+        "INSERT INTO work_items(kind,title,detail,state,created_at,updated_at,"
+        "max_attempts) VALUES(?,?,?,'queued',?,?,?)",
+        (kind, title.strip(), detail, stamp, stamp, _attempt_limit(kind)),
+    )
+    _event(db, cursor.lastrowid, "queued", "Allowlisted task queued", stamp)
+    return cursor.lastrowid
+
+
+def create_job(kind, title, detail=""):
     with core.connect() as db:
         db.execute("BEGIN IMMEDIATE")
-        _setup(db)
-        if _active_count(db) >= MAX_ACTIVE:
-            raise ValueError("Task queue is full; review existing work")
-        stamp = _now()
-        cursor = db.execute(
-            "INSERT INTO work_items(kind,title,detail,state,created_at,updated_at,"
-            "max_attempts) VALUES(?,?,?,'queued',?,?,?)",
-            (kind, title.strip(), detail, stamp, stamp, _attempt_limit(kind)),
-        )
-        _event(db, cursor.lastrowid, "queued", "Allowlisted task queued", stamp)
-        return cursor.lastrowid
-
+        return _create_job_in_transaction(db, kind, title, detail)
 
 def get_job(job_id):
     with core.connect() as db:
@@ -146,6 +158,8 @@ def worker_status():
         "scope": "allowlisted, bounded existing local job handlers",
         "auto_apply": False,
         "network_or_permission_expansion": False,
+        # Distinct from an enabled flag: this is evidence from actual ticks.
+        "heartbeat": heartbeat_status(),
     }
 
 

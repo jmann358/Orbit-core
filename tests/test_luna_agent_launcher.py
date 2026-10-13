@@ -3,6 +3,7 @@ import importlib.util
 import json
 from pathlib import Path
 from unittest.mock import patch
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location(
@@ -10,6 +11,13 @@ SPEC = importlib.util.spec_from_file_location(
 )
 starter = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(starter)
+
+
+@pytest.fixture(autouse=True)
+def offline_port_probe(monkeypatch):
+    # These fake-child tests must not depend on a real Luna already running.
+    # Occupied-port behavior is covered in test_engine_wave2_launch_readiness.
+    monkeypatch.setattr(starter, "dashboard_port_occupied", lambda: False)
 
 
 def test_start_commands_are_local_only_and_worker_is_separate_process():
