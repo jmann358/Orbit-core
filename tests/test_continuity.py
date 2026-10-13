@@ -209,7 +209,9 @@ def test_cloud_recall_requires_separate_opt_in():
                     json={"candidates": [{"content": {"parts": [{"text": "Okay"}]}}]},
                     request=httpx.Request("POST", url))
             env = {"LUNA_MODEL_URL": "https://generativelanguage.googleapis.com/v1beta/openai",
-                   "LUNA_MODEL_NAME": "gemini-test", "LUNA_API_KEY": "example-only"}
+                   "LUNA_MODEL_NAME": "gemini-test", "LUNA_API_KEY": "example-only",
+                   "LUNA_CLOUD_CHAT_SCOPE": "https://generativelanguage.googleapis.com/v1beta/openai|gemini-test",
+                   "LUNA_CLOUD_RECALL_SCOPE": "https://generativelanguage.googleapis.com/v1beta/openai|gemini-test"}
             with patch.dict("os.environ", env), patch.object(
                     httpx.AsyncClient, "post", fake_post):
                 set_settings(True, False)
