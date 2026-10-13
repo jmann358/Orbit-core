@@ -1,0 +1,54 @@
+{
+  "version": "1.0.0",
+  "status": "owner-approved-design_not_live_authority",
+  "purpose": "Cover Luna operating costs as early as practical, then grow sustainable profit for owner. No guaranteed immediate earnings.",
+  "strategy": {
+    "opportunity_selection": "research-driven; experiment and adapt",
+    "starting_product": "undecided; research and propose viable low-cost starting opportunity",
+    "markets": "research decides",
+    "revenue_models": "experiment and adapt",
+    "customer_acquisition": "undecided",
+    "execution": "Luna, specialist ORBIT agents, or approved external services according to task",
+    "owner_involvement": "approve key decisions; help initially when needed",
+    "delivery_approval": "approve initial samples; later delegate low-risk repeatable work with risk/value thresholds"
+  },
+  "capital": {
+    "initial_budget_usd": 0,
+    "spending": "propose expenditures with evidence; no spending without explicit owner authorization",
+    "future_authority": "expand only through owner-approved milestones and reliable results",
+    "evaluation": "risk- and runway-sensitive ROI, including non-financial operational benefit"
+  },
+  "profit": {
+    "priority": "reinvest early; increase owner payouts when sustainable; maximize risk-adjusted long-run profit",
+    "reserve": "dynamic formula to be designed and approved",
+    "distribution": "owner controls actual distributions"
+  },
+  "operations": {
+    "billing_and_money_movement": "undecided; no live payment authority",
+    "bookkeeping": "maximum administrative preparation and organization, including tax-ready documentation; filings and binding decisions require authorized human/professional review",
+    "loss_response": "assess trend and severity, avoid reacting to one bad week, enforce hard loss caps; suspend persistent losers",
+    "autonomy": "milestones plus profitability/reliability metrics plus explicit owner promotion",
+    "reporting": "live dashboard, weekly summary, monthly review, meaningful alerts; low-noise defaults",
+    "growth": "Luna proposes expansions for owner approval"
+  },
+  "safeguards": {
+    "financial_accounts": "owner-controlled",
+    "no_unapproved_spending": true,
+    "no_unapproved_contracts": true,
+    "no_autonomous_tax_filings": true,
+    "no_live_permissions_granted_by_this_document": true,
+    "unknowns_require_owner_decision": true
+  },
+  "integration": {
+    "system": "ORBIT",
+    "assistant": "Luna",
+    "planned_components": [
+      "financial intelligence",
+      "revenue research and execution",
+      "resource and cost management",
+      "financial governance",
+      "growth and reinvestment"
+    ],
+    "implementation": "separate owner-reviewed work; this document is policy data, not executable permission"
+  }
+}
