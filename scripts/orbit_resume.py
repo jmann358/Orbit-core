@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import csv
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -118,6 +119,62 @@ def validate(data):
     return True
 
 
+
+def audit_references(root):
+    """Verify tracked design inputs without rerunning Luna's product tests.
+
+    A successful audit verifies file bytes and planned-case inventory only,
+    not test passage, Mac health, or the trustworthiness of an external link.
+    """
+    root = Path(root)
+    state = load_state(root)
+    manifest_path = root / "docs/orbit/REFERENCE_MANIFEST.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    entries = manifest.get("artifacts")
+    if not isinstance(entries, dict) or not entries:
+        raise ValueError("Empty reference manifest")
+    if manifest.get("scenario_count") != state["plan"]["planned_scenarios"]:
+        raise ValueError("Manifest and state scenario counts disagree")
+    for name, expected in entries.items():
+        if not isinstance(name, str) or not name.startswith("docs/orbit/reference/"):
+            raise ValueError("Unsafe reference path")
+        relative = Path(name)
+        if relative.is_absolute() or ".." in relative.parts:
+            raise ValueError("Unsafe reference traversal")
+        if not isinstance(expected, str) or len(expected) != 64 or any(c not in "0123456789abcdef" for c in expected):
+            raise ValueError("Malformed reference digest")
+        path = root / relative
+        if path.is_symlink() or not path.is_file():
+            raise ValueError("Missing or linked reference " + name)
+        if hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+            raise ValueError("Reference changed without a reviewed manifest update: " + name)
+    ledger_name = state["plan"].get("acceptance_ledger")
+    if ledger_name not in entries:
+        raise ValueError("Acceptance ledger is not tracked by manifest")
+    with (root / ledger_name).open(newline="", encoding="utf-8") as stream:
+        reader = csv.DictReader(stream)
+        required = {"scenario_id", "execution_status", "implementation_sha", "artifact_or_log_ref", "expected_result_observed", "disposition_or_blocker"}
+        if not required.issubset(set(reader.fieldnames or ())):
+            raise ValueError("Acceptance ledger columns missing")
+        rows = list(reader)
+    ids = [r["scenario_id"] for r in rows]
+    if len(rows) != state["plan"]["planned_scenarios"] or any(not v for v in ids) or len(set(ids)) != len(ids):
+        raise ValueError("Missing, duplicate or unexpected acceptance scenarios")
+    recorded = {"PASS", "FAIL", "BLOCKED", "SKIPPED", "NOT_RUN"}
+    for row in rows:
+        status = row["execution_status"]
+        if status not in recorded:
+            raise ValueError("Unknown acceptance outcome: " + row["scenario_id"])
+        if status in ("PASS", "FAIL") and not all(row.get(k) for k in ("implementation_sha", "artifact_or_log_ref", "expected_result_observed")):
+            raise ValueError("Outcome lacks evidence: " + row["scenario_id"])
+        if status in ("BLOCKED", "SKIPPED") and not row.get("disposition_or_blocker"):
+            raise ValueError("Missing blocking reason: " + row["scenario_id"])
+    counts = {status: sum(r["execution_status"] == status for r in rows) for status in sorted(recorded)}
+    return {"state_revision": state["revision"], "reference_files_checked": len(entries),
+            "scenario_count": len(rows), "acceptance_outcomes": counts,
+            "interpretation": "Reference integrity and inventory only; no runtime tests performed by this command"}
+
+
 def view(data):
     focus = next(w for w in data["work_items"] if w["id"] == data["current_focus"])
     return {"revision":data["revision"],"checkpoint_time":data["history"][-1]["timestamp"],
@@ -201,6 +258,7 @@ def main(argv=None):
     parser=argparse.ArgumentParser(description="Read/validate ORBIT's permanent engineering checkpoint")
     parser.add_argument("--root",type=Path,default=default_root())
     parser.add_argument("--json",action="store_true",help="print concise machine-readable resume dossier")
+    parser.add_argument("--audit",action="store_true",help="check reference hashes and test inventory without running Luna")
     parser.add_argument("--checkpoint",action="store_true",help="update only the tracked metadata, not Luna")
     parser.add_argument("--expect-revision",type=int)
     parser.add_argument("--work-id")
@@ -215,6 +273,8 @@ def main(argv=None):
                 raise ValueError("Checkpoint requires --expect-revision, --work-id, --status and --note")
             revision=checkpoint(a.root,expected_revision=a.expect_revision,work_id=a.work_id,new_status=a.status,note=a.note,evidence=a.evidence,actor=a.actor)
             print(f"Saved ORBIT revision {revision}; commit the metadata change in your work branch")
+        elif a.audit:
+            print(json.dumps(audit_references(a.root),indent=2))
         else:
             result=view(load_state(a.root))
             if a.json:
