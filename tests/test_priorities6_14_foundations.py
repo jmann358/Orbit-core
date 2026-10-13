@@ -301,6 +301,7 @@ def test_actual_successful_model_response_records_reported_usage(monkeypatch):
         monkeypatch.setenv("LUNA_MODEL_URL", "https://api.openai.com/v1")
         monkeypatch.setenv("LUNA_MODEL_NAME", "test-model")
         monkeypatch.setenv("LUNA_API_KEY", "test-only")
+        monkeypatch.setenv("LUNA_CLOUD_CHAT_SCOPE", "https://api.openai.com/v1|test-model")
         monkeypatch.setattr(core.httpx, "AsyncClient", FakeClient)
         core.add_message("chat", "user", "Please respond")
         assert asyncio.run(core.respond("chat", "Please respond")) == "Luna is connected"
@@ -337,6 +338,7 @@ def test_gemini_response_usage_adapter_tracks_verified_counts(monkeypatch):
                            "https://generativelanguage.googleapis.com/v1beta")
         monkeypatch.setenv("LUNA_MODEL_NAME", "gemini-test")
         monkeypatch.setenv("LUNA_API_KEY", "test-only")
+        monkeypatch.setenv("LUNA_CLOUD_CHAT_SCOPE", "https://generativelanguage.googleapis.com/v1beta|gemini-test")
         monkeypatch.setattr(core.httpx, "AsyncClient", FakeClient)
         core.add_message("chat", "user", "Hello")
         assert asyncio.run(core.respond("chat", "Hello")) == "Hello!"
