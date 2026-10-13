@@ -5,7 +5,7 @@ This is a durable source record, not a chat memory service. Access to this repos
 
 ## Minimum read, not another full audit
 
-1. Read **`docs/orbit/STATE.json`**, then execute `python scripts/orbit_resume.py --json` if a checkout is available. Fail closed on invalid metadata.
+1. Read **`docs/orbit/STATE.json`**, then execute `python scripts/orbit_resume.py --json` and **`python scripts/orbit_resume.py --audit`** in a checkout. The audit checks reference hashes and the acceptance ledger without running Luna; fail closed on invalid metadata.
 2. Check current GitHub `main`, the actual head of [PR #58](https://github.com/jmann358/Orbit-core/pull/58), and newer comments in [issue #52](https://github.com/jmann358/Orbit-core/issues/52). Live THRONE status requires a host check. Treat conflicting reports as **unknown** until reconciled; don't downgrade new evidence because an old document disagrees.
 3. State in two sentences: **current priority** and **first executable next step / precise blocker**. Don't replan completed source-review and design work.
 4. Before editing, check the changed-file set, target SHA and any active owner or agent workstream. Never overwrite unmerged work. Check `DEVELOPMENT_POLICY.md` for sensitive permission gates.
@@ -16,7 +16,7 @@ This is a durable source record, not a chat memory service. Access to this repos
 ## Right now (2026-10-13 checkpoint, not live host telemetry)
 
 - **Current focus P0-0:** Inspect THRONE's installed `560419d` and protect newer Mac memory with separately approved independent encrypted recovery before further changes. Mac is currently unavailable; stop any host action.
-- **Next once unblocked:** privacy provider-egress gate, independent task evidence, immutable mission revisions, then a real verified multi-step mission.
+- **Next once unblocked:** privacy provider-egress gate, independent task evidence, immutable mission revisions, then a real verified multi-step mission. Credit-aware routing is its own queued work item (`P1-CREDIT`), not contingent on cloud standby or Mac sandbox.
 - Source-reviewed and design-ready: eight contracts and 333 proposed scenarios. `NOT_RUN` means exactly that; past 502-pass CI applies only to PR #58's existing suite, not these new requirements.
 - Published `main`: `pojo.2` (`baf96ab`); candidate/installed-by-report: **draft #58** at `560419d`, **not merged or released**. Update this line from verified evidence when it changes.
 - No new spending, new provider accounts, public exposure, generated-code application, or private-data upload is authorized by project documents.
@@ -37,3 +37,7 @@ For a short creative diversion, do not require a formal decision. No idea should
 - Protected private SQLite on THRONE: Luna's actual personal memory, never replicated into GitHub for continuity.
 
 **No guarantee of remembering across arbitrary providers:** the practical guarantee is persistence **of the files and Git history**, not automatic access, perfect state accuracy, or an unexpired API connection. A new agent must read these files (or be given their contents) to resume.
+
+## Continuity maintenance rule
+
+The state pointer can change after new evidence, but never erase an old event. Run `--audit` on the reference package after intentional changes; update its SHA-256 manifest in the same reviewed commit. Any completed acceptance case must have actual tested-revision and proof. The hash chain is tamper-evident *within a given file*; Git commit history and reviewer oversight, not the hash chain alone, provide independent auditability.
