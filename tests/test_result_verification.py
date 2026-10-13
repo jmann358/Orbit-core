@@ -111,3 +111,23 @@ def test_syntax_failure_and_symlinks_fail_closed(tmp_path, monkeypatch):
         (tmp_path / "app.py").unlink()
         (tmp_path / "app.py").symlink_to(tmp_path / "README.md")
         assert verification.source_snapshot()["sha256"] is None
+
+
+def test_worker_automatically_saves_independent_evidence_for_eligible_health(tmp_path, monkeypatch):
+    from luna.job_operations import run_once
+
+    _source(tmp_path)
+    monkeypatch.setattr(verification, "SOURCE_ROOT", tmp_path)
+    with patch.object(core, "DB_PATH", tmp_path / "automatic.sqlite"):
+        snapshot = verification.source_snapshot()
+        ident = jobs.create_job("project_health", "Synthetic automatic health")
+        report = "Health 4/4; source_sha256=" + snapshot["sha256"]
+        processed = run_once(lambda job: (True, report))
+        assert processed["id"] == ident
+        receipt = TestClient(app).get(f"/agent/jobs/{ident}/receipt").json()
+        assert receipt["state"] == "completed"
+        assert receipt["verification_status"] == "verified"
+        assert receipt["independently_verified"] is True
+        # The independent operation did not enqueue, run or change source.
+        assert jobs.list_jobs()[0]["id"] == ident
+        assert (tmp_path / "app.py").read_text() == "def start():\\n    return True\\n"
