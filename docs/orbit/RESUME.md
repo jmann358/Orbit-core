@@ -15,11 +15,11 @@ This is a durable source record, not a chat memory service. Access to this repos
 
 ## Right now (2026-10-13 checkpoint, not live host telemetry)
 
-- **Current source focus P1-3 (source review only):** the manual Linux runner now requires a saved test-input identity and stages immutable verified bytes; 597 local tests pass with candidate execution mocked. The loader can support a future Mac runner. Next: immutable dependency environment, then separately approved Mac VM setup and hostile-fixture validation. Neither Mac isolation nor installed autonomy is established.
+- **Current source focus P1-3 (source preparation only):** pinned Linux ARM64 dependency recipe, 22 wheel hashes and tested package versions verified without installation; image unbuilt. Apple container 1.5.0 source exposes host-side missing-image pull fallback despite guest network none. Next: establish approved runtime/application/init/kernel identities and candidate-time offline enforcement, then approved build/guest baseline/hostile isolation. No Mac execution or installed autonomy is established.
 - **Live-update gate P0-0:** read-only Git inspection verified installed `560419d` with 12 tracked edits. Preserve those edits. The owner confirms independent encrypted backup/recovery is still pending and explicitly requests continued source work. No private database, installation or service change is authorized by this checkpoint.
 - Privacy gate and the 40-attempt ceiling are in inspected `main`; health verification is stacked drafts #66/#67. Credit-aware routing remains its own queued work item (`P1-CREDIT`).
 - Source-reviewed and design-ready: eight contracts and 333 proposed scenarios. `NOT_RUN` means exactly that; past 502-pass CI applies only to PR #58's existing suite, not these new requirements.
-- Inspected `main`: `b707f80`; release label remains `pojo.2`. Candidate base: draft #71 at `b3f1e78`, stacked on #70/#69/#68/#67/#66. Source continuation: `codex/luna-verified-test-snapshot`. This stack is unmerged and distinct from the installed checkout. Re-fetch before acting.
+- Inspected `main`: `b707f80`; release label remains `pojo.2`. Candidate base: draft #72 at `5cb5b44`, stacked on #71/#70/#69/#68/#67/#66. Source continuation: `codex/luna-pinned-test-environment`. This stack is unmerged and distinct from the installed checkout. Re-fetch before acting.
 - No new spending, new provider accounts, public exposure, generated-code application, or private-data upload is authorized by project documents.
 
 ## Drift control — the respectful checkpoint

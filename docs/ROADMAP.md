@@ -1,5 +1,11 @@
 # Current roadmap — THRONE
 
+Current preparation on draft #72: a pinned Linux ARM64 dependency-image recipe
+has 22 wheel hashes/versions verified without installation. It is unbuilt.
+Runtime source inspection exposed host image-fetch fallback; resolve application,
+init-image and kernel identities and candidate-time offline enforcement before
+adopting a Mac adapter. Build/guest baseline/isolation need approved host work.
+
 Current source milestone on draft #71: the manual Linux runner now consumes
 mandatory reviewed input identities and immutable bytes, with 597 source tests
 passing. The source loader is reusable for the future Mac runner. Dependency

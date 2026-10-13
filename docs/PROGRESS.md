@@ -1,3 +1,34 @@
+## 2026-10-13 — pinned dependency build recipe (not built)
+
+Base draft #72: `5cb5b447561abc9d876d8481c89bf4171fa88ff3`. Added a dedicated
+Linux ARM64/CPython 3.13 dependency-image recipe under `sandbox/linux-arm64`.
+The base image is pinned by verified registry manifest/config identity; all 22
+wheel versions and hashes are locked. Versions match the existing Mac test
+environment; a newer unconstrained Starlette selection was not adopted. The
+context excludes project/candidate/private files. Download preparation is
+separate from a network-disabled final installation stage.
+
+Validation: hash-required wheels-only pip dry run resolves all 22 pinned artifacts;
+no installation, package build or import occurred. Linux/aarch64/Python 3.13.16
+metadata markers and version constraints satisfy the complete locked dependency
+graph. Registry metadata identifies the pinned base as arm64/Linux/Python 3.13.16
+with no OnBuild hooks. Recipe/lock hashes match the manifest. Prior source suite
+on #72 passed 597 tests; it does not validate this unbuilt image. No new application
+code or tests were added. Image build, guest baseline and hostile isolation are
+explicitly NOT_RUN; resulting image digest remains null.
+
+Release-source inspection of Apple container 1.5.0 reveals that guest network
+none does not stop host-side image acquisition: create fetches application/init
+images and a kernel, and missing images trigger registry pulls. Pinning and
+preloading all three identities plus proving candidate-time offline behavior is
+required before runtime adoption. See the recipe README for exact source links.
+This changed the next implementation requirement; do not infer safe offline
+execution from network flags or cache checks alone.
+
+Backup/recovery, runtime/download/build approval, isolation and real repair/test
+remain pending. Source-only progress, no runtime installation or live change.
+All 333 acceptance cases remain NOT_RUN.
+
 ## 2026-10-13 — consume exact reviewed test inputs (source review)
 
 Base draft #71: `b3f1e78dbd8f807ef3cb1f8af2b137497959f8fc`. The manual Linux
