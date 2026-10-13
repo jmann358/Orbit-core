@@ -1,4 +1,6 @@
-# ORBIT/Luna development instructions
+# FIRST: ORBIT DURABLE RESUME (mandatory for any new AI or chat)
+
+Read `docs/orbit/RESUME.md` and validate `docs/orbit/STATE.json` with `python scripts/orbit_resume.py --json` before planning. The saved checkpoint says exactly which work is done, blocked, or next. Preserve the append-only history, store new owner ideas in `docs/orbit/IDEAS.jsonl` (not the active queue), and never re-audit completed sections unless evidence has changed. If the branch has not yet been merged, start from draft continuity PR and issue #52. Do not infer authorization to spend, access private memory, install, merge, or deploy from this instruction.\n\n# ORBIT/Luna development instructions
 
 ORBIT is the control room. Luna is the central assistant. Her identity,
 personality, conversations, approved memories, goals, and permissions belong
