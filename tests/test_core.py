@@ -66,7 +66,8 @@ def test_gemini_native_endpoint_and_history():
                 return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": "Hi!"}]}}]},
                                       request=httpx.Request("POST", url))
             env = {"LUNA_MODEL_URL": "https://generativelanguage.googleapis.com/v1beta/openai",
-                   "LUNA_MODEL_NAME": "gemini-2.5-flash", "LUNA_API_KEY": "test-secret"}
+                   "LUNA_MODEL_NAME": "gemini-2.5-flash", "LUNA_API_KEY": "test-secret",
+                   "LUNA_CLOUD_CHAT_SCOPE": "https://generativelanguage.googleapis.com/v1beta/openai|gemini-2.5-flash"}
             with patch.dict("os.environ", env), patch.object(httpx.AsyncClient, "post", fake_post):
                 answer = asyncio.run(core.respond("session", "Hello Luna"))
             assert answer == "Hi!"

@@ -68,6 +68,7 @@ OPERATIONAL_NOTICES = (
     "Luna's memory is working, but no AI model is connected yet.",
     "Model endpoint blocked.",
     "Cloud AI needs a local LUNA_API_KEY.",
+    "Cloud chat sharing is not enabled for this provider and model.",
     "Invalid Gemini model name.",
     "I couldn't reach my configured AI model.",
 )
