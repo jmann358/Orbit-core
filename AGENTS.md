@@ -1,3 +1,7 @@
+# ORBIT/Luna durable project resume — first step for every AI session
+
+Before proposing work, read [docs/orbit/RESUME.md](docs/orbit/RESUME.md) and `docs/orbit/STATE.json`. In a checkout run `python scripts/orbit_resume.py --json` and `python scripts/orbit_resume.py --audit`. Verify current GitHub heads, issues and actual host state, then do only the next authorized unblocked work. Do **not** repeat the completed eight-section design review; record new ideas in `docs/orbit/IDEAS.jsonl` instead of silently changing priority. This is a public-code metadata handoff, not permission to merge, deploy, access private data, or spend money. See [issue #52](https://github.com/jmann358/Orbit-core/issues/52) for later checkpoints.
+
 # ORBIT/Luna development instructions
 
 ORBIT is the control room. Luna is the central assistant. Her identity,
