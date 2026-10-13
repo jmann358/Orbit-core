@@ -1,0 +1,45 @@
+id,area,observable_pass_condition,fixture_or_method,acceptance_ids,requires_actual_mac,planned_status
+RV-01,Contract,Worker writes completed; new receipt remains not_checked and independently_verified=false,synthetic SQLite TestClient,T02 T26,No,NOT RUN — DESIGN ONLY
+RV-02,Contract,Model-written {independently_verified:true} is ignored; only trusted checker can attest,synthetic adversarial payload,T18 T30,No,NOT RUN — DESIGN ONLY
+RV-03,Contract,Unapproved or missing criterion is not registered automatically; no job/permission side effects,synthetic API and goal revision,T08 T10 T11,No,NOT RUN — DESIGN ONLY
+RV-04,Contract,Criterion is bound to exact approved goal revision and job attempt; stale revision denied,synthetic DB and stale request,T11 T12 T13,No,NOT RUN — DESIGN ONLY
+RV-05,Contract,Existing legacy receipts retain URLs/keys and default to not_checked without invented backfill,synthetic migration and TestClient,T03 T26,No,NOT RUN — DESIGN ONLY
+RV-06,Contract,All seven verification statuses produce truthful scoped human labels and do not overwrite worker state,synthetic UI/API fixtures,T14 T26,No,NOT RUN — DESIGN ONLY
+RV-07,Local health,Source syntax/file checks repeated via separate trusted observer on pinned worktree verify only named checks,synthetic temporary source tree,T01 T02 T24,No,NOT RUN — DESIGN ONLY
+RV-08,Local health,Health x/y summary alone cannot set verified; absent list of checks yields inconclusive,synthetic incomplete report,T02 T26,No,NOT RUN — DESIGN ONLY
+RV-09,Local health,Confirmed failed named check produces failed criterion with check name and time,synthetic read-only temp source tree,T02 T24,No,NOT RUN — DESIGN ONLY
+RV-10,Local health,"Missing, symlink-escaped or unreadable source path fails closed without following outside scope",synthetic path/permissions,T18 T28,No,NOT RUN — DESIGN ONLY
+RV-11,Local health,Source mutating during inspection invalidates check instead of reporting success,synthetic TOCTOU race,T21 T24,No,NOT RUN — DESIGN ONLY
+RV-12,Local health,"Passing source health never claims full Mac, model, browser or memory operational readiness",synthetic receipt/API,T04 T21 T22,Yes: subsequent real Mac scope demo,NOT RUN — DESIGN ONLY
+RV-13,GitHub CI,"Matching repository, head SHA, workflow ID and all required completed successful job results verifies that scoped CI assertion",mocked GitHub JSON,T24 T34,No,NOT RUN — DESIGN ONLY
+RV-14,GitHub CI,Latest green workflow on unrelated SHA cannot verify candidate,mocked mixed run list,T24,No,NOT RUN — DESIGN ONLY
+RV-15,GitHub CI,Green run for wrong workflow path/ID or wrong repo/fork cannot verify candidate,mocked mixed workflows,T24,No,NOT RUN — DESIGN ONLY
+RV-16,GitHub CI,Queued/in_progress/waiting/action_required/neutral run never counts as success,mocked statuses,T24,No,NOT RUN — DESIGN ONLY
+RV-17,GitHub CI,Exact-SHA completed failed required job yields failed criterion and preserved evidence,mocked GitHub jobs,T24,No,NOT RUN — DESIGN ONLY
+RV-18,GitHub CI,Missing required parallel job prevents success even if top-level workflow shows success,mocked incomplete jobs,T24,No,NOT RUN — DESIGN ONLY
+RV-19,GitHub CI,Conflicting or malformed matching runs are inconclusive; no arbitrary latest-green selection,mocked inconsistent results,T24,No,NOT RUN — DESIGN ONLY
+RV-20,GitHub CI,"GitHub outage, 429, timeout or invalid JSON is inconclusive without hidden paid fallback",mocked network exceptions,T15 T24 T33,No,NOT RUN — DESIGN ONLY
+RV-21,Evidence-based plan,Supported high-severity local failure yields evidence-cited bounded recommendation not hard-coded plan,synthetic snapshot,T07 T08,No,NOT RUN — DESIGN ONLY
+RV-22,Evidence-based plan,Healthy narrow checks produce no_supported_issue_found not fabricated improvement,synthetic snapshot,T07 T16,No,NOT RUN — DESIGN ONLY
+RV-23,Evidence-based plan,Missing exact-head CI and no local problem yields insufficient_evidence not invented certainty,synthetic snapshot,T07 T34,No,NOT RUN — DESIGN ONLY
+RV-24,Evidence-based plan,Recomputation can label evidence_consistent_only but cannot claim independent external solution verification,synthetic report and assessor,T07 T18,No,NOT RUN — DESIGN ONLY
+RV-25,Evidence-based plan,"Malicious PR/model content never changes trusted criterion, tool scope or executable command",synthetic prompt-injection text,T18 T30,No,NOT RUN — DESIGN ONLY
+RV-26,Draft proof,Review-only proposal existence/source revision and schema validation does not assert tests ran or code applied,synthetic draft record,T17 T18,No,NOT RUN — DESIGN ONLY
+RV-27,Draft proof,Changed artifact content or source fingerprint prevents same proof reuse,synthetic source mutation,T17 T24,No,NOT RUN — DESIGN ONLY
+RV-28,Draft proof,"Missing artifact, unsafe path or symlink outside scope yields inconclusive without reading secrets",synthetic file paths,T18 T28 T30,No,NOT RUN — DESIGN ONLY
+RV-29,Draft proof,LLM quality claims or passing syntax cannot alone mark safe deployment or execution,synthetic adversarial model result,T17 T18,No,NOT RUN — DESIGN ONLY
+RV-30,Ledger,"Append-only evidence records retain checker version, scope, criterion, observed/collected times and immutable links",synthetic SQLite schema,T03 T26 T34,No,NOT RUN — DESIGN ONLY
+RV-31,Ledger,Simultaneous duplicate callback with same idempotency identity commits one effective verdict,synthetic concurrency,T12 T15,No,NOT RUN — DESIGN ONLY
+RV-32,Ledger,"New conflicting observation is appended, not overwritten; current projection becomes inconclusive/attention",synthetic concurrent reports,T15 T26,No,NOT RUN — DESIGN ONLY
+RV-33,Ledger,DB rollback or disk failure cannot partially persist verified status without required evidence,synthetic transaction failure,T20 T21,No,NOT RUN — DESIGN ONLY
+RV-34,Ledger,Verifier interrupted by worker restart keeps prior history and does not invent success,synthetic restart and reopen,T03 T21,No,NOT RUN — DESIGN ONLY
+RV-35,Ledger,"An expired proof or changed source/recipient/model is stale, while historical verified-as-of record remains",synthetic clock/version switch,T06 T24,No,NOT RUN — DESIGN ONLY
+RV-36,Security,"No arbitrary outbound evidence URL, browser redirect or SSRF from worker/model content",synthetic URL/localhost variants,T18 T30,No,NOT RUN — DESIGN ONLY
+RV-37,Security,HTML/JS/private token/credential in evidence cannot execute or leak via API/UI/log/export,synthetic redaction and rendering,T30 V01,No,NOT RUN — DESIGN ONLY
+RV-38,Security,Synthetic/mock/self-consistency evidence cannot generate a live independent-verified badge,synthetic origin_class cases,T24 T26,No,NOT RUN — DESIGN ONLY
+RV-39,Security,Verifier invokes only authorized read-only existing tools; no spending/external access escalation,synthetic denied permission,T05 T06 T18 T33,No,NOT RUN — DESIGN ONLY
+RV-40,Security,Cancellation/consent revocation cannot transplant historical proof to future job or imply undone side effect,synthetic lifecycle,T13 T14 T15,No,NOT RUN — DESIGN ONLY
+RV-41,Goal/UI,Multi-step goal is verified only if all mandatory step proofs and mission postcondition pass; else incomplete,synthetic two-step goal,T08 T09 T26,No,NOT RUN — DESIGN ONLY
+RV-42,Goal/UI,Not-applicable optional criterion is explicitly declared; mandatory human review keeps review_required,synthetic creative task,T10 T26,No,NOT RUN — DESIGN ONLY
+RV-43,Goal/UI,"GET/reload/saved result link is strictly read-only and reload shows correct scope, limits and state",synthetic TestClient plus DOM,T03 T22 T26,No,NOT RUN — DESIGN ONLY
+RV-44,Mac acceptance,"Real Mac worker outcome is separately observed and saved; restart/reopen preserves proof, and a changed source invalidates current badge",THRONE physical Mac/service/browser/controlled failure,T03 T04 T21 T22 T26,Yes,NOT RUN — DESIGN ONLY
