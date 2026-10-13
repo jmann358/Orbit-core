@@ -44,7 +44,7 @@ TEMPLATES = {
 assert set(TEMPLATES) == set(ALLOWED_PATHS)
 MAX_ACTIVE = 3
 MAX_REVIEW_BACKLOG = 10
-MAX_DAILY_CALLS = 2
+MAX_DAILY_CALLS = 40
 
 
 def _stamp(now=None):
@@ -360,8 +360,8 @@ async def run_mission(db_path, ident, *, model=None, root=None):
             }], tests=[])
         except (ValueError, SyntaxError):
             # Local models may get the structured JSON format wrong. Allow
-            # only one fresh model attempt, counted against the same hard
-            # two-calls-per-day budget; no unbounded agent loops or retries.
+            # only one fresh model attempt, counted against the same hard daily cap and only one retry for this mission;
+            # no unbounded agent loops or retries.
             # Never include the failed answer, secrets or personal memories.
             if not _reserve_validation_retry(db_path, ident):
                 raise ValueError("Development draft needs manual attention") from None

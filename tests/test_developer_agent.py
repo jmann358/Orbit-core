@@ -224,14 +224,16 @@ def test_autonomy_requires_explicit_opt_in_and_only_schedules_once_daily():
         assert status(db)["daily_model_attempts"] == 0
 
 
-def test_agent_does_not_exceed_two_model_attempts_per_day():
+def test_agent_enforces_forty_model_attempts_per_day_without_extra_calls():
+    from luna.cloud_worker import connect as job_connect
+
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
         original, replacement = fixture_source(root)
-        second_path = root / "luna/self_improvement.py"
-        second_path.write_text(original)
+        (root / "luna/self_improvement.py").write_text(original)
         db = root / "agent.sqlite"
         calls = []
+
         async def model(prompt):
             calls.append(prompt)
             target = (
@@ -240,15 +242,27 @@ def test_agent_does_not_exceed_two_model_attempts_per_day():
                 else "luna/development.py"
             )
             return fake_model_result(original, replacement, target)
+
         first = queue_mission(db, "luna/development.py")["mission_id"]
+        # Simulate 39 previously reserved local attempts in disposable SQLite.
+        # This tests the real hard boundary without performing 40 model calls.
+        assert MAX_DAILY_CALLS == 40
+        with job_connect(db) as con:
+            con.execute(
+                "UPDATE developer_control SET model_day=?, model_calls=? WHERE id=1",
+                (datetime.now(timezone.utc).date().isoformat(), MAX_DAILY_CALLS - 1),
+            )
         asyncio.run(run_mission(db, first, model=model, root=root))
-        second = queue_mission(db, "luna/self_improvement.py")["mission_id"]
-        asyncio.run(run_mission(db, second, model=model, root=root))
-        third = queue_mission(db, "luna/development.py")["mission_id"]
+        assert status(db)["daily_model_attempts"] == 40
+        assert mission(db, first)["state"] == "review"
+
+        blocked = queue_mission(db, "luna/self_improvement.py")["mission_id"]
         with pytest.raises(ValueError):
-            asyncio.run(run_mission(db, third, model=model, root=root))
-        assert len(calls) == MAX_DAILY_CALLS
-        assert mission(db, third)["state"] == "attention"
+            asyncio.run(run_mission(db, blocked, model=model, root=root))
+        assert len(calls) == 1
+        assert mission(db, blocked)["state"] == "attention"
+        assert status(db)["daily_model_attempts"] == MAX_DAILY_CALLS
+        assert status(db)["daily_model_attempt_limit"] == 40
 
 
 def test_agent_studio_local_api_status_pause_and_review_page():
