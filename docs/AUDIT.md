@@ -4,6 +4,14 @@
 
 # Repository audit — 2026-10-12
 
+## Targeted follow-up — 2026-10-13, verified snapshot consumption on #71
+
+The Linux runner copied mutable source after review. Replaced that path with
+revalidated packet identities and immutable Git/replacement bytes; input identity
+is now mandatory for its local CLI. Ten new cases and 597 full-suite passes prove
+source validation, staged contents and mocked dispatch only. Dependencies and
+OS containment remain unverified; no generated code executed on the host.
+
 ## Targeted follow-up — 2026-10-13, fixed test-input identity on #70
 
 Reproduced unchanged proposal identity after a selected test's committed bytes

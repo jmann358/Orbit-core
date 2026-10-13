@@ -1,5 +1,6 @@
 """Priority 2: review-only workshop -> manifest -> guarded sandbox."""
 import hashlib
+import os
 import subprocess
 import tempfile
 from pathlib import Path
@@ -9,6 +10,7 @@ import pytest
 from luna.patch_manifest import proposal_fingerprint
 from luna.restricted_runner import _command, run_verified_candidate
 from luna.workshop import stage_proposal
+from luna.test_inputs import prepare_test_inputs
 
 
 def fixture(root):
@@ -26,6 +28,17 @@ def fixture(root):
     changes = [{"path": "luna/development.py", "base_sha256": base,
                 "replacement": "VALUE = 2\n"}]
     return source, changes
+
+
+def committed_review(root, report):
+    for args in [('-c', 'init.templateDir=', 'init', '-q'), ('add', '.'),
+                 ('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+                  'commit', '-qm', 'Trusted test fixture')]:
+        subprocess.run(['git', '-C', str(root), *args], check=True, capture_output=True,
+                       env={'PATH': '/usr/bin:/bin', 'GIT_CONFIG_NOSYSTEM': '1',
+                            'GIT_CONFIG_GLOBAL': os.devnull})
+    return prepare_test_inputs(root, report['manifest'], {'luna/development.py': 'VALUE = 2\n'},
+                               expected_proposal=report['fingerprint'])
 
 
 def test_proposal_is_review_only_and_fingerprint_stable(tmp_path):
@@ -120,14 +133,16 @@ def test_runner_sandbox_invocation_and_unmodified_host(tmp_path):
     source, changes = fixture(tmp_path)
     original = source.read_bytes()
     report = stage_proposal(tmp_path, changes, ["tests/test_sample.py"])
+    review = committed_review(tmp_path, report)
     with patch("luna.restricted_runner._runner_binary", return_value="/usr/bin/bwrap"), patch(
             "luna.restricted_runner._command",
             return_value=["/usr/bin/bwrap", "--unshare-all", "--", "python"]) as command, patch(
-            "luna.restricted_runner.subprocess.run",
+            "luna.restricted_runner._execute",
             return_value=subprocess.CompletedProcess([], 0)) as run:
         result = run_verified_candidate(tmp_path, report["manifest"],
                                         {"luna/development.py": "VALUE = 2\n"},
-                                        expected_fingerprint=report["fingerprint"], approved=True)
+                                        expected_fingerprint=report["fingerprint"], approved=True,
+                                        input_review=review, expected_inputs_fingerprint=review["inputs_fingerprint"])
     assert result["passed"] and result["runner"] == "bubblewrap"
     assert result["automatic_execution"] is False and result["live_patch_applied"] is False
     assert source.read_bytes() == original
@@ -140,13 +155,15 @@ def test_runner_sandbox_invocation_and_unmodified_host(tmp_path):
 def test_runner_timeout_is_reported_without_host_mutation(tmp_path):
     source, changes = fixture(tmp_path)
     report = stage_proposal(tmp_path, changes, ["tests/test_sample.py"])
+    review = committed_review(tmp_path, report)
     with patch("luna.restricted_runner._runner_binary", return_value="/usr/bin/bwrap"), patch(
             "luna.restricted_runner._command", return_value=["bwrap"]), patch(
-            "luna.restricted_runner.subprocess.run",
+            "luna.restricted_runner._execute",
             side_effect=subprocess.TimeoutExpired(["bwrap"], 30)):
         result = run_verified_candidate(tmp_path, report["manifest"],
                                         {"luna/development.py": "VALUE = 2\n"},
-                                        expected_fingerprint=report["fingerprint"], approved=True)
+                                        expected_fingerprint=report["fingerprint"], approved=True,
+                                        input_review=review, expected_inputs_fingerprint=review["inputs_fingerprint"])
     assert result["timed_out"] and not result["passed"]
     assert source.read_text() == "VALUE = 1\n"
 

@@ -1,5 +1,11 @@
 # Current roadmap — THRONE
 
+Current source milestone on draft #71: the manual Linux runner now consumes
+mandatory reviewed input identities and immutable bytes, with 597 source tests
+passing. The source loader is reusable for the future Mac runner. Dependency
+image identity and approved Mac isolation/hostile-fixture validation are next;
+no candidate ran and no installed autonomy is claimed.
+
 Current source milestone on draft #70: durable test-input review binds a proposed
 diagnostics change, its fixed trusted tests and bounded committed source to exact
 content identities. 587 tests pass and the disposable review UI flow passed.
