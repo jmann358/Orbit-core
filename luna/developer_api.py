@@ -25,6 +25,18 @@ class EvidenceDraftRequest(BaseModel):
     expected_observation: str = Field(pattern=r'^[0-9a-f]{64}$')
 
 
+class TestReviewRequest(BaseModel):
+    expected_fingerprint: str = Field(pattern=r'^[0-9a-f]{64}$')
+
+
+@router.post('/agent/developer/missions/{mission_id}/test-review')
+def developer_test_review(mission_id: int, request: TestReviewRequest):
+    try:
+        return developer_agent.prepare_test_review(core.DB_PATH, mission_id, request.expected_fingerprint)
+    except (ValueError, OSError, TimeoutError) as exc:
+        raise HTTPException(409, 'Test-input review unavailable; verify committed source and the displayed proposal') from exc
+
+
 @router.post('/agent/developer/from-source-review')
 def developer_from_source_review(request: EvidenceDraftRequest):
     from luna.draft_evidence import from_saved_review
@@ -138,6 +150,8 @@ missions, code installation, merging or deployment.</small></p>
 </article>
 <article><h2>Review selected proposal</h2>
 <p id="review-message">Choose a completed mission to inspect its revision-locked proposal.</p>
+<button id="test-review" disabled>Prepare test-input review</button>
+<p id="test-review-status" role="status">No candidate tests are authorized or run here.</p>
 <details><summary>Proposed changes (unapplied)</summary><pre id="diff"></pre></details>
 <details><summary>Complete replacement source (unapplied)</summary><pre id="source"></pre></details>
 </article>
@@ -244,6 +258,15 @@ async function openMission(id){
    (item.source_evidence?' · Based on saved source review #'+item.source_evidence.job_id+'; candidate tests and execution remain unapproved.':'');
   document.querySelector('#diff').textContent=item.diff||'No verified diff yet';
   document.querySelector('#source').textContent=item.replacement||'No replacement yet';
+  const button=document.querySelector('#test-review'),note=document.querySelector('#test-review-status');
+  button.disabled=item.state!=='review'||item.path!=='luna/development.py';
+  note.textContent='No candidate tests are authorized or run here. The first supported test selection is for diagnostics repairs.';
+  button.onclick=async()=>{
+   button.disabled=true;
+   try{const packet=await req('/agent/developer/missions/'+id+'/test-review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({expected_fingerprint:item.fingerprint})});
+    note.textContent='Saved input review #'+packet.review_id+' · Base commit '+packet.base_commit_sha+' · '+packet.tests.join(', ')+' · Input fingerprint '+packet.inputs_fingerprint+'. Runner isolation and execution approval remain unverified; no tests ran.';
+   }catch(error){note.textContent=error.message;}
+  };
  }catch(error){document.querySelector('#review-message').textContent=error.message}
 }
 async function loadSourceFinding(){

@@ -1,5 +1,12 @@
 # Current roadmap — THRONE
 
+Current source milestone on draft #70: durable test-input review binds a proposed
+diagnostics change, its fixed trusted tests and bounded committed source to exact
+content identities. 587 tests pass and the disposable review UI flow passed.
+This remains non-executing P1-3 preparation. Next gaps are execution-time input
+validation and dependency-image binding, then approved Mac VM setup and hostile
+isolation tests. The existing Linux runner does not consume these packets yet.
+
 Current source milestone on draft #69: verified source findings can explicitly
 queue one evidence-bound draft through the existing developer engine. 578 tests
 pass; the synthetic finding-to-request browser flow passed. This is D07-A/C

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": 7,
+  "revision": 8,
   "current_focus": "P1-3",
   "updated_at": "2026-10-13",
   "source": {
@@ -8,11 +8,11 @@
     "checkpoint_url": "https://github.com/jmann358/Orbit-core/issues/52#issuecomment-6148394576",
     "published_release": "pojo.2",
     "published_main_sha": "b707f80f0c99f66e2fc9acb34e22567600567001",
-    "candidate_pr": "https://github.com/jmann358/Orbit-core/pull/69",
-    "candidate_sha": "a96af679efefd865de7f0854f2516380708d72b8",
+    "candidate_pr": "https://github.com/jmann358/Orbit-core/pull/70",
+    "candidate_sha": "06dd34ef18cc17c1f48e2c016b3d274aa66ecccf",
     "reported_installed_revision": "560419de5f21102c9c9995de57dd4bb8890837f9",
     "host_live_state": "GIT_ONLY_VERIFIED_2026-10-13",
-    "source_evidence": "Read-only Git check verified installed HEAD and 12 tracked edits. Host reports macOS 27.0.1, Mac16,10, 16 GiB and 10 logical CPUs; no container/Docker/Podman/Orb executable on inspected PATH. Service/private state/backup remain unverified. Source continuation: codex/luna-grounded-drafting on PR 69.",
+    "source_evidence": "Read-only Git check verified installed HEAD and 12 tracked edits. Host reports macOS 27.0.1, Mac16,10, 16 GiB and 10 logical CPUs; no container/Docker/Podman/Orb executable on inspected PATH. Service/private state/backup remain unverified. Source continuation: codex/luna-test-inputs on PR 70.",
     "verified_local_head": "560419de5f21102c9c9995de57dd4bb8890837f9",
     "local_tracked_changes_count": 12
   },
@@ -221,7 +221,7 @@
       ],
       "evidence": "",
       "blocker": "",
-      "updated_at": "2026-10-13T16:15:50.612028+00:00"
+      "updated_at": "2026-10-13T16:33:50.529326+00:00"
     },
     {
       "id": "P2-1",
@@ -365,6 +365,18 @@
       "state_revision": 7,
       "prev_hash": "8b62aeaa650973b2d35ea17934c5c9c1414cd1cb2c20948cc5b114d4eec0296b",
       "event_hash": "5f707a1cc10f84c0ff8d83df417478e6f87ee860919ad45f1bdbe6eb423531a0"
+    },
+    {
+      "seq": 8,
+      "timestamp": "2026-10-13T16:33:50.529326+00:00",
+      "actor": "THRONE",
+      "work_id": "P1-3",
+      "status": "review",
+      "note": "Non-executing test-input review on draft 70 at 06dd34e: exact committed source/test/candidate identities, bounded clean inputs, predefined diagnostics tests and durable idempotent UI review. Nine synthetic regressions; full local suite 587 passed, 13 warnings, zero skips. Disposable browser review passed. No candidate execution, Linux runner integration, dependency-image identity, Mac isolation, full acceptance or live update claimed. Backup/recovery and host changes remain pending.",
+      "evidence": "https://github.com/jmann358/Orbit-core/tree/codex/luna-test-inputs",
+      "state_revision": 8,
+      "prev_hash": "5f707a1cc10f84c0ff8d83df417478e6f87ee860919ad45f1bdbe6eb423531a0",
+      "event_hash": "7227c7ee2303df62c76b97be9a9ad03dc47494d521688ce8d59eb6d37055e0b7"
     }
   ]
 }

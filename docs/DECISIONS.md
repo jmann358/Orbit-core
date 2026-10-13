@@ -1,3 +1,17 @@
+## 2026-10-13 — bind tests and source before requesting execution
+
+Retain the existing proposal fingerprint, but give test preparation a separate
+input digest that includes the exact Git commit/tree, source blob identities,
+candidate bytes and trusted test bytes. Only fixed committed public source
+paths are eligible. Reject dirty or unsafe inputs rather than silently testing
+a different tree. Save review packets idempotently with mission/proposal binding.
+
+Begin with the predefined diagnostics test selection. Preparation never executes
+tests or grants runner authority. The existing Linux runner is not integrated
+with this packet; future execution must validate inputs, immutable dependency
+image and an independently verified OS boundary under separate owner approval.
+The Mac runtime and backup gates remain pending. Full acceptance is not claimed.
+
 ## 2026-10-13 — evidence must precede a targeted repair draft
 
 Connect fresh verified syntax findings to the existing developer mission engine

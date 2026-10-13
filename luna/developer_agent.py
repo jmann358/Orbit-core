@@ -264,6 +264,49 @@ def _reserve_model_attempt(db_path, ident):
         )
 
 
+def prepare_test_review(db_path, ident, expected_fingerprint, *, root=None):
+    """Save exact test/source identities for review; never invoke a runner."""
+    from luna.patch_manifest import compare_proposal_fingerprint, proposal_fingerprint
+    from luna.test_inputs import prepare_test_inputs, _digest
+    record = mission(db_path, ident)
+    if not record or record['state'] != 'review' or not record['manifest']:
+        raise ValueError('A saved review-ready proposal is required')
+    if record['fingerprint'] != expected_fingerprint:
+        raise ValueError('Displayed proposal changed')
+    compare_proposal_fingerprint(record['manifest'], expected_fingerprint)
+    # This first binding supports the observed diagnostics repair path only.
+    # Further targets need an explicit trusted test selection, never model text.
+    selections = {'luna/development.py': ['tests/test_development.py', 'tests/test_development_engine.py']}
+    tests = selections.get(record['path'])
+    if not tests:
+        raise ValueError('No predefined trusted test selection for this target')
+    if record['source_evidence']:
+        from luna.draft_evidence import revalidate
+        revalidate(db_path, record['source_evidence'])
+    manifest = {**record['manifest'], 'tests': tests}
+    packet = prepare_test_inputs(ROOT if root is None else root, manifest,
+        {record['path']: record['replacement']}, expected_proposal=proposal_fingerprint(manifest))
+    packet.update(developer_mission_id=ident, original_proposal_fingerprint=expected_fingerprint,
+                  source_evidence=record['source_evidence'])
+    packet.pop('inputs_fingerprint')
+    packet['inputs_fingerprint'] = _digest(packet)
+    with job_connect(db_path) as db:
+        db.execute('BEGIN IMMEDIATE')
+        _setup(db)
+        current = db.execute('SELECT state,fingerprint,manifest,replacement,evidence_json FROM developer_missions WHERE id=?', (ident,)).fetchone()
+        if not current or current[:2] != ('review', expected_fingerprint) or json.loads(current[2]) != record['manifest'] or current[3] != record['replacement'] or (json.loads(current[4]) if current[4] else None) != record['source_evidence']:
+            raise ValueError('Proposal changed while preparing test inputs')
+        db.execute('''CREATE TABLE IF NOT EXISTS developer_test_reviews (
+            id INTEGER PRIMARY KEY, mission_id INTEGER NOT NULL,
+            fingerprint TEXT NOT NULL, packet TEXT NOT NULL, created_at TEXT NOT NULL,
+            UNIQUE(mission_id,fingerprint))''')
+        db.execute('INSERT OR IGNORE INTO developer_test_reviews(mission_id,fingerprint,packet,created_at) VALUES(?,?,?,?)',
+                   (ident, packet['inputs_fingerprint'], json.dumps(packet, sort_keys=True), _stamp()))
+        saved = db.execute('SELECT id,packet,created_at FROM developer_test_reviews WHERE mission_id=? AND fingerprint=?',
+                           (ident, packet['inputs_fingerprint'])).fetchone()
+    return {'review_id': saved[0], 'created_at': saved[2], **json.loads(saved[1])}
+
+
 def _reserve_validation_retry(db_path, ident):
     """Count one more proposal attempt under the existing daily hard limit."""
     stamp = _stamp()
