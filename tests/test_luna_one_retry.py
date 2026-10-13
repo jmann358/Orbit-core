@@ -65,7 +65,9 @@ def test_two_invalid_replies_never_loop_forever_or_modify_source():
             pass
         else:
             assert False, "Bad proposals cannot be accepted"
-        assert len(calls) == MAX_DAILY_CALLS == 2
-        assert status(db)["daily_model_attempts"] == MAX_DAILY_CALLS
+        # Forty daily attempts never allow more than one retry per mission.
+        assert MAX_DAILY_CALLS == 40
+        assert len(calls) == 2
+        assert status(db)["daily_model_attempts"] == 2
         assert mission(db, ident)["state"] == "attention"
         assert path.read_text() == old
