@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": 1,
+  "revision": 2,
   "current_focus": "P0-0",
   "updated_at": "2026-10-13",
   "source": {
@@ -84,12 +84,12 @@
       "title": "Verify current installed source and backup readiness",
       "status": "blocked",
       "owner": "THRONE",
-      "objective": "Read-only SHA/PR comparison and newest independent encrypted backup request",
+      "objective": "Read-only installed SHA/service/login verification and independent encrypted backup readiness before live writes",
       "acceptance": "No writes until independent backup accepted",
       "dependencies": [],
       "evidence": "",
       "blocker": "Requires physical Mac and owner approval for encrypted backup destination",
-      "updated_at": "2026-10-13"
+      "updated_at": "2026-10-13T05:50:14.332684+00:00"
     },
     {
       "id": "P0-1",
@@ -152,10 +152,25 @@
       "title": "Physical reboot/login plus soak and restore proof",
       "status": "pending",
       "owner": "THRONE",
-      "objective": "24h soak, controlled recovery, blocked duplicate worker, independent restore",
+      "objective": "24h normal-use soak, controlled recovery and restorable separate-media snapshot; never pull power",
       "acceptance": "Home conditions passed; degraded cases correctly reported",
       "dependencies": [
-        "P0-4"
+        "P0-0"
+      ],
+      "evidence": "",
+      "blocker": "",
+      "updated_at": "2026-10-13"
+    },
+    {
+      "id": "P1-CREDIT",
+      "title": "Credit-aware provider router (zero-cost, consent-safe)",
+      "status": "pending",
+      "owner": "THRONE",
+      "objective": "Provider cap/credit/expiry inventory, capability routing, cost reservations, verified checkpoint-based fallback",
+      "acceptance": "No paid overflow; unknown quota fails closed; no unauthorized context sent across providers",
+      "dependencies": [
+        "P0-1",
+        "P0-2"
       ],
       "evidence": "",
       "blocker": "",
@@ -169,7 +184,8 @@
       "objective": "Pair revoke reauth session expiry anti-CSRF real-device concurrency",
       "acceptance": "Mac sole writer and remote requests authenticated",
       "dependencies": [
-        "P0-4"
+        "P0-4",
+        "P0-5"
       ],
       "evidence": "",
       "blocker": "",
@@ -183,7 +199,8 @@
       "objective": "Minimal signed envelope, field consent, cloud no-writer, offline inbox reconcile",
       "acceptance": "Outage tested without authority transfer or paid calls",
       "dependencies": [
-        "P0-4"
+        "P0-4",
+        "P0-5"
       ],
       "evidence": "",
       "blocker": "",
@@ -197,7 +214,8 @@
       "objective": "OS isolated hostile-code test, exact source, review, rollback rehearsal",
       "acceptance": "Hostile candidate contained and reviewable validated draft",
       "dependencies": [
-        "P1-2"
+        "P0-4",
+        "P0-5"
       ],
       "evidence": "",
       "blocker": "",
@@ -205,13 +223,14 @@
     },
     {
       "id": "P2-1",
-      "title": "Budget and scoped specialist",
+      "title": "Scoped specialist with zero-cost controls",
       "status": "pending",
       "owner": "THRONE",
-      "objective": "Real pre-call zero-cost deny, narrow specialist permissions, revocation",
+      "objective": "Use verified provider router and enforce scoped specialist permissions, revocation and accountable delegation",
       "acceptance": "No unpriced call, one useful scoped specialist",
       "dependencies": [
-        "P1-3"
+        "P1-3",
+        "P1-CREDIT"
       ],
       "evidence": "",
       "blocker": "",
@@ -272,6 +291,18 @@
       "state_revision": 1,
       "prev_hash": "GENESIS",
       "event_hash": "2621727062303857a52e819e4ca93572b4d3fa012f8d2d2fa535138a410caf44"
+    },
+    {
+      "seq": 2,
+      "timestamp": "2026-10-13T05:50:14.332684+00:00",
+      "actor": "HELM",
+      "work_id": "P0-0",
+      "status": "blocked",
+      "note": "HELM corrected unnecessary cloud gating and made credit routing independently scheduled; added read-only manifest/test audit. All host and implementation work remains unverified.",
+      "evidence": "https://github.com/jmann358/Orbit-core/pull/59",
+      "state_revision": 2,
+      "prev_hash": "2621727062303857a52e819e4ca93572b4d3fa012f8d2d2fa535138a410caf44",
+      "event_hash": "e1d761d70e58f884d1389e0e5ebce4ca9af129ac20f6a181e3d72e39bfaa87b7"
     }
   ]
 }
