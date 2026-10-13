@@ -1,0 +1,63 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# Review-only behavior. App permissions and billing must be checked separately.
+language: en-US
+early_access: false
+enable_free_tier: true
+inheritance: false
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  allow_author_approval: false
+  high_level_summary: false
+  review_status: true
+  auto_apply_labels: false
+  auto_assign_reviewers: false
+  enable_prompt_for_ai_agents: false
+  poem: false
+  in_progress_fortune: false
+  sequence_diagrams: false
+  post_merge_actions: []
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    drafts: true
+    base_branches: []
+  finishing_touches:
+    autofix:
+      enabled: false
+    fix_ci:
+      enabled: false
+    resolve_merge_conflict:
+      enabled: false
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+    simplify:
+      enabled: false
+    custom: []
+  path_instructions:
+    - path: "**/*"
+      instructions: >-
+        Review and report findings only. Follow AGENTS.md and DEVELOPMENT_POLICY.md.
+        Flag memory loss, unauthorized provider egress, weakened approval gates,
+        non-loopback unauthenticated exposure, unsafe generated-code execution,
+        unapproved spending, deployment or permission expansion. Distinguish
+        synthetic tests from live acceptance. Never apply fixes, commit source,
+        merge, release, deploy, invoke a coding agent, or change workflow files.
+chat:
+  auto_reply: false
+knowledge_base:
+  pull_requests:
+    scope: local
+  mcp:
+    usage: disabled
+issue_enrichment:
+  auto_enrich:
+    enabled: false
+  planning:
+    enabled: false
+    auto_planning:
+      enabled: false
+  labeling:
+    auto_apply_labels: false
