@@ -18,6 +18,32 @@ transfer, new model call or paid service was performed. See THRONE_STATUS.md.
 
 # Development progress
 
+## 2026-10-13 — result verification recovers honestly and reads bounded source
+
+Follow-up to PR #66, exact base `357f8fca638b82551cdc4e31020de286c5e67d38`.
+Two regressions reproduced before repair: a restored source revision stayed
+stale forever, and a symlinked parent directory was accepted as in-scope source.
+Verification now deduplicates only consecutive identical observations under
+the existing SQLite write transaction, preserving verified/stale/verified
+history. Legacy review-build events retain their IDs and contents during the
+transactional table upgrade. Source reads pin directories and files with
+no-follow opens, reject non-regular or oversized files, and bound bytes read.
+
+Seven new regression tests cover those failures plus event preservation,
+concurrency, oversized input and source-open races. Final Mac/Python 3.13
+suite: **544 passed, 13 warnings, zero skips in 36.57 seconds**. The bundled
+Node runtime enabled all six optional JavaScript checks. Initial restricted
+run: 534 passed, six skips and four localhost-bind permission failures; rerun
+with temporary loopback test servers: 538 passed/six skips; the final complete
+run above resolves both environment limitations. Disposable SQLite and fake
+provider fixtures only; actual test worker/server restart cases ran. No owner
+memory, live Luna update, provider call, generated-code execution or release.
+
+Owner confirms independent backup/recovery is still pending and requests
+continued source work. The 333 planned acceptance scenarios are not marked
+passed by this suite. P0-2 remains a partial, review-stage deliverable; a full
+autonomous development/test/repair/promotion cycle is not yet certified.
+
 ## 2026-10-12 — complete audit and tested conversation reliability slice
 
 Audited upstream source: `a5eb41a898c250736d760d13cc412f19442f1158`.

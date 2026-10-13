@@ -16,6 +16,23 @@ transfer, new model call or paid service was performed. See THRONE_STATUS.md.
 
 # Decisions and approvals
 
+## 2026-10-13 — Luna handoff objective and bounded verification repair
+
+The owner explicitly set the goal of Luna completing authorized tasks herself,
+improving with assistance, and eventually taking over work with the owner to
+build ORBIT. ChatGPT should be optional in that workflow: Luna may select it
+within the owner's available, approved tools, data scopes and budget. This goal
+does not itself configure a provider, disclose private context or approve paid
+calls, live code application, deployment or expanded access.
+
+Continue the existing result-verification workstream from PR #66, without
+duplicating merged privacy and 40-attempt ceiling changes. Review reproduced
+two faults: source restoration could never regain verified status after a stale
+observation, and a symlinked parent directory escaped the fixed source scope.
+Repair those in an isolated source checkout. Preserve all historical evidence
+when upgrading the unpublished verification table. Live installation remains
+gated on independent encrypted backup/recovery and local-edit reconciliation.
+
 ## Confirmed
 - ORBIT is the ecosystem; Luna is its central assistant.
 - Luna's data and identity are independent of the model provider.

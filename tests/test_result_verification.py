@@ -1,5 +1,7 @@
 """Independent local source verification on disposable SQLite and fake source files."""
 from pathlib import Path
+import os
+from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -133,3 +135,100 @@ def test_worker_automatically_saves_independent_evidence_for_eligible_health(tmp
         assert (tmp_path / "app.py").read_text().splitlines() == [
             "def start():", "    return True"
         ]
+
+
+def test_reverification_after_source_restored_records_new_observation(tmp_path, monkeypatch):
+    _source(tmp_path)
+    monkeypatch.setattr(verification, "SOURCE_ROOT", tmp_path)
+    original = (tmp_path / "app.py").read_bytes()
+    with patch.object(core, "DB_PATH", tmp_path / "recovery.sqlite"):
+        snap = verification.source_snapshot()
+        ident = _done("project_health", "Health 4/4; source_sha256=" + snap["sha256"])
+        assert verification.verify_local_health(ident)["independently_verified"]
+        (tmp_path / "app.py").write_text("def changed():\n    return 2\n")
+        assert verification.verify_local_health(ident)["verification_status"] == "stale"
+        (tmp_path / "app.py").write_bytes(original)
+        assert verification.verify_local_health(ident)["independently_verified"]
+        assert verification.verify_local_health(ident)["independently_verified"]
+        with core.connect() as db:
+            assert db.execute(
+                "SELECT status FROM work_verification_events ORDER BY id"
+            ).fetchall() == [("verified",), ("stale",), ("verified",)]
+
+
+def test_parent_directory_symlink_is_not_source_evidence(tmp_path):
+    root = tmp_path / "source"
+    root.mkdir()
+    _source(root)
+    (root / "luna").rename(tmp_path / "outside")
+    (root / "luna").symlink_to(tmp_path / "outside", target_is_directory=True)
+    assert verification.source_snapshot(root)["sha256"] is None
+
+
+def test_legacy_verification_events_survive_schema_upgrade(tmp_path, monkeypatch):
+    _source(tmp_path)
+    monkeypatch.setattr(verification, "SOURCE_ROOT", tmp_path)
+    with patch.object(core, "DB_PATH", tmp_path / "legacy.sqlite"):
+        snap = verification.source_snapshot()
+        ident = _done("project_health", "Health 4/4; source_sha256=" + snap["sha256"])
+        verification.verify_local_health(ident)
+        with core.connect() as db:
+            before = db.execute("SELECT * FROM work_verification_events").fetchall()
+            db.execute("CREATE UNIQUE INDEX old_event_identity ON work_verification_events"
+                       "(job_id,job_attempt,result_sha256,source_sha256,status)")
+        assert verification.verify_local_health(ident)["independently_verified"]
+        with core.connect() as db:
+            assert db.execute("SELECT * FROM work_verification_events").fetchall() == before
+        (tmp_path / "app.py").write_text("# changed\n")
+        assert verification.verify_local_health(ident)["verification_status"] == "stale"
+        with core.connect() as db:
+            after = db.execute("SELECT * FROM work_verification_events ORDER BY id").fetchall()
+            assert after[0] == before[0]
+            assert len(after) == 2
+
+
+def test_concurrent_reverification_records_only_one_observation(tmp_path, monkeypatch):
+    _source(tmp_path)
+    monkeypatch.setattr(verification, "SOURCE_ROOT", tmp_path)
+    with patch.object(core, "DB_PATH", tmp_path / "concurrent.sqlite"):
+        snap = verification.source_snapshot()
+        ident = _done("project_health", "Health 4/4; source_sha256=" + snap["sha256"])
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            outcomes = list(pool.map(verification.verify_local_health, [ident] * 4))
+        assert all(result["independently_verified"] for result in outcomes)
+        with core.connect() as db:
+            assert db.execute("SELECT COUNT(*) FROM work_verification_events").fetchone()[0] == 1
+
+
+def test_oversized_file_rejected_before_read(tmp_path, monkeypatch):
+    _source(tmp_path)
+    (tmp_path / "app.py").write_bytes(b"#" * (verification._MAX_FILE_BYTES + 1))
+    with patch.object(os, "read", side_effect=AssertionError("must not read oversized file")):
+        assert verification.source_snapshot(tmp_path)["sha256"] is None
+
+
+def test_source_disappearing_during_open_is_failed_observation(tmp_path):
+    _source(tmp_path)
+    real_open = os.open
+
+    def disappearing(path, flags, *args, **kwargs):
+        if path == "app.py":
+            (tmp_path / "app.py").unlink(missing_ok=True)
+        return real_open(path, flags, *args, **kwargs)
+
+    with patch.object(os, "open", side_effect=disappearing):
+        assert verification.source_snapshot(tmp_path)["sha256"] is None
+
+
+def test_leaf_replaced_with_symlink_at_open_is_rejected(tmp_path):
+    _source(tmp_path)
+    real_open = os.open
+
+    def redirected(path, flags, *args, **kwargs):
+        if path == "app.py":
+            (tmp_path / "app.py").unlink()
+            (tmp_path / "app.py").symlink_to(tmp_path / "README.md")
+        return real_open(path, flags, *args, **kwargs)
+
+    with patch.object(os, "open", side_effect=redirected):
+        assert verification.source_snapshot(tmp_path)["sha256"] is None

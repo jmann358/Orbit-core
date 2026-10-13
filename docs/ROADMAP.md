@@ -1,5 +1,12 @@
 # Current roadmap — THRONE
 
+October 13 source-only continuation: PR #66 adds a narrow independent local
+health observer. Its follow-up fixes stale-to-restored re-verification and
+directory-symlink/bounded-file observation. This is partial P0-2 work; full
+multi-step task evidence and safe self-development acceptance remain pending.
+The owner prioritizes eventual handoff to Luna with optional ChatGPT use.
+Independent backup/recovery still gates updates to the running Mac.
+
 The [full staged plan](FLIGHT_PLAN.md) and [acceptance register](ACCEPTANCE_REGISTER.md)
 are the active roadmap. [Current evidence](THRONE_STATUS.md) distinguishes
 installed, locally tested, remotely reviewed and published source.

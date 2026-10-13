@@ -4,6 +4,17 @@
 
 # Repository audit — 2026-10-12
 
+## Targeted follow-up — 2026-10-13, PR #66 at 357f8fc
+
+The original six source-verification tests and four mission-receipt tests pass.
+Two added regressions fail on that exact source: (1) verified -> stale -> source
+restored remains stale because permanent event uniqueness discards the new
+verified observation; (2) `luna/core.py` is accepted through a symlinked `luna`
+directory. Both are repaired in the isolated follow-up. Seven regression cases
+cover restoration, old-event preservation, concurrent deduplication, parent and
+racing leaf symlinks, oversized input and disappearing source. This scope does
+not repeat the historical repository audit or certify the running installation.
+
 The repository has substantial tested local foundations, but a passing unit
 suite does not establish a reliable assistant product. The first implementation
 priority is the ordinary conversation path and its persisted history and memory,
