@@ -339,6 +339,7 @@ async function renderGoalDetails(goal,content){
 }
 async function refreshGoals(){
  const target=document.querySelector('#goals-list'),budgetStatus=document.querySelector('#goal-budget-status');
+ if(target.querySelector('[data-mission-editor]'))return;
  const expanded=new Set([...target.querySelectorAll('details[data-goal-id]')]
    .filter(x=>x.open).map(x=>x.dataset.goalId));
  try{
@@ -363,13 +364,14 @@ async function refreshGoals(){
          btn.onclick=async()=>{btn.disabled=true;try{
            await goalApi('/agent/goals/'+g.id+'/decision',{
              method:'POST',headers:{'Content-Type':'application/json'},
-             body:JSON.stringify({approve})});
+             body:JSON.stringify({approve,expected_revision:g.revision,expected_digest:g.plan_digest})});
            await refreshGoals();
          }catch(e){document.querySelector('#goal-status').textContent=e.message}
          finally{btn.disabled=false}};
          card.append(btn);
        }
      }
+     window.mountMissionEditor(card,g,async()=>{await refreshGoals()});
      const commands=[];
      if(['approved','running','waiting_budget','waiting_queue'].includes(g.state))
        commands.push(['Pause','pause']);
@@ -2039,8 +2041,16 @@ class AgentGoalRequest(BaseModel):
     objective: str = Field(min_length=5,max_length=500)
     steps: list[str] = Field(min_length=1,max_length=5)
 
-class AgentGoalDecision(BaseModel):
-    approve: bool
+class AgentGoalIdentity(BaseModel):
+    expected_revision: int = Field(ge=1, strict=True)
+    expected_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+class AgentGoalDecision(AgentGoalIdentity):
+    approve: bool = Field(strict=True)
+
+class AgentGoalReplacement(AgentGoalIdentity):
+    objective: str = Field(min_length=5,max_length=500)
+    steps: list[str] = Field(min_length=1,max_length=5)
 
 @app.get("/agent/goals")
 def get_agent_goals():
@@ -2057,11 +2067,24 @@ def create_agent_goal(request:AgentGoalRequest):
 @app.post("/agent/goals/{goal_id}/decision")
 def agent_goal_decision(goal_id:int,decision:AgentGoalDecision):
     try:
-        if not decide_goal(goal_id,decision.approve):
-            raise HTTPException(404,"Proposed goal not found")
+        if not decide_goal(goal_id,decision.approve,
+                           expected_revision=decision.expected_revision,
+                           expected_digest=decision.expected_digest):
+            raise HTTPException(409,"Proposed mission revision is no longer available")
     except ValueError as exc:
         raise HTTPException(409,str(exc)) from exc
     return {"state":"approved" if decision.approve else "rejected"}
+
+
+@app.post("/agent/goals/{goal_id}/replace")
+def agent_goal_replace(goal_id:int, request:AgentGoalReplacement):
+    from luna.goals import replace_goal
+    try:
+        return replace_goal(goal_id, request.objective, request.steps,
+                            expected_revision=request.expected_revision,
+                            expected_digest=request.expected_digest)
+    except ValueError as exc:
+        raise HTTPException(409,str(exc)) from exc
 
 
 @app.get("/agent/delegation/status")

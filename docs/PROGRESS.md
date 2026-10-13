@@ -1,3 +1,42 @@
+## 2026-10-13 — exact mission revisions and inline replacement (source review)
+
+Continuation from draft PR #67 at `9d012c2851492d2b37c423854c9e1ab63a038ed3`.
+Reproduced missing displayed-plan preconditions, approval reuse after changing
+both a queued job and its step, and cancellation claiming a final result while
+a handler was still running. Proposals now freeze their ordered steps, scope,
+limits and evidence policy; HTTP decisions require that exact revision/digest.
+Jobs retain their originating mission/revision/digest, and claim-time checks
+deny changed or orphaned assignments. Hashes are integrity checks, not identity.
+
+Inline modification creates one linked, unapproved successor transactionally.
+Queued old work is cancelled; started or restart-interrupted work holds the
+replacement for reconciliation. Cancellation remains requested until a started
+task settles. Old outcomes and approval events remain in receipts. Legacy
+approvals lacking a frozen plan become review-needed instead of gaining newly
+invented scope. An interrupted outcome remains uncertain without automatic replay.
+
+Home, Chat and Goals share an inline editor and revision-aware decisions.
+Actual browser checks on a disposable localhost server exercised modification,
+fresh approval and replacement of an approved revision, reload persistence,
+Home/Chat consistency, and a 390-pixel narrow viewport. Browser testing caught
+and fixed a newer approved proposal hiding a running mission. The preview had
+no model and no active worker; it was stopped after checks. Separately, the
+real-loopback worker smoke test completed a revised two-step mission and
+preserved its revision, approval and task IDs across process restart.
+
+Final Mac/Python 3.13 trusted suite: **558 passed, 13 warnings, zero skips in
+36.32 seconds**. A prior full run found one obsolete terminal-decision assertion
+(404 versus the new 409 conflict); it was corrected and the complete suite rerun.
+Fourteen focused revision regressions include stale decisions, racing successors,
+rollback, legacy migration, orphaned jobs and cross-mission reassignment. Tests
+use disposable databases, fake providers and temporary loopback servers.
+
+This is partial P0-3 source work for review, not MA-01..MA-28 acceptance or a
+live upgrade. Real device/owner acceptance, interrupted-outcome reconciliation
+workflow, full task-specific verification, and broader autonomous/self-development
+missions remain open. The 333-case acceptance ledger is unchanged (NOT_RUN).
+The owner confirmed backup/recovery remains pending and requested source work.
+
 ## 2026-10-12 — THRONE reconciliation package
 
 Owner directed alignment of old/new plans and retirement of obsolete station

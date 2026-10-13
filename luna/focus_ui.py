@@ -203,74 +203,7 @@ FOCUS_SCRIPT = r"""
  }
 
  async function refreshFocusedGoal(){
-  const holder=byId('focus-goal-details'),status=byId('focus-goal-status');
-  try{
-   const listResponse=await fetch('/agent/goals',{cache:'no-store'});
-   if(!listResponse.ok)throw Error('Saved goals unavailable');
-   const list=await listResponse.json();
-   if(!list.length){
-    status.textContent='No saved goals yet. Set one up in Agent goals.';
-    holder.replaceChildren();return;
-   }
-   const active=['proposed','approved','running','waiting_budget','waiting_queue','paused','attention'];
-   const selected=list.find(g=>active.includes(g.state))||list[0];
-   const response=await fetch('/agent/goals/'+selected.id+'/report',{cache:'no-store'});
-   if(!response.ok)throw Error('Goal report unavailable');
-   const goal=await response.json();
-   holder.replaceChildren();
-   status.textContent='Goal #'+goal.id+' · '+goal.objective+
-      ' · recorded state: '+goal.state+
-      ' · '+goal.completed_steps+'/'+goal.total_steps+' steps recorded complete'+
-      (goal.blocked_reason?' · Waiting: '+goal.blocked_reason:'');
-   const detail=element('p','focus-status',
-      'Approved goal steps use existing read-only allowlisted workers. A saved running state is not a live worker heartbeat.');
-   holder.append(detail);
-   for(const step of goal.steps){
-    const row=element('p','focus-goal-step',
-      (step.position+1)+'. '+step.label+' ['+step.state+']'+
-      (step.job?' · task #'+step.job.id+' '+step.job.state:''));
-    holder.append(row);
-    if(step.job&&step.job.result){
-     holder.append(element('p','focus-status','Recorded result: '+step.job.result));
-    }
-   }
-   const actions=element('div','focus-goal-actions','');
-   const saved=document.createElement('a');
-   saved.href='/agent/goals/'+goal.id+'/view';
-   saved.textContent='Open saved outcome and audit';
-   actions.append(saved);
-   if(goal.state==='proposed'){
-    holder.append(element('p','focus-status',
-      'This approval authorizes exactly the listed fixed steps. No purchases, new permissions, source installation or outside services. To change the proposal, reject it and create a new plan for separate approval.'));
-    for(const [label,approve] of [['Approve listed steps',true],['Reject plan',false]]){
-     const button=element('button','',label);button.type='button';
-     button.addEventListener('click',async()=>{
-      button.disabled=true;
-      status.textContent='Saving your explicit decision for goal #'+goal.id+'…';
-      try{
-       const response=await fetch('/agent/goals/'+goal.id+'/decision',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({approve})
-       });
-       if(!response.ok)throw Error('The goal changed or the decision was not accepted');
-       await refreshFocusedGoal();
-       refresh();
-      }catch(error){
-       status.textContent='Decision not saved: '+error.message;
-       button.disabled=false;
-      }
-     });
-     actions.append(button);
-    }
-    const edit=element('button','','Review plan details');edit.type='button';
-    edit.addEventListener('click',()=>selectTab('goals'));
-    actions.append(edit);
-   }
-   holder.append(actions);
-  }catch(error){
-   status.textContent='Goal status unavailable; no action taken. '+error.message;
-   holder.replaceChildren();
-  }
+  return window.loadMissionOverview(byId('focus-goal-details'),byId('focus-goal-status'));
  }
  byId('focus-goal-refresh').addEventListener('click',refreshFocusedGoal);
  async function refreshWorkerObservation(){

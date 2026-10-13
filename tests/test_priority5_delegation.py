@@ -85,6 +85,7 @@ def test_cancel_does_not_kill_in_flight_job():
         assert goals.control_goal(ident, "cancel")
         assert jobs.get_job(claimed["id"])["state"] == "running"
         assert jobs.finish_job(claimed["id"], True, "Finished")
+        goals.advance_goals()
         assert goals.goal_report(ident)["state"] == "cancelled"
 
 
@@ -129,7 +130,7 @@ def test_goal_api_reports_and_owner_controls():
         assert client.post(f"/agent/goals/{ident}/control",
                            json={"action": "pause"}).status_code == 409
         assert client.post(f"/agent/goals/{ident}/decision",
-                           json={"approve": True}).status_code == 200
+                           json=approval_payload(client, ident, True)).status_code == 200
         assert client.post(f"/agent/goals/{ident}/control",
                            json={"action": "pause"}).json()["state"] == "paused"
         assert client.post(f"/agent/goals/{ident}/control",
@@ -137,3 +138,9 @@ def test_goal_api_reports_and_owner_controls():
         assert client.post(f"/agent/goals/{ident}/control",
                            json={"action": "invalid"}).status_code == 400
         assert client.get("/agent/goals/999999/report").status_code == 404
+
+
+def approval_payload(client, ident, approve):
+    displayed = client.get(f"/agent/goals/{ident}/report").json()
+    return {"approve": approve, "expected_revision": displayed["revision"],
+            "expected_digest": displayed["plan_digest"]}

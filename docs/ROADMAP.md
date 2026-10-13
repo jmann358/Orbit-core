@@ -1,5 +1,13 @@
 # Current roadmap — THRONE
 
+October 13 next source milestone: exact approved mission revisions, immutable
+successors, claim-time job binding and shared inline editing are ready for
+review on top of draft #67. The complete local suite passes 558 tests; a
+disposable browser preview and actual loopback worker/restart scenario passed.
+This is partial P0-3, with full acceptance and installed behavior still open.
+Next source step is a bounded mission joining project evidence, a prioritized
+finding and a recommendation with truthful task-specific verification (P0-4).
+
 October 13 source-only continuation: PR #66 adds a narrow independent local
 health observer. Its follow-up fixes stale-to-restored re-verification and
 directory-symlink/bounded-file observation. This is partial P0-2 work; full
