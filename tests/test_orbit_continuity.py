@@ -3,6 +3,7 @@ import copy
 import importlib.util
 import json
 import pathlib
+import shutil
 import tempfile
 import unittest
 
@@ -50,35 +51,96 @@ class CheckpointTests(unittest.TestCase):
         bad=copy.deepcopy(self.state);bad['financial_policy']['discretionary_spending_usd']=10
         with self.assertRaises(ValueError):resume.validate(bad)
     def test_stale_revision_blocked(self):
-        with self.assertRaises(ValueError):resume.checkpoint(self.root,expected_revision=0,work_id='P0-0',new_status='review',note='Observed a new checkpoint',evidence='')
+        with self.assertRaises(ValueError):resume.checkpoint(self.root,expected_revision=self.state["revision"]-1,work_id='P0-0',new_status='review',note='Observed a new checkpoint',evidence='')
         self.assertFalse((self.root/'docs/orbit/STATE.lock').exists())
     def test_failed_write_preserves_other_owner_lock(self):
         lock=self.root/'docs/orbit/STATE.lock';lock.write_text('active-other-owner')
-        with self.assertRaises(FileExistsError):resume.checkpoint(self.root,expected_revision=1,work_id='P0-0',new_status='review',note='Review',evidence='')
+        with self.assertRaises(FileExistsError):resume.checkpoint(self.root,expected_revision=self.state["revision"],work_id='P0-0',new_status='review',note='Review',evidence='')
         self.assertEqual(lock.read_text(),'active-other-owner')
     def test_checkpoint_review_updates_chain(self):
         before=self.state['history'][-1]['event_hash']
-        rev=resume.checkpoint(self.root,expected_revision=1,work_id='P0-0',new_status='review',note='Reviewed actual read only host checks',evidence='https://github.com/jmann358/Orbit-core/issues/52')
+        rev=resume.checkpoint(self.root,expected_revision=self.state["revision"],work_id='P0-0',new_status='review',note='Reviewed actual read only host checks',evidence='https://github.com/jmann358/Orbit-core/issues/52')
         new=resume.load_state(self.root)
-        self.assertEqual(rev,2);self.assertEqual(new['revision'],2)
+        self.assertEqual(rev,self.state["revision"]+1);self.assertEqual(new['revision'],self.state["revision"]+1)
         self.assertEqual(new['history'][-1]['prev_hash'],before)
         self.assertEqual(new['work_items'][0]['status'],'review')
     def test_unverified_complete_blocked(self):
-        with self.assertRaises(ValueError):resume.checkpoint(self.root,expected_revision=1,work_id='P0-0',new_status='completed',note='test',evidence='')
+        with self.assertRaises(ValueError):resume.checkpoint(self.root,expected_revision=self.state["revision"],work_id='P0-0',new_status='completed',note='test',evidence='')
     def test_skip_prerequisite_blocked(self):
-        with self.assertRaises(ValueError):resume.checkpoint(self.root,expected_revision=1,work_id='P0-1',new_status='active',note='test',evidence='')
+        with self.assertRaises(ValueError):resume.checkpoint(self.root,expected_revision=self.state["revision"],work_id='P0-1',new_status='active',note='test',evidence='')
     def test_second_active_task_rejected(self):
         bad=copy.deepcopy(self.state)
         bad['work_items'][0]['status']='active'
         bad['work_items'][1]['status']='active'
         with self.assertRaises(ValueError):resume.validate(bad)
     def test_deferral_does_not_claim_complete(self):
-        n=resume.checkpoint(self.root,expected_revision=1,work_id='P0-0',new_status='deferred',note='Waiting for Mac availability',evidence='')
-        self.assertEqual(n,2)
+        n=resume.checkpoint(self.root,expected_revision=self.state["revision"],work_id='P0-0',new_status='deferred',note='Waiting for Mac availability',evidence='')
+        self.assertEqual(n,self.state["revision"]+1)
         self.assertNotEqual(resume.load_state(self.root)['work_items'][0]['status'],'completed')
     def test_complete_advances_to_next_unblocked_task(self):
-        resume.checkpoint(self.root,expected_revision=1,work_id='P0-0',new_status='completed',note='Live accepted outcome supported by independent evidence',evidence='https://github.com/jmann358/Orbit-core/issues/52')
+        resume.checkpoint(self.root,expected_revision=self.state["revision"],work_id='P0-0',new_status='completed',note='Live accepted outcome supported by independent evidence',evidence='https://github.com/jmann358/Orbit-core/issues/52')
         self.assertEqual(resume.load_state(self.root)['current_focus'],'P0-1')
+    def _seed_reference_fixture(self):
+        shutil.copytree(ROOT/'docs/orbit/reference', self.root/'docs/orbit/reference')
+        shutil.copy2(ROOT/'docs/orbit/REFERENCE_MANIFEST.json', self.root/'docs/orbit/REFERENCE_MANIFEST.json')
+
+    def test_reference_audit_checks_real_design_manifest(self):
+        self._seed_reference_fixture()
+        x=resume.audit_references(self.root)
+        self.assertEqual(x['scenario_count'],333)
+        self.assertEqual(x['acceptance_outcomes']['NOT_RUN'],333)
+
+    def test_reference_audit_rejects_modified_spec(self):
+        self._seed_reference_fixture()
+        ref=self.root/'docs/orbit/reference/01_MISSION_APPROVAL_LIFECYCLE_CONTRACT.md'
+        ref.write_text(ref.read_text()+'\nUNREVIEWED CHANGE\n')
+        with self.assertRaises(ValueError):resume.audit_references(self.root)
+
+    def test_reference_audit_rejects_duplicate_scenario(self):
+        self._seed_reference_fixture()
+        import csv
+        p=self.root/'docs/orbit/reference/ACCEPTANCE_EXECUTION_LEDGER.csv'
+        with p.open(newline='') as stream:
+            r=csv.DictReader(stream); rows=list(r);cols=r.fieldnames
+        rows[1]['scenario_id']=rows[0]['scenario_id']
+        with p.open('w',newline='') as stream:
+            w=csv.DictWriter(stream,fieldnames=cols);w.writeheader();w.writerows(rows)
+        # Manifest integrity must catch this even before checking duplicated IDs.
+        with self.assertRaises(ValueError):resume.audit_references(self.root)
+
+    def test_reference_audit_does_not_accept_fake_pass_without_evidence(self):
+        self._seed_reference_fixture()
+        import csv,hashlib
+        p=self.root/'docs/orbit/reference/ACCEPTANCE_EXECUTION_LEDGER.csv'
+        with p.open(newline='') as stream:
+            r=csv.DictReader(stream); rows=list(r);cols=r.fieldnames
+        rows[0]['execution_status']='PASS'
+        with p.open('w',newline='') as stream:
+            w=csv.DictWriter(stream,fieldnames=cols);w.writeheader();w.writerows(rows)
+        mp=self.root/'docs/orbit/REFERENCE_MANIFEST.json'
+        m=json.loads(mp.read_text())
+        m['artifacts']['docs/orbit/reference/ACCEPTANCE_EXECUTION_LEDGER.csv']=hashlib.sha256(p.read_bytes()).hexdigest()
+        mp.write_text(json.dumps(m))
+        with self.assertRaises(ValueError):resume.audit_references(self.root)
+
+    def test_reference_audit_accepts_true_logged_outcome(self):
+        self._seed_reference_fixture()
+        import csv,hashlib
+        p=self.root/'docs/orbit/reference/ACCEPTANCE_EXECUTION_LEDGER.csv'
+        with p.open(newline='') as stream:
+            r=csv.DictReader(stream); rows=list(r);cols=r.fieldnames
+        rows[0]['execution_status']='PASS'
+        rows[0]['implementation_sha']='a'*40
+        rows[0]['artifact_or_log_ref']='https://github.com/jmann358/Orbit-core/actions/runs/1234'
+        rows[0]['expected_result_observed']='Synthetic fixture passed'
+        with p.open('w',newline='') as stream:
+            w=csv.DictWriter(stream,fieldnames=cols);w.writeheader();w.writerows(rows)
+        mp=self.root/'docs/orbit/REFERENCE_MANIFEST.json'
+        m=json.loads(mp.read_text())
+        m['artifacts']['docs/orbit/reference/ACCEPTANCE_EXECUTION_LEDGER.csv']=hashlib.sha256(p.read_bytes()).hexdigest()
+        mp.write_text(json.dumps(m))
+        self.assertEqual(resume.audit_references(self.root)['acceptance_outcomes']['PASS'],1)
+
     def test_ideas_add_is_append_only(self):
         before=self.ideas_path.read_text()
         item=ideas.add_idea(self.ideas_path,'Potential small business automation idea',linked_work='P2-2')
