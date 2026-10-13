@@ -1,0 +1,277 @@
+{
+  "schema_version": 1,
+  "revision": 1,
+  "current_focus": "P0-0",
+  "updated_at": "2026-10-13",
+  "source": {
+    "repository": "jmann358/Orbit-core",
+    "checkpoint_url": "https://github.com/jmann358/Orbit-core/issues/52#issuecomment-6133567244",
+    "published_release": "pojo.2",
+    "published_main_sha": "baf96abff8105b89e7b4c924ff03921f084923b5",
+    "candidate_pr": "https://github.com/jmann358/Orbit-core/pull/58",
+    "candidate_sha": "560419de5f21102c9c9995de57dd4bb8890837f9",
+    "reported_installed_revision": "560419de5f21102c9c9995de57dd4bb8890837f9",
+    "host_live_state": "NOT_CHECKED_THIS_SESSION",
+    "source_evidence": "THRONE 2026-10-12 checkpoint in issue #52; installed status is historical until verified"
+  },
+  "plan": {
+    "planned_scenarios": 333,
+    "engineering_sections": 8,
+    "runtime_tests_executed_for_this_handoff": 0,
+    "acceptance_ledger": "docs/orbit/reference/ACCEPTANCE_EXECUTION_LEDGER.csv"
+  },
+  "sections": [
+    {
+      "id": "01",
+      "name": "01 Mission Approval Lifecycle",
+      "status": "design_ready",
+      "contract": "docs/orbit/reference/01_MISSION_APPROVAL_LIFECYCLE_CONTRACT.md",
+      "runtime_state": "NOT_VERIFIED"
+    },
+    {
+      "id": "02",
+      "name": "02 Result Evidence Verification",
+      "status": "design_ready",
+      "contract": "docs/orbit/reference/02_RESULT_EVIDENCE_VERIFICATION_CONTRACT.md",
+      "runtime_state": "NOT_VERIFIED"
+    },
+    {
+      "id": "03",
+      "name": "03 Privacy Memory Retention",
+      "status": "design_ready",
+      "contract": "docs/orbit/reference/03_PRIVACY_MEMORY_RETENTION_CONTRACT.md",
+      "runtime_state": "NOT_VERIFIED"
+    },
+    {
+      "id": "04",
+      "name": "04 Backup Uptime Recovery",
+      "status": "design_ready",
+      "contract": "docs/orbit/reference/04_BACKUP_UPTIME_RECOVERY_CONTRACT.md",
+      "runtime_state": "NOT_VERIFIED"
+    },
+    {
+      "id": "05",
+      "name": "05 Secure Mobile Access",
+      "status": "design_ready",
+      "contract": "docs/orbit/reference/05_SECURE_MOBILE_ACCESS_CONTRACT.md",
+      "runtime_state": "NOT_VERIFIED"
+    },
+    {
+      "id": "06",
+      "name": "06 Cloud Blackout Companion",
+      "status": "design_ready",
+      "contract": "docs/orbit/reference/06_CLOUD_BLACKOUT_COMPANION_CONTRACT.md",
+      "runtime_state": "NOT_VERIFIED"
+    },
+    {
+      "id": "07",
+      "name": "07 Safe Self Development",
+      "status": "design_ready",
+      "contract": "docs/orbit/reference/07_SAFE_SELF_DEVELOPMENT_CONTRACT.md",
+      "runtime_state": "NOT_VERIFIED"
+    },
+    {
+      "id": "08",
+      "name": "08 Resource Financial Specialists",
+      "status": "design_ready",
+      "contract": "docs/orbit/reference/08_RESOURCE_FINANCIAL_SPECIALISTS_CONTRACT.md",
+      "runtime_state": "NOT_VERIFIED"
+    }
+  ],
+  "work_items": [
+    {
+      "id": "P0-0",
+      "title": "Verify current installed source and backup readiness",
+      "status": "blocked",
+      "owner": "THRONE",
+      "objective": "Read-only SHA/PR comparison and newest independent encrypted backup request",
+      "acceptance": "No writes until independent backup accepted",
+      "dependencies": [],
+      "evidence": "",
+      "blocker": "Requires physical Mac and owner approval for encrypted backup destination",
+      "updated_at": "2026-10-13"
+    },
+    {
+      "id": "P0-1",
+      "title": "Provider-class egress gate, personal memory corrections and agent isolation",
+      "status": "pending",
+      "owner": "THRONE",
+      "objective": "Fake-data pre-storage and before-cloud-request deny tests",
+      "acceptance": "Current chat and approved memory never silently sent to cloud",
+      "dependencies": [
+        "P0-0"
+      ],
+      "evidence": "",
+      "blocker": "",
+      "updated_at": "2026-10-13"
+    },
+    {
+      "id": "P0-2",
+      "title": "Independent task-specific result verifier",
+      "status": "pending",
+      "owner": "THRONE",
+      "objective": "Evidence exact SHA, scoped health, untrusted proof, durable receipt",
+      "acceptance": "Actual evidence-backed test outcome saved, not worker assertion",
+      "dependencies": [
+        "P0-1"
+      ],
+      "evidence": "",
+      "blocker": "",
+      "updated_at": "2026-10-13"
+    },
+    {
+      "id": "P0-3",
+      "title": "Mission revision and inline lifecycle UI",
+      "status": "pending",
+      "owner": "THRONE",
+      "objective": "Plan revision, active/pending, partial failure, cancel and duplicate requests",
+      "acceptance": "One mission card, exact permission, one effect and true state",
+      "dependencies": [
+        "P0-2"
+      ],
+      "evidence": "",
+      "blocker": "",
+      "updated_at": "2026-10-13"
+    },
+    {
+      "id": "P0-4",
+      "title": "First genuine bounded autonomous issue mission",
+      "status": "pending",
+      "owner": "THRONE",
+      "objective": "Project evidence \u2192 one prioritized issue \u2192 recommendation \u2192 verified receipt",
+      "acceptance": "Multi-step mission demonstrably works after browser closes",
+      "dependencies": [
+        "P0-3"
+      ],
+      "evidence": "",
+      "blocker": "",
+      "updated_at": "2026-10-13"
+    },
+    {
+      "id": "P0-5",
+      "title": "Physical reboot/login plus soak and restore proof",
+      "status": "pending",
+      "owner": "THRONE",
+      "objective": "24h soak, controlled recovery, blocked duplicate worker, independent restore",
+      "acceptance": "Home conditions passed; degraded cases correctly reported",
+      "dependencies": [
+        "P0-4"
+      ],
+      "evidence": "",
+      "blocker": "",
+      "updated_at": "2026-10-13"
+    },
+    {
+      "id": "P1-1",
+      "title": "Authenticate iPhone/iPad and scoped network",
+      "status": "pending",
+      "owner": "THRONE",
+      "objective": "Pair revoke reauth session expiry anti-CSRF real-device concurrency",
+      "acceptance": "Mac sole writer and remote requests authenticated",
+      "dependencies": [
+        "P0-4"
+      ],
+      "evidence": "",
+      "blocker": "",
+      "updated_at": "2026-10-13"
+    },
+    {
+      "id": "P1-2",
+      "title": "Strict free blackout standby",
+      "status": "pending",
+      "owner": "THRONE",
+      "objective": "Minimal signed envelope, field consent, cloud no-writer, offline inbox reconcile",
+      "acceptance": "Outage tested without authority transfer or paid calls",
+      "dependencies": [
+        "P0-4"
+      ],
+      "evidence": "",
+      "blocker": "",
+      "updated_at": "2026-10-13"
+    },
+    {
+      "id": "P1-3",
+      "title": "Mac sandbox and bounded repair loop",
+      "status": "pending",
+      "owner": "THRONE",
+      "objective": "OS isolated hostile-code test, exact source, review, rollback rehearsal",
+      "acceptance": "Hostile candidate contained and reviewable validated draft",
+      "dependencies": [
+        "P1-2"
+      ],
+      "evidence": "",
+      "blocker": "",
+      "updated_at": "2026-10-13"
+    },
+    {
+      "id": "P2-1",
+      "title": "Budget and scoped specialist",
+      "status": "pending",
+      "owner": "THRONE",
+      "objective": "Real pre-call zero-cost deny, narrow specialist permissions, revocation",
+      "acceptance": "No unpriced call, one useful scoped specialist",
+      "dependencies": [
+        "P1-3"
+      ],
+      "evidence": "",
+      "blocker": "",
+      "updated_at": "2026-10-13"
+    },
+    {
+      "id": "P2-2",
+      "title": "Financial research and proposed pilot",
+      "status": "deferred",
+      "owner": "THRONE + OWNER",
+      "objective": "Actual vs estimate ledger and separate customer/spend consent",
+      "acceptance": "Measurable verified value or truthful stop",
+      "dependencies": [
+        "P1-3"
+      ],
+      "evidence": "",
+      "blocker": "Owner has postponed revenue pilot",
+      "updated_at": "2026-10-13"
+    },
+    {
+      "id": "P2-3",
+      "title": "Voice, expressive identity, accessibility finish",
+      "status": "pending",
+      "owner": "THRONE",
+      "objective": "Consent, recording lifecycle, accessibility and real resource use",
+      "acceptance": "Product polish measured without compromising mission flow",
+      "dependencies": [
+        "P0-4"
+      ],
+      "evidence": "",
+      "blocker": "",
+      "updated_at": "2026-10-13"
+    }
+  ],
+  "active_writer": "THRONE",
+  "financial_policy": {
+    "discretionary_spending_usd": 0,
+    "paid_provider_calls": false,
+    "billing_status": "not_authorized"
+  },
+  "guardrails": {
+    "no_deploy_merge_or_release_without_owner": true,
+    "no_provider_change_without_data_and_cost_consent": true,
+    "no_private_information_in_github": true,
+    "no_reaudit_without_changed_evidence": true,
+    "single_active_development_workstream": true,
+    "ideas_do_not_replace_priority": true
+  },
+  "history": [
+    {
+      "seq": 1,
+      "timestamp": "2026-10-13T05:29:00+00:00",
+      "actor": "HELM",
+      "work_id": "P0-0",
+      "status": "blocked",
+      "note": "Initial GitHub continuity checkpoint: historical THRONE installation reported, all HELM designs ready, all 333 acceptance scenarios NOT RUN, Mac unavailable for live verification. Includes owner-approved $0 spending and later ideas deferred.",
+      "evidence": "https://github.com/jmann358/Orbit-core/issues/52#issuecomment-6133567244",
+      "state_revision": 1,
+      "prev_hash": "GENESIS",
+      "event_hash": "2621727062303857a52e819e4ca93572b4d3fa012f8d2d2fa535138a410caf44"
+    }
+  ]
+}
