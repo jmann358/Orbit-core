@@ -7,7 +7,10 @@ No model, network, shell, private transcript or generated code is accessed.
 """
 import ast
 import hashlib
+import os
 import re
+import stat
+from contextlib import ExitStack
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -21,19 +24,48 @@ _STAMP = re.compile(r"^Health (\d+)/(\d+); source_sha256=([0-9a-f]{64})$")
 _MAX_FILE_BYTES = 1_000_000
 
 
+def _read_source(base, name):
+    """Read bounded regular files relative to pinned, non-symlink directories."""
+    with ExitStack() as handles:
+        directory = os.open(base, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        handles.callback(os.close, directory)
+        parts = Path(name).parts
+        for component in parts[:-1]:
+            directory = os.open(
+                component, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                dir_fd=directory,
+            )
+            handles.callback(os.close, directory)
+        descriptor = os.open(
+            parts[-1], os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK,
+            dir_fd=directory,
+        )
+        handles.callback(os.close, descriptor)
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_size > _MAX_FILE_BYTES:
+            raise ValueError("Source must be a bounded regular file")
+        chunks = []
+        remaining = _MAX_FILE_BYTES + 1
+        while remaining:
+            chunk = os.read(descriptor, min(remaining, 65536))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        raw = b"".join(chunks)
+        if len(raw) > _MAX_FILE_BYTES:
+            raise ValueError("Source grew beyond the observation limit")
+        return raw
+
+
 def source_snapshot(root=None):
     """Fresh fixed-path observations, independent of the worker's success flag."""
     base = SOURCE_ROOT if root is None else Path(root)
     digest = hashlib.sha256()
     checked = 0
     for name in FILES:
-        path = base / name
-        if path.is_symlink() or not path.is_file():
-            return {"sha256": None, "passed": checked, "total": len(FILES)}
         try:
-            raw = path.read_bytes()
-            if len(raw) > _MAX_FILE_BYTES:
-                return {"sha256": None, "passed": checked, "total": len(FILES)}
+            raw = _read_source(base, name)
             if name.endswith(".py"):
                 ast.parse(raw.decode("utf-8"), filename=name)
         except (OSError, UnicodeError, SyntaxError, ValueError):
@@ -66,9 +98,33 @@ def _setup(db):
         source_sha256 TEXT NOT NULL,
         status TEXT NOT NULL,
         checked_at TEXT NOT NULL,
-        checker TEXT NOT NULL,
-        UNIQUE(job_id,job_attempt,result_sha256,source_sha256,status)
+        checker TEXT NOT NULL
     )""")
+    # Earlier review builds prohibited a repeated outcome forever. Preserve
+    # their events, but allow verified -> stale -> verified observations.
+    # The caller holds BEGIN IMMEDIATE, so schema/data changes roll back as one.
+    legacy_columns = ["job_id", "job_attempt", "result_sha256", "source_sha256", "status"]
+    legacy_constraint = False
+    for index in db.execute("PRAGMA index_list(work_verification_events)").fetchall():
+        if index[2]:
+            columns = db.execute(
+                "SELECT name FROM pragma_index_info(?) ORDER BY seqno", (index[1],)
+            ).fetchall()
+            if [column[0] for column in columns] == legacy_columns:
+                legacy_constraint = True
+    if legacy_constraint:
+        db.execute("""CREATE TABLE work_verification_events_migration (
+            id INTEGER PRIMARY KEY, job_id INTEGER NOT NULL,
+            job_attempt INTEGER NOT NULL, result_sha256 TEXT NOT NULL,
+            source_sha256 TEXT NOT NULL, status TEXT NOT NULL,
+            checked_at TEXT NOT NULL, checker TEXT NOT NULL
+        )""")
+        db.execute("""INSERT INTO work_verification_events_migration
+            SELECT id,job_id,job_attempt,result_sha256,source_sha256,status,checked_at,checker
+            FROM work_verification_events""")
+        db.execute("DROP TABLE work_verification_events")
+        db.execute("ALTER TABLE work_verification_events_migration RENAME TO work_verification_events")
+    db.execute("CREATE INDEX IF NOT EXISTS work_verification_job ON work_verification_events(job_id,id)")
 
 
 def verification_for_job(record):
@@ -142,11 +198,18 @@ def verify_local_health(job_id):
         if latest != ("completed", "project_health",
                       record["attempt_count"], record["result"]):
             raise ValueError("Job changed during verification; retry with a fresh record")
-        db.execute(
-            "INSERT OR IGNORE INTO work_verification_events("
-            "job_id,job_attempt,result_sha256,source_sha256,status,checked_at,checker)"
-            " VALUES(?,?,?,?,?,?,?)",
-            (job_id, record["attempt_count"], result_hash, source_sha, outcome,
-             datetime.now(timezone.utc).isoformat(), CHECKER),
-        )
+        prior = db.execute(
+            "SELECT job_attempt,result_sha256,source_sha256,status,checker "
+            "FROM work_verification_events WHERE job_id=? ORDER BY id DESC LIMIT 1",
+            (job_id,),
+        ).fetchone()
+        observation = (record["attempt_count"], result_hash, source_sha, outcome, CHECKER)
+        if prior != observation:
+            db.execute(
+                "INSERT INTO work_verification_events("
+                "job_id,job_attempt,result_sha256,source_sha256,status,checked_at,checker)"
+                " VALUES(?,?,?,?,?,?,?)",
+                (job_id, record["attempt_count"], result_hash, source_sha, outcome,
+                 datetime.now(timezone.utc).isoformat(), CHECKER),
+            )
     return verification_for_job(record)

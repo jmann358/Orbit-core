@@ -1,18 +1,20 @@
 {
   "schema_version": 1,
-  "revision": 2,
-  "current_focus": "P0-0",
+  "revision": 4,
+  "current_focus": "P0-2",
   "updated_at": "2026-10-13",
   "source": {
     "repository": "jmann358/Orbit-core",
-    "checkpoint_url": "https://github.com/jmann358/Orbit-core/issues/52#issuecomment-6133567244",
+    "checkpoint_url": "https://github.com/jmann358/Orbit-core/issues/52#issuecomment-6148394576",
     "published_release": "pojo.2",
-    "published_main_sha": "baf96abff8105b89e7b4c924ff03921f084923b5",
-    "candidate_pr": "https://github.com/jmann358/Orbit-core/pull/58",
-    "candidate_sha": "560419de5f21102c9c9995de57dd4bb8890837f9",
+    "published_main_sha": "b707f80f0c99f66e2fc9acb34e22567600567001",
+    "candidate_pr": "https://github.com/jmann358/Orbit-core/pull/66",
+    "candidate_sha": "357f8fca638b82551cdc4e31020de286c5e67d38",
     "reported_installed_revision": "560419de5f21102c9c9995de57dd4bb8890837f9",
-    "host_live_state": "NOT_CHECKED_THIS_SESSION",
-    "source_evidence": "THRONE 2026-10-12 checkpoint in issue #52; installed status is historical until verified"
+    "host_live_state": "GIT_ONLY_VERIFIED_2026-10-13",
+    "source_evidence": "THRONE 2026-10-12 checkpoint in issue #52; installed status is historical until verified",
+    "verified_local_head": "560419de5f21102c9c9995de57dd4bb8890837f9",
+    "local_tracked_changes_count": 12
   },
   "plan": {
     "planned_scenarios": 333,
@@ -89,7 +91,7 @@
       "dependencies": [],
       "evidence": "",
       "blocker": "Requires physical Mac and owner approval for encrypted backup destination",
-      "updated_at": "2026-10-13T05:50:14.332684+00:00"
+      "updated_at": "2026-10-13T15:16:34.050869+00:00"
     },
     {
       "id": "P0-1",
@@ -108,7 +110,7 @@
     {
       "id": "P0-2",
       "title": "Independent task-specific result verifier",
-      "status": "pending",
+      "status": "review",
       "owner": "THRONE",
       "objective": "Evidence exact SHA, scoped health, untrusted proof, durable receipt",
       "acceptance": "Actual evidence-backed test outcome saved, not worker assertion",
@@ -117,7 +119,7 @@
       ],
       "evidence": "",
       "blocker": "",
-      "updated_at": "2026-10-13"
+      "updated_at": "2026-10-13T15:16:34.117924+00:00"
     },
     {
       "id": "P0-3",
@@ -303,6 +305,30 @@
       "state_revision": 2,
       "prev_hash": "2621727062303857a52e819e4ca93572b4d3fa012f8d2d2fa535138a410caf44",
       "event_hash": "e1d761d70e58f884d1389e0e5ebce4ca9af129ac20f6a181e3d72e39bfaa87b7"
+    },
+    {
+      "seq": 3,
+      "timestamp": "2026-10-13T15:16:34.050869+00:00",
+      "actor": "THRONE",
+      "work_id": "P0-0",
+      "status": "blocked",
+      "note": "Owner confirms independent encrypted backup/recovery remains pending and directs continued source-only work. Read-only local Git inspection observed installed HEAD 560419d with 12 tracked edits; preserve them. No live update or private-memory operation authorized or performed.",
+      "evidence": "https://github.com/jmann358/Orbit-core/issues/52",
+      "state_revision": 3,
+      "prev_hash": "e1d761d70e58f884d1389e0e5ebce4ca9af129ac20f6a181e3d72e39bfaa87b7",
+      "event_hash": "04724f959a7062b6c05c0eae102ce3b4748ef9bd86aa0aaf058a73412a2bffd2"
+    },
+    {
+      "seq": 4,
+      "timestamp": "2026-10-13T15:16:34.117924+00:00",
+      "actor": "THRONE",
+      "work_id": "P0-2",
+      "status": "review",
+      "note": "Source-only continuation of PR 66 at 357f8fc. Reproduced and repaired stale-after-restoration verification and symlinked parent source scope. Seven regression cases; final Mac Python 3.13 suite 544 passed, 13 warnings, zero skips. Partial local-health evidence only, not full P0-2 acceptance or installation. Owner prioritizes Luna task independence and eventual handoff with optional approved ChatGPT use.",
+      "evidence": "https://github.com/jmann358/Orbit-core/pull/66",
+      "state_revision": 4,
+      "prev_hash": "04724f959a7062b6c05c0eae102ce3b4748ef9bd86aa0aaf058a73412a2bffd2",
+      "event_hash": "cf8a69e0a6017c8ea923401c70f8bcb156ee3cf44cabf4471c47e0f3cb0514e6"
     }
   ]
 }
