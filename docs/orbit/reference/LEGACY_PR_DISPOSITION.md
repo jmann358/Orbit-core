@@ -1,0 +1,19 @@
+# HELM Read-only PR Deduplication and Legacy Recovery Gate
+
+Date: 2026-10-13. Source review only. **No GitHub edits or merge authority.** Compare live refs again before adopting any conclusion; this note is a *bounded prioritization*, not a fully completed semantic diff of 111 files.
+
+| PR | What HELM verified | Disposition for THRONE | Do not do |
+|---|---|---|---|
+| [#58 cumulative](https://github.com/jmann358/Orbit-core/pull/58) | Open draft, exact head `560419de5f21102c9c9995de57dd4bb8890837f9`, passed 502 Mac/CI tests per PR, installed per GitHub issue #52 | **Primary candidate**; compare with installed SHA and current `main`; preserve rollback | Don't blindly merge or downgrade installed working Mac |
+| [#57](https://github.com/jmann358/Orbit-core/pull/57), [#56](https://github.com/jmann358/Orbit-core/pull/56), [#54](https://github.com/jmann358/Orbit-core/pull/54) | #58 is cumulative on their work; #57/56 staged source/CI security and diagnostics; #54 workflow trusted pin adjustment | **Already inherited for review**; source provenance only | Don't separately merge stacks on top of #58 |
+| [#41](https://github.com/jmann358/Orbit-core/pull/41) | Docs-only ATLAS acceptance audit + contextual approval contract | Acceptance T01–T34 and specific T13/T26 concerns represented in Sections 01–03 and source register; preserve docs as historical evidence | Don't claim old #41 docs are a separately released feature |
+| [#28](https://github.com/jmann358/Orbit-core/pull/28) | Owner financial directive JSON, `luna/financial.py` pure read-only Decimal estimate/snapshot/deny functions, tests; unmerged and no live economic operation | **Selective future adaptation** in Section 08 once useful mission/core security gates pass; preserve directive, validate against user policy | Don't assume estimates are actual earnings or import as live account access |
+| [#1](https://github.com/jmann358/Orbit-core/pull/1) | 111 changed files including repair orchestration, runner, watchdog/vault contracts and app/test changes. Representative review: `luna/isolation_policy.py` is declarative only; `luna/watchdog_events.py` is metadata schema, *not* independent process; `luna/runner_executor.py` is container runtime candidate; `luna/repair_orchestrator.py` calls runner with **`owner_approved=True` default** | **Selective security-sensitive semantic review only** during Section 07 implementation. Compare each valuable behavior to current candidate and rewrite unsafe assumptions before integration. Tests must defend absence of grant and live-host execution. | **Do not wholesale merge #1, activate its runner or treat default owner approval as an actual owner decision.** No Mac isolation established. |
+
+Remaining earlier draft PRs require only **delta-based disposition when they touch the next active implementation package**. The master GitHub issue #52 latest comment and PR #58 are starting pointers; old PR numbers are not individual new features.
+
+### Specific security finding from the legacy source
+
+`luna/repair_orchestrator.py` on legacy PR #1 contains `evaluate_candidate(..., *, owner_approved=True)`, which defaults its `owner_approved` argument to `True`. Even if a downstream executor enforces additional gates, this is *not* acceptable evidence of explicit owner consent. **THRONE must not carry that default into any enabled flow.** Review the complete call chain and require a durable server/CLI owner grant bound to the exact proposal and expiration, checked at the actual execution boundary.
+
+Reviewed PR #1 modules: `luna/repair_orchestrator.py`, `luna/isolation_policy.py`, `luna/runner_executor.py`, `luna/watchdog_events.py`; review of the entire 111-file legacy branch is **not claimed**. That remaining semantic review is an implementation dependency, not a reason to re-open already-settled user preferences.
