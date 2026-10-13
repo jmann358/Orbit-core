@@ -1,0 +1,29 @@
+id,area,observable_pass_condition,required_fixture,mapped_acceptance_ids
+MA-01,Propose,Proposing an allowlisted goal produces persisted proposed revision without worker jobs,synthetic API,T01 T08
+MA-02,Propose,Unknown tool or executable command is rejected without side effects,synthetic security,T08 T18
+MA-03,Approve,Owner explicitly approves the displayed exact immutable revision only,synthetic API,T10 T11
+MA-04,Approve,Stale or altered revision/hash approval is denied; no job dispatched,synthetic concurrency,T11 T12
+MA-05,Approve,Two simultaneous approvals result in exactly one decision and one first job,synthetic concurrency,T12
+MA-06,Approve,"Approval response timeout leads to GET reconciliation, not blind retry",synthetic UI/API,T12 T15
+MA-07,Reject,"Rejected revision cannot be approved, resumed or dispatched later",synthetic API,T13
+MA-08,Modify,Unapproved proposal modification creates linked successor with clear before/after diff,synthetic API/UI,T13
+MA-09,Modify,Prior superseded revision cannot later be approved,synthetic API,T12 T13
+MA-10,Modify,Approved but undispatched edit invalidates future dispatch pending new approval,synthetic transaction,T11 T13
+MA-11,Modify,In-flight edit stops future claims but does not falsely declare running handler stopped,synthetic lifecycle,T13 T14
+MA-12,UI,Running goal stays primary when another proposal awaits owner approval,real-browser + DOM,T10 T22
+MA-13,UI,Pending actions appear beside task context and do not mask progress or receipt link,real-browser,T10 T26
+MA-14,UI,Task detail shows actor/action/target/scope/impact on consequential approval,real-browser + API,T10 T11
+MA-15,UI,"Narrow viewport, delayed send, reconnect and switch-session do not attach wrong decision",Mac-browser,T12 T22
+MA-16,Pause,Pause blocks new claims but correctly reports existing work may continue,synthetic worker,T14
+MA-17,Resume,"Resume rechecks revision, actor grant, provider, model, expiry and budget",synthetic security,T05 T06 T14
+MA-18,Cancel,Cancel removes pending work; reported state distinguishes in-flight uncertainty,synthetic worker,T14 T15
+MA-19,Restart,Interrupted running job enters attention; it is not silently replayed,synthetic DB + Mac restart,T03 T14 T15
+MA-20,Retry,Ambiguous consequential result requires reconciliation before another attempt,synthetic failure,T15
+MA-21,Consent,Expired/revoked/endpoint-changed model consent fails at actual call boundary,synthetic consent,T05 T06
+MA-22,Consent,"Consumed model call remains counted after disconnect, crash or revocation",synthetic consent,T06 T15 T33
+MA-23,Cost,Unknown price or zero paid-call budget does not initiate paid provider request,synthetic provider,T16 T33
+MA-24,Result,Worker reported completion is not independently verified by default,synthetic receipt,T02 T26
+MA-25,Result,"Verifier uses exact goal revision, job, evidence and source SHA; unrelated CI rejected",synthetic verifier,T24 T26
+MA-26,Result,"Stale, missing, failed or mocked evidence cannot yield verified success",synthetic verifier,T26 T34
+MA-27,Persistence,"Result, events, revision links and denial state survive reload and service restart",synthetic DB + Mac restart,T03 T26
+MA-28,Security,"No extra permissions, cloud writer, remote API exposure, private data leak or model-generated code execution",synthetic security + independent review,T18 T23 T30 T31

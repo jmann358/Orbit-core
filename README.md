@@ -1,3 +1,7 @@
+## Resuming ORBIT / Luna after a new chat or AI
+
+**POJO RESUME:** Read [the durable project handoff](docs/orbit/RESUME.md), check [the current priority](docs/orbit/STATE.json), and verify GitHub issue [#52](https://github.com/jmann358/Orbit-core/issues/52) before taking action. Completed plans are archived in `docs/orbit/reference/`; do not redo them or treat planned tests as completed.
+
 ## Current Luna version: pojo.2
 
 Luna uses the owner's sequential release labels: **pojo.1 → pojo.2 → pojo.3**.
