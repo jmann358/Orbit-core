@@ -1,18 +1,18 @@
 {
   "schema_version": 1,
-  "revision": 6,
-  "current_focus": "P0-4",
+  "revision": 7,
+  "current_focus": "P1-3",
   "updated_at": "2026-10-13",
   "source": {
     "repository": "jmann358/Orbit-core",
     "checkpoint_url": "https://github.com/jmann358/Orbit-core/issues/52#issuecomment-6148394576",
     "published_release": "pojo.2",
     "published_main_sha": "b707f80f0c99f66e2fc9acb34e22567600567001",
-    "candidate_pr": "https://github.com/jmann358/Orbit-core/pull/68",
-    "candidate_sha": "f46e201a38dfc134c5abcfba1beb97a1914d6304",
+    "candidate_pr": "https://github.com/jmann358/Orbit-core/pull/69",
+    "candidate_sha": "a96af679efefd865de7f0854f2516380708d72b8",
     "reported_installed_revision": "560419de5f21102c9c9995de57dd4bb8890837f9",
     "host_live_state": "GIT_ONLY_VERIFIED_2026-10-13",
-    "source_evidence": "Read-only local Git check 2026-10-13 verified installed HEAD and 12 tracked edits; service, private state and backup/recovery remain unverified. Source continuation is codex/luna-evidence-based-plans on candidate PR 68.",
+    "source_evidence": "Read-only Git check verified installed HEAD and 12 tracked edits. Host reports macOS 27.0.1, Mac16,10, 16 GiB and 10 logical CPUs; no container/Docker/Podman/Orb executable on inspected PATH. Service/private state/backup remain unverified. Source continuation: codex/luna-grounded-drafting on PR 69.",
     "verified_local_head": "560419de5f21102c9c9995de57dd4bb8890837f9",
     "local_tracked_changes_count": 12
   },
@@ -211,7 +211,7 @@
     {
       "id": "P1-3",
       "title": "Mac sandbox and bounded repair loop",
-      "status": "pending",
+      "status": "review",
       "owner": "THRONE",
       "objective": "OS isolated hostile-code test, exact source, review, rollback rehearsal",
       "acceptance": "Hostile candidate contained and reviewable validated draft",
@@ -221,7 +221,7 @@
       ],
       "evidence": "",
       "blocker": "",
-      "updated_at": "2026-10-13"
+      "updated_at": "2026-10-13T16:15:50.612028+00:00"
     },
     {
       "id": "P2-1",
@@ -353,6 +353,18 @@
       "state_revision": 6,
       "prev_hash": "785092603b61258d6b77e2cbbf0a26c0c4b47f5e9a5eb4dc2fe4d323c4ed9a7e",
       "event_hash": "8b62aeaa650973b2d35ea17934c5c9c1414cd1cb2c20948cc5b114d4eec0296b"
+    },
+    {
+      "seq": 7,
+      "timestamp": "2026-10-13T16:15:50.612028+00:00",
+      "actor": "THRONE",
+      "work_id": "P1-3",
+      "status": "review",
+      "note": "D07-A/C source-only preparation on draft 69 at a96af67: explicit fresh evidence-to-draft binding, idempotent requests, preserved model consent, revalidation before model and before review. Seven synthetic regressions; full local suite 578 passed, 13 warnings, zero skips. Browser source finding to queued mission and inspect passed without a model/worker. Mac reports 27.0.1, 16 GiB, 10 logical CPUs; no container/Docker/Podman/Orb executable on inspected PATH. Existing runner Linux-only. VM evaluation proposed, not installed; hostile isolation, real repair/test, full acceptance, backup and live update remain gated.",
+      "evidence": "https://github.com/jmann358/Orbit-core/tree/codex/luna-grounded-drafting",
+      "state_revision": 7,
+      "prev_hash": "8b62aeaa650973b2d35ea17934c5c9c1414cd1cb2c20948cc5b114d4eec0296b",
+      "event_hash": "5f707a1cc10f84c0ff8d83df417478e6f87ee860919ad45f1bdbe6eb423531a0"
     }
   ]
 }

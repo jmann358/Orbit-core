@@ -4,6 +4,16 @@
 
 # Repository audit — 2026-10-12
 
+## Targeted follow-up — 2026-10-13, evidence-to-draft on #69
+
+Inspected existing manifests, developer engine, model consent, staging, runner
+and runner preflight. The developer engine lacked binding to source-review
+findings; the Linux-only runner cannot establish Mac isolation. The source
+follow-up adds explicit evidence-bound drafting and rejects stale/colliding
+requests while retaining existing model and execution gates. Seven synthetic
+cases, browser queue/inspect flow and 578 full-suite passes support that scope.
+No untrusted candidate ran on the host. Full self-development remains open.
+
 ## Targeted follow-up — 2026-10-13, development planning on draft #68
 
 Reproduced the unconditional `DEV-003` scheduler template in every development

@@ -5,7 +5,7 @@ login here; until authenticated sessions exist, use localhost only.
 """
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from luna import core, developer_agent
 
@@ -18,6 +18,21 @@ class MissionRequest(BaseModel):
 
 class PauseRequest(BaseModel):
     paused: bool
+
+
+class EvidenceDraftRequest(BaseModel):
+    job_id: int = Field(ge=1, strict=True)
+    expected_observation: str = Field(pattern=r'^[0-9a-f]{64}$')
+
+
+@router.post('/agent/developer/from-source-review')
+def developer_from_source_review(request: EvidenceDraftRequest):
+    from luna.draft_evidence import from_saved_review
+    try:
+        evidence = from_saved_review(core.DB_PATH, request.job_id, request.expected_observation)
+        return developer_agent.queue_mission(core.DB_PATH, evidence['path'], evidence=evidence)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
 
 
 @router.get("/agent/developer/status")
@@ -83,6 +98,13 @@ With an explicit GitHub opt-in she may commit a bounded proposal to a review-onl
 <div class="inline">
 <button id="refresh">Refresh</button><button class="alt" id="pause">Pause new work</button>
 </div>
+</article>
+<article id="source-finding" hidden>
+<h2>Draft from an observed finding</h2>
+<p id="source-finding-detail" role="status">Rechecking the saved source evidence…</p>
+<p>This queues a draft using existing model permissions. It does not authorize tests,
+code execution or installation. If no development model is authorized, the mission waits for that decision.</p>
+<button id="source-finding-queue" disabled>Queue this observed repair</button>
 </article>
 <article>
 <h2>Let Luna start self-building</h2>
@@ -218,11 +240,35 @@ async function openMission(id){
   const item=await req('/agent/developer/missions/'+id);
   document.querySelector('#review-message').textContent=
    'Mission #'+id+' · '+item.state+' · '+(item.summary||item.error_code||'Pending')+
-   (item.fingerprint?' · SHA256 fingerprint: '+item.fingerprint:'');
+   (item.fingerprint?' · SHA256 fingerprint: '+item.fingerprint:'')+
+   (item.source_evidence?' · Based on saved source review #'+item.source_evidence.job_id+'; candidate tests and execution remain unapproved.':'');
   document.querySelector('#diff').textContent=item.diff||'No verified diff yet';
   document.querySelector('#source').textContent=item.replacement||'No replacement yet';
  }catch(error){document.querySelector('#review-message').textContent=error.message}
 }
+async function loadSourceFinding(){
+ const raw=new URLSearchParams(window.location.search).get('source_review');
+ if(!raw||!/^\d+$/.test(raw))return;
+ const ident=Number(raw);if(!Number.isSafeInteger(ident)||ident<1)return;
+ const section=document.querySelector('#source-finding'),note=document.querySelector('#source-finding-detail'),button=document.querySelector('#source-finding-queue');
+ section.hidden=false;
+ try{
+  const saved=await req('/agent/jobs/'+ident+'/receipt'),report=saved.source_review;
+  if(!saved.independently_verified||!report||!report.primary_finding)throw Error('This source evidence is missing, stale or has no finding. Recheck it before requesting a draft.');
+  const finding=report.primary_finding;
+  note.textContent='Source review #'+ident+': '+finding.path+' · '+finding.code+' · line '+finding.line+'. '+report.recommendation;
+  if(finding.code!=='syntax_error')throw Error('This finding needs manual review before choosing a drafting target.');
+  button.disabled=false;
+  button.onclick=async()=>{
+   button.disabled=true;
+   try{const result=await req('/agent/developer/from-source-review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({job_id:ident,expected_observation:report.observation_sha256})});
+    note.textContent='Draft mission #'+result.mission_id+' is saved. Existing model permissions still apply; no candidate code was run or installed.';
+    await refresh();
+   }catch(error){note.textContent='Request not confirmed. Refresh this page to recheck saved evidence. '+error.message;}
+  };
+ }catch(error){note.textContent=error.message;button.disabled=true;}
+}
+loadSourceFinding();
 document.querySelector('#refresh').onclick=refresh;
 pauseButton.onclick=async()=>{
  pauseButton.disabled=true;

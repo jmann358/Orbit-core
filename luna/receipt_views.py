@@ -58,13 +58,20 @@ def _source_review(report):
     if not isinstance(report, dict):
         return ''
     manifest = report.get('manifest', [])
+    from luna.patches import ALLOWED_PATHS
+    finding = report.get('primary_finding')
+    ident = report.get('job_id')
+    draft_link = ("<p><a href='/agent/studio?source_review=" + str(ident) +
+                  "'>Review a drafting request for this finding</a></p>"
+                  if type(ident) is int and ident > 0 and isinstance(finding, dict)
+                  and finding.get('code') == 'syntax_error' and finding.get('path') in ALLOWED_PATHS else '')
     return ("<section><h2>Source review and next action</h2><p>" +
             _text(report.get('recommendation')) + "</p><p>" +
             _text(report.get('limitations')) + "</p><dl>" +
             _line('Observation fingerprint', report.get('observation_sha256')) +
             _line('Priority rule', report.get('priority_rule')) + "</dl><ul>" +
             ''.join('<li>' + _text(item.get('path')) + ': ' + _text(item.get('status')) + '</li>'
-                    for item in manifest if isinstance(item, dict)) + '</ul></section>')
+                    for item in manifest if isinstance(item, dict)) + '</ul>' + draft_link + '</section>')
 
 
 def _goal_content(record):

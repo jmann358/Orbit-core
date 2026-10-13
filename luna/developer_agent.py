@@ -52,6 +52,8 @@ def _stamp(now=None):
 
 
 def _setup(db):
+    if not db.in_transaction:
+        db.execute('BEGIN IMMEDIATE')
     db.execute("""CREATE TABLE IF NOT EXISTS developer_missions (
         id INTEGER PRIMARY KEY,
         path TEXT NOT NULL,
@@ -75,6 +77,9 @@ def _setup(db):
         model_calls INTEGER NOT NULL DEFAULT 0
     )""")
     db.execute("INSERT OR IGNORE INTO developer_control(id) VALUES(1)")
+    columns = {row[1] for row in db.execute('PRAGMA table_info(developer_missions)')}
+    if 'evidence_json' not in columns:
+        db.execute("ALTER TABLE developer_missions ADD COLUMN evidence_json TEXT NOT NULL DEFAULT ''")
 
 
 def _reconcile(db):
@@ -122,15 +127,25 @@ def set_paused(db_path, paused):
     return status(db_path)
 
 
-def queue_mission(db_path, path, *, source="owner", now=None):
+def queue_mission(db_path, path, *, source="owner", now=None, evidence=None):
     if not isinstance(path, str) or path not in TEMPLATES:
         raise ValueError("Development target is not on the allowlist")
     if source not in ("owner", "automatic"):
         raise ValueError("Invalid mission source")
+    if evidence is not None:
+        from luna.draft_evidence import revalidate
+        evidence = revalidate(db_path, evidence)
+        if evidence['path'] != path or source != 'owner':
+            raise ValueError('Evidence requires an explicit matching owner draft request')
     stamp = _stamp(now)
     with job_connect(db_path) as db:
         db.execute("BEGIN IMMEDIATE")
         _setup(db)
+        if evidence:
+            existing = db.execute('SELECT id FROM developer_missions WHERE evidence_json=? ORDER BY id LIMIT 1',
+                                  (json.dumps(evidence, sort_keys=True),)).fetchone()
+            if existing:
+                return {'mission_id': existing[0], 'created': False}
         active = db.execute(
             "SELECT COUNT(*) FROM developer_missions WHERE state IN ('queued','working')"
         ).fetchone()[0]
@@ -140,11 +155,14 @@ def queue_mission(db_path, path, *, source="owner", now=None):
         if active >= MAX_ACTIVE or reviews >= MAX_REVIEW_BACKLOG:
             raise ValueError("Development review queue is at capacity")
         same = db.execute(
-            "SELECT id FROM developer_missions WHERE path=? AND "
+            "SELECT id,evidence_json FROM developer_missions WHERE path=? AND "
             "state IN ('queued','working') ORDER BY id DESC LIMIT 1",
             (path,),
         ).fetchone()
         if same:
+            expected = json.dumps(evidence, sort_keys=True) if evidence else ''
+            if same[1] != expected:
+                raise ValueError('A different active draft already owns this target')
             return {"mission_id": same[0], "created": False}
         if source == "automatic":
             prior = db.execute(
@@ -159,6 +177,9 @@ def queue_mission(db_path, path, *, source="owner", now=None):
             "VALUES(?,?,'queued',?,?)", (path, source, stamp, stamp),
         )
         ident = cur.lastrowid
+        if evidence:
+            db.execute('UPDATE developer_missions SET evidence_json=? WHERE id=?',
+                       (json.dumps(evidence, sort_keys=True), ident))
         job = db.execute(
             "INSERT INTO cloud_jobs(kind,payload,status,attempts,created_at,"
             "updated_at,available_at) VALUES('development_draft',?,'queued',0,?,?,?)",
@@ -195,16 +216,18 @@ def mission(db_path, ident):
         _reconcile(db)
         row = db.execute(
             "SELECT id,path,source,state,created_at,updated_at,summary,"
-            "base_sha256,fingerprint,manifest,replacement,diff,error_code "
+            "base_sha256,fingerprint,manifest,replacement,diff,error_code,evidence_json "
             "FROM developer_missions WHERE id=?", (ident,),
         ).fetchone()
     if row is None:
         return None
     keys = ("id", "path", "source", "state", "created_at", "updated_at",
             "summary", "base_sha256", "fingerprint", "manifest",
-            "replacement", "diff", "error_code")
+            "replacement", "diff", "error_code", "evidence_json")
     record = dict(zip(keys, row))
     record["manifest"] = json.loads(record["manifest"]) if record["manifest"] else None
+    evidence_json = record.pop('evidence_json')
+    record['source_evidence'] = json.loads(evidence_json) if evidence_json else None
     return record
 
 
@@ -265,13 +288,12 @@ def _reserve_validation_retry(db_path, ident):
 
 
 def _source(root, path):
-    base = Path(root).resolve(strict=True)
-    target = base / path
-    if (path not in TEMPLATES or target.is_symlink() or not target.is_file()
-            or not target.resolve().is_relative_to(base)
-            or target.stat().st_size > MAX_BYTES):
+    from luna.result_verification import _read_source
+    if path not in TEMPLATES:
         raise ValueError("Source target not safe for inspection")
-    raw = target.read_bytes()
+    raw = _read_source(root, path)
+    if len(raw) > MAX_BYTES:
+        raise ValueError('Source target exceeds the draft size limit')
     return raw.decode("utf-8"), hashlib.sha256(raw).hexdigest()
 
 
@@ -342,6 +364,9 @@ async def run_mission(db_path, ident, *, model=None, root=None):
             raise ValueError("Explicitly enabled or per-mission approved development model required")
 
     async def infer(text):
+        if record['source_evidence']:
+            from luna.draft_evidence import revalidate
+            revalidate(db_path, record['source_evidence'])
         if model is not None:
             return await model(text)
         return await propose(text, mission_id=ident, db_path=db_path,
@@ -349,8 +374,18 @@ async def run_mission(db_path, ident, *, model=None, root=None):
 
     try:
         original, digest = _source(root, record["path"])
+        evidence = record['source_evidence']
+        if evidence:
+            from luna.draft_evidence import revalidate
+            revalidate(db_path, evidence)
+            if digest != evidence['base_sha256']:
+                raise ValueError('Draft source differs from the observed finding')
         _reserve_model_attempt(db_path, ident)
         prompt = _instructions(record["path"], original, digest)
+        if evidence:
+            prompt += ('\nObserved source finding: ' + evidence['code'] +
+                       ' at line ' + str(evidence['line']) + '.\nSuccess criterion: ' +
+                       evidence['criterion'] + '\nThis specific finding replaces the generic improvement goal above.')
         try:
             answer = await infer(prompt)
             data = _candidate(answer, record["path"], digest)
@@ -377,6 +412,8 @@ async def run_mission(db_path, ident, *, model=None, root=None):
             }], tests=[])
         diff = staged["diffs"][0]["diff"]
         manifest = staged["manifest"]
+        if evidence:
+            revalidate(db_path, evidence)
         with job_connect(db_path) as db:
             _setup(db)
             changed = db.execute(

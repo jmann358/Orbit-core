@@ -1,3 +1,19 @@
+## 2026-10-13 — evidence must precede a targeted repair draft
+
+Connect fresh verified syntax findings to the existing developer mission engine
+without enabling candidate execution. Only existing allowlisted targets and
+bounded source bytes are eligible. Freeze source/report/attempt identities and
+success criteria; recheck before model calls and before accepting a proposal.
+Identical requests resolve to the same durable mission, including after review.
+Keep model consent, provider, daily budget, target allowlist and release gates.
+
+Real Mac isolation remains unavailable in the inspected command environment.
+Do not call temporary staging a sandbox or try the Linux-only runner on macOS.
+Prepare an Apple container VM evaluation proposal; installation and adversarial
+host testing require separate approval after the pending backup/recovery gate.
+Seven synthetic regressions and 578 full-suite passes establish source behavior
+only, not live model drafting or safe candidate execution.
+
 ## 2026-10-13 — replace generic planning with observable local findings
 
 Preserve the existing development-plan job and source allowlist. Its previous
