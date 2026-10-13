@@ -100,6 +100,7 @@ def test_invalid_openai_reply_is_persisted_as_notice_and_next_turn_recovers(
     [{"text": None}], [{"text": 12}], [{"text": " \n"}], [{"text": "\ud800"}], [{"functionCall": {}}]])
 def test_invalid_gemini_parts_do_not_break_chat(conversation, monkeypatch, parts):
     monkeypatch.setenv("LUNA_MODEL_URL", "https://generativelanguage.googleapis.com/v1beta")
+    monkeypatch.setenv("LUNA_CLOUD_CHAT_SCOPE", "https://generativelanguage.googleapis.com/v1beta|fixture-model")
     provider_json(monkeypatch, {"candidates": [{"content": {"parts": parts}}]})
     result = conversation.post("/chat", json={"session": "gemini", "message": "Hello"})
     assert result.status_code == 200
@@ -157,6 +158,8 @@ def test_approved_memory_and_conversation_survive_provider_switch_and_restart(
     assert first.json()["reply"] == "Violet, from your approved memory."
     monkeypatch.setenv("LUNA_MODEL_URL", "https://generativelanguage.googleapis.com/v1beta")
     monkeypatch.setenv("LUNA_MODEL_NAME", "fixture-gemini")
+    monkeypatch.setenv("LUNA_CLOUD_CHAT_SCOPE", "https://generativelanguage.googleapis.com/v1beta|fixture-gemini")
+    monkeypatch.setenv("LUNA_CLOUD_MEMORY_SCOPE", "https://generativelanguage.googleapis.com/v1beta|fixture-gemini")
     second = conversation.post("/chat", json={"session": "durable", "message": "Do you still have our conversation?"})
     assert second.status_code == 200
     assert second.json()["reply"] == "Still violet. Your conversation is here."
