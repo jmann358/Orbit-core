@@ -95,7 +95,8 @@ def test_runner_rejects_tampered_replacement_before_any_execution(tmp_path):
 def test_runner_fails_closed_without_bwrap(tmp_path):
     _, changes = fixture(tmp_path)
     report = stage_proposal(tmp_path, changes, ["tests/test_sample.py"])
-    with patch("luna.restricted_runner.shutil.which", return_value=None), patch(
+    with patch("luna.restricted_runner.sys.platform", "linux"), patch(
+            "luna.restricted_runner.shutil.which", return_value=None), patch(
             "luna.restricted_runner.subprocess.run") as run:
         with pytest.raises(RuntimeError, match="not installed"):
             run_verified_candidate(tmp_path, report["manifest"],

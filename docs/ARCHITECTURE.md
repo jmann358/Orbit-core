@@ -1,3 +1,5 @@
+> **Deployment decision:** THRONE is the sole Luna host and authoritative writer. iPhone/iPad are future authenticated clients. Optional external model/tool services are separate approved integrations, not a fallback host. See [FLIGHT_PLAN.md](FLIGHT_PLAN.md).
+
 # ORBIT architecture — draft v0.1
 
 ## Boundaries

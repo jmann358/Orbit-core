@@ -5,6 +5,7 @@ evaluate code, run shell commands, access credentials, or approve proposals.
 """
 import json
 import sqlite3
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -17,10 +18,22 @@ def utcnow():
     return datetime.now(timezone.utc)
 
 
+@contextmanager
 def connect(path):
-    db = sqlite3.connect(path, timeout=5, isolation_level=None)
-    db.execute("PRAGMA busy_timeout=5000")
-    db.execute("""CREATE TABLE IF NOT EXISTS cloud_jobs (
+    """Commit successful writes, roll back failed writes, and always close.
+
+    sqlite3.Connection.__exit__ does not close its file descriptor.
+    All existing callers use the context-manager API; consent reservations
+    must commit once, and failures must roll back. Ordinary DML begins a
+    deferred transaction; read/modify/write callers issue BEGIN IMMEDIATE
+    before any setup writes to reserve the writer atomically. Schema setup
+    before the first DML is not covered by the implicit transaction.
+    """
+    db = sqlite3.connect(path, timeout=5, isolation_level="DEFERRED")
+    try:
+        with db:
+            db.execute("PRAGMA busy_timeout=5000")
+            db.execute("""CREATE TABLE IF NOT EXISTS cloud_jobs (
         id INTEGER PRIMARY KEY,
         kind TEXT NOT NULL,
         status TEXT NOT NULL DEFAULT 'queued',
@@ -32,11 +45,12 @@ def connect(path):
         result TEXT NOT NULL DEFAULT '',
         payload TEXT NOT NULL DEFAULT ''
     )""")
-    columns = {r[1] for r in db.execute("PRAGMA table_info(cloud_jobs)")}
-    if "payload" not in columns:
-        db.execute("ALTER TABLE cloud_jobs ADD COLUMN payload TEXT NOT NULL DEFAULT ''")
-    return db
-
+            columns = {r[1] for r in db.execute("PRAGMA table_info(cloud_jobs)")}
+            if "payload" not in columns:
+                db.execute("ALTER TABLE cloud_jobs ADD COLUMN payload TEXT NOT NULL DEFAULT ''")
+            yield db
+    finally:
+        db.close()
 
 def enqueue(path, kind, *, now=None, payload=""):
     if kind not in ALLOWED_KINDS:

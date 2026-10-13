@@ -1,3 +1,19 @@
+## 2026-10-12 — THRONE reconciliation package
+
+Owner directed alignment of old/new plans and retirement of obsolete station
+work. The active plan and T01–T34/V01–V18 register now share one baseline.
+Historical documents are retained with explicit supersession pointers.
+The worker autocommit mismatch was reproduced and repaired in candidate
+source; explicit immediate reservations are preserved. Launcher unit tests
+are independent of the running owner dashboard. Final Mac verification:
+496 passed, 13 warnings, zero skips; compilation and case-safe paths pass.
+No merge, release, installed-code change, permission expansion, private-data
+transfer, new model call or paid service was performed. See THRONE_STATUS.md.
+
+> **THRONE status supersedes older status claims below.** Read [THRONE_STATUS.md](THRONE_STATUS.md), [FLIGHT_PLAN.md](FLIGHT_PLAN.md) and [PLAN_RECONCILIATION.md](PLAN_RECONCILIATION.md) first. The dated entries below are retained evidence, not a live task list.
+
+> **Pojo.3.1.0 development progress (2026-10-12; review-only):** The current **draft** flight code carries 418 passing tests and 13 warnings on each of Python 3.11/3.13 at candidate run [38282532948](https://github.com/jmann358/Orbit-core/actions/runs/38282532948), and subsequent branch runs independently check the latest changes. Scenarios now include real loopback Uvicorn, approved two-step goal continuation, saved job/goal receipts, observed worker heartbeat, atomic dispatch and SQLite lifetime. See [complete acceptance evidence](POJO_3_1_0_ACCEPTANCE_EVIDENCE.md) and [Mac handoff](POJO_3_1_0_MAC_HANDOFF.md). These edits are **not merged**, and the real Mac, iPhone and model provider have not been tested. All older test counts in the chronological report below are historical, not current product certification.
+
 > **Integration update (2026-10-11):** The detailed audit below reports an earlier source snapshot, not the latest integrated build. PRs #16–#19 merged with CI evidence; see [master-plan reconciliation](MASTER_PLAN_RECONCILIATION.md). No live provider, Mac M4, iPhone or continuously hosted deployment has been verified.
 
 # Development progress
@@ -63,3 +79,24 @@ Append dated evidence as work advances. Distinguish source review, automated
 tests, mocked adapter tests, local server/browser checks, hardware checks, and
 owner approval. A failed or unavailable check remains visible until resolved.
 Record exact counts and outcomes; do not invent completion percentages.
+
+## Local drafting acceptance — follow-up
+
+The original proposal path failed strict validation twice against public
+`luna/skill_catalog.py` in disposable state. The candidate now requests
+schema-constrained output only at the local Ollama-compatible endpoint
+(port 11434, /v1). Path and base revision are constrained, and the existing
+revision, size and Python-syntax validation still apply. Other providers
+retain their previous payload, and rejected requests do not trigger a
+less-constrained fallback.
+
+The same local qwen2.5-coder:7b then produced a proposal that reached review
+on its first attempt in 30.42 seconds. Source remained unchanged, generated
+code was not executed, and private memory was not used. This proves one
+local drafting scenario, not correctness of the proposed improvement or
+a complete test/repair/deployment cycle. The old production failure remains
+a preserved historical record; these fixes are not installed yet.
+
+Full regression: 502 passed, 13 warnings, zero skips in 35.91 seconds.
+Transport, consent, rejection, retry and local-only scope tests passed.
+Reference: https://docs.ollama.com/capabilities/structured-outputs

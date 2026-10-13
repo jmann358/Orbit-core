@@ -6,9 +6,8 @@ Before proposing work, read [docs/orbit/RESUME.md](docs/orbit/RESUME.md) and `do
 
 ORBIT is the control room. Luna is the central assistant. Her identity,
 personality, conversations, approved memories, goals, and permissions belong
-to ORBIT and must remain independent of the inference provider. The intended
-primary home is a Mac M4 mini; authenticated iPhone and other device access
-is future work.
+to ORBIT and must remain independent of the inference provider. The sole active host is THRONE, the Mac M4 mini. Authenticated iPhone/iPad
+access is future work; other devices are clients, never another database writer.
 
 ## Delivery priorities
 
@@ -16,6 +15,12 @@ is future work.
 2. Fix failures that prevent local startup or lose or misrepresent user data.
 3. Preserve working code and existing architecture wherever practical.
 4. Build on verified behavior; do not rebuild the project from scratch.
+
+## Recover ORBIT/Luna project context in a new session
+
+**Canonical living GitHub handoff:** https://github.com/jmann358/Orbit-core/issues/52 (codeword **POJO RESUME**). This issue is public-code-only, not a substitute for current GitHub heads or owner consent. Before starting new work, read issue #52; recheck `main`, all active/stacked PRs, exact head CI/reviews, and the current Mac/Chromebook hardware evidence. Do not rely on old conversation claims or fixed SHAs from a prior month. Explicitly distinguish draft/tested code from installed or released software. Check for double-counted overlapping PRs.
+
+Use one active development workstream and one compact checkpoint. Read docs/FLIGHT_PLAN.md, docs/THRONE_STATUS.md and docs/ACCEPTANCE_REGISTER.md before work. The old three-station and Chromebook-host instructions are retired. Preserve dated evidence in docs/archive; do not turn it back into new work. Publish sanitized handoff changes only when authorized. If GitHub isn't connected/accessible, say so and request the link or connection; never pretend a codeword can fetch private chat context. This instruction does not grant permissions to deploy, merge, spend, migrate private memory, or execute generated code.
 
 ## Before changing code
 

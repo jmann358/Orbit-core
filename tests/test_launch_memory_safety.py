@@ -19,7 +19,7 @@ def _write_memory(db_path):
 
 def test_private_sqlite_snapshot_preserves_existing_memory_and_integrity():
     with tempfile.TemporaryDirectory() as temp:
-        root = Path(temp)
+        root = Path(temp).resolve()
         original = root / "luna_local.db"
         _write_memory(original)
         backup = snapshot_existing_memory("luna_local.db", project_root=root)
@@ -40,7 +40,7 @@ def test_private_sqlite_snapshot_preserves_existing_memory_and_integrity():
 
 def test_no_existing_memory_creates_no_database_or_backup():
     with tempfile.TemporaryDirectory() as temp:
-        root = Path(temp)
+        root = Path(temp).resolve()
         assert snapshot_existing_memory(root / "not-created.db",
                                         project_root=root) is None
         assert not (root / "not-created.db").exists()
@@ -49,7 +49,7 @@ def test_no_existing_memory_creates_no_database_or_backup():
 
 def test_symlink_memory_rejected_before_snapshot():
     with tempfile.TemporaryDirectory() as temp:
-        root = Path(temp)
+        root = Path(temp).resolve()
         original = root / "actual.db"
         _write_memory(original)
         (root / "linked.db").symlink_to(original)
@@ -60,7 +60,7 @@ def test_symlink_memory_rejected_before_snapshot():
 
 def test_corrupted_sqlite_fails_closed_and_removes_bad_backup():
     with tempfile.TemporaryDirectory() as temp:
-        root = Path(temp)
+        root = Path(temp).resolve()
         (root / "broken.db").write_text("not a SQLite database")
         with pytest.raises(ValueError, match="backup failed"):
             snapshot_existing_memory("broken.db", project_root=root)
@@ -68,7 +68,9 @@ def test_corrupted_sqlite_fails_closed_and_removes_bad_backup():
         assert not backups.exists() or list(backups.iterdir()) == []
 
 
-def test_self_build_refuses_start_if_memory_snapshot_fails():
+def test_self_build_refuses_start_if_memory_snapshot_fails(monkeypatch):
+    # Exercise snapshot failure even when the owner's real Luna is running.
+    monkeypatch.setattr(start_luna_agent, "dashboard_port_occupied", lambda: False)
     ready = {
         "python_supported": True, "missing_dependencies": [],
         "developer_model_configured_unverified": False,
@@ -88,7 +90,7 @@ def test_self_build_refuses_start_if_memory_snapshot_fails():
 
 def test_backup_refuses_symlinked_destination_directory():
     with tempfile.TemporaryDirectory() as temp:
-        root = Path(temp)
+        root = Path(temp).resolve()
         private = root / "actual.db"
         _write_memory(private)
         outside = root / "outside-folder"
@@ -114,7 +116,7 @@ def test_verify_launch_snapshots_memory_before_pulling_source():
 
 def test_consistent_backup_in_wal_mode_for_custom_memory_path():
     with tempfile.TemporaryDirectory() as temp:
-        root = Path(temp)
+        root = Path(temp).resolve()
         original = root / "custom-data" / "memory.sqlite"
         original.parent.mkdir()
         with sqlite3.connect(original) as db:
@@ -137,7 +139,7 @@ def test_swapping_backup_directory_during_copy_cannot_exfiltrate_memory():
     from luna import launch_guard
 
     with tempfile.TemporaryDirectory() as temp:
-        root = Path(temp)
+        root = Path(temp).resolve()
         source = root / "memory.db"
         _write_memory(source)
         outside = root / "shared"
@@ -211,7 +213,7 @@ def test_swapping_project_root_cannot_redirect_backup_to_shared_directory():
     from luna import launch_guard
 
     with tempfile.TemporaryDirectory() as temp:
-        base = Path(temp)
+        base = Path(temp).resolve()
         root = base / "Orbit-core"
         root.mkdir()
         private = root / "memory.db"
@@ -256,7 +258,7 @@ def test_root_swap_immediately_before_open_fails_without_leaking_memory():
     from luna import launch_guard
 
     with tempfile.TemporaryDirectory() as temp:
-        base = Path(temp)
+        base = Path(temp).resolve()
         root = base / "Orbit-core"
         root.mkdir()
         source = root / "memory.db"
@@ -303,7 +305,7 @@ def test_ancestor_swap_before_component_open_never_exports_private_memory():
     from luna import launch_guard
 
     with tempfile.TemporaryDirectory() as temp:
-        base = Path(temp)
+        base = Path(temp).resolve()
         parent = base / "checkout-parent"
         root = parent / "Orbit-core"
         root.mkdir(parents=True)
