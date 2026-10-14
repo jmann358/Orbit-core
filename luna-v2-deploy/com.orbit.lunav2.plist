@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Luna v2 on THRONE. A separate neighbor of the old Luna install:
+         own directory, own label, own port (8100), own database.
+         Copy to ~/Library/LaunchAgents/ on the Mac, then:
+             launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.orbit.lunav2.plist
+         Stop / rollback:
+             launchctl bootout gui/$(id -u)/com.orbit.lunav2
+         then optionally delete the plist and the Luna-v2 directory.
+         The old Luna (com.orbit.luna, port 8000) is untouched. -->
+    <key>Label</key>
+    <string>com.orbit.lunav2</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>-m</string>
+        <string>luna_v2.web</string>
+        <string>--db</string>
+        <string>/Users/jaysmac/Library/Application Support/ORBIT/Luna-v2/luna_v2.db</string>
+        <string>--port</string>
+        <string>8100</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/jaysmac/Library/Application Support/ORBIT/Luna-v2</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+    <key>StandardOutPath</key>
+    <string>/Users/jaysmac/Library/Logs/ORBIT-Luna-v2/out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/jaysmac/Library/Logs/ORBIT-Luna-v2/err.log</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <!-- Live provider dispatch (Groq) is OFF unless Jason adds his key.
+             Uncomment and fill in only on THRONE, never in a shared file:
+             <key>GROQ_API_KEY</key>
+             <string>PASTE_KEY_HERE_ON_THRONE_ONLY</string>
+             Without it, dispatch stays fail-closed; everything else works. -->
+    </dict>
+</dict>
+</plist>
