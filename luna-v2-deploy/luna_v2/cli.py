@@ -25,6 +25,7 @@ from luna_v2 import envoy as EV
 from luna_v2 import designer as DE
 from luna_v2 import builder as BU
 from luna_v2 import mentor as MT
+from luna_v2 import rewards as RW
 from luna_v2 import operator as OP
 from luna_v2 import host as HO
 from luna_v2 import stormwatch as SW
@@ -644,6 +645,79 @@ def cmd_mentor(args, s):
 
 
 @_guarded
+def cmd_rewards(args, s):
+    if args.rewards_action == "list":
+        rows = RW.list_rewards(s, args.owner, specialist=args.specialist,
+                               include_quarantined=not args.hide_flagged)
+        if not rows:
+            print("no rewards on record")
+        for r in rows:
+            flag = " [QUARANTINED]" if r["quarantined"] else ""
+            print(f"{r['id']}: {r['specialist']} [{r['tier']}] "
+                  f"{r['amount']} {r['currency']} by {r['granted_by']} "
+                  f"on {r['evidence_kind']} {r['evidence_id']} "
+                  f"({r['status']}){flag}")
+            if r["note"]:
+                print(f"    note: {r['note']}")
+    elif args.rewards_action == "grant":
+        row = RW.grant(s, args.owner, args.specialist, args.tier,
+                       args.amount, args.evidence_kind, args.evidence_id,
+                       granted_by=args.by, expires_at=args.expires,
+                       note=args.note)
+        print(f"reward {row['id']}: {row['specialist']} [{row['tier']}] "
+              f"{row['amount']} {row['currency']} by {row['granted_by']} "
+              f"({row['status']})")
+    elif args.rewards_action == "recommend":
+        rec = RW.recommend_permission(s, args.owner, args.specialist,
+                                      args.request, args.evidence_kind,
+                                      args.evidence_id)
+        print(f"recommendation {rec['id']}: {rec['specialist']} \u2014 "
+              f"{rec['request']!r} [pending; nothing applied]")
+    elif args.rewards_action == "ticket":
+        t = RW.request_golden_ticket(s, args.owner, args.specialist,
+                                     args.benefits, args.evidence_kind,
+                                     args.evidence_id)
+        print(f"golden ticket {t['id']}: {t['specialist']} [pending "
+              f"Jason's decision; nothing applied]")
+    elif args.rewards_action == "decide":
+        row = RW.decide_request(s, args.owner, args.kind, args.request_id,
+                                args.decision,
+                                decided_by=args.decided_by,
+                                note=args.note)
+        if row is None:
+            print(f"{args.kind} {args.request_id} -> declined")
+        else:
+            print(f"{args.kind} {args.request_id} -> approved: "
+                  f"reward {row['id']} [{row['tier']}] "
+                  f"{row['specialist']} by {row['granted_by']}")
+    elif args.rewards_action == "check":
+        findings = RW.cross_check(s, args.owner)
+        if not findings:
+            print("cross-check clean: every row cites verified evidence")
+        for f in findings:
+            print(f"QUARANTINED reward {f['reward_id']}: {f['diff']}")
+    elif args.rewards_action == "currencies":
+        for c in RW.currencies():
+            cap = ("unlimited" if c["monthly_cap"] is None
+                   else f"{c['monthly_cap']}/month")
+            print(f"{c['specialist']}: {c['currency']} ({cap})")
+    elif args.rewards_action == "rotation":
+        r = RW.record_rotation(s, args.owner, args.specialist,
+                               args.scenario, recorded_by=args.by,
+                               note=args.note)
+        print(f"rotation {r['id']}: {r['specialist']} completed "
+              f"{r['scenario']!r} (recorded by {r['recorded_by']})")
+    elif args.rewards_action == "clear":
+        RW.clear_flag(s, args.owner, args.reward_id, by_whom=args.by)
+        print(f"quarantine cleared on reward {args.reward_id} "
+              f"(by {args.by}; the flag row stays on record)")
+    elif args.rewards_action == "expire":
+        n = RW.expire_rewards(s, args.owner)
+        print(f"{n} reward(s) expired (append-only: original rows "
+              f"untouched)")
+
+
+@_guarded
 def cmd_operator(args, s):
     if args.operator_action == "read":
         res = OP.act(s, args.owner, "read_file", {"path": args.path})
@@ -1112,6 +1186,87 @@ def build_parser() -> argparse.ArgumentParser:
                                           "drafts to Guardian's inbox")
     mer.add_argument("--limit", type=int, default=20)
     mer.set_defaults(func=cmd_mentor)
+
+    rw = sub.add_parser("rewards", help="Rewards: Mentor-administered "
+                                        "recognition for the team (Jason's "
+                                        "golden-buzzer system)")
+    rwsub = rw.add_subparsers(dest="rewards_action", required=True)
+    rwl = rwsub.add_parser("list", help="show the live rewards ledger")
+    rwl.add_argument("--specialist", default=None)
+    rwl.add_argument("--hide-flagged", action="store_true",
+                     help="hide quarantined rows (they are never deleted)")
+    rwl.set_defaults(func=cmd_rewards)
+    rwg = rwsub.add_parser("grant", help="grant a cosmetic or resource "
+                                         "reward (Mentor; self-dealing "
+                                         "refused)")
+    rwg.add_argument("--specialist", required=True)
+    rwg.add_argument("--tier", required=True,
+                     choices=["cosmetic", "resource"])
+    rwg.add_argument("--amount", type=int, default=1)
+    rwg.add_argument("--evidence-kind", required=True,
+                     choices=["mission", "receipt", "verifier_run",
+                              "guardian", "rotation"])
+    rwg.add_argument("--evidence-id", type=int, required=True)
+    rwg.add_argument("--by", default="mentor",
+                     choices=["mentor", "jason", "rowan"])
+    rwg.add_argument("--expires", default=None,
+                     help="ISO expiry date, e.g. 2027-01-13T00:00:00+00:00")
+    rwg.add_argument("--note", default="")
+    rwg.set_defaults(func=cmd_rewards)
+    rwr = rwsub.add_parser("recommend", help="Mentor recommends a "
+                                             "permission/autonomy reward "
+                                             "(applies nothing)")
+    rwr.add_argument("--specialist", required=True)
+    rwr.add_argument("--request", required=True)
+    rwr.add_argument("--evidence-kind", required=True,
+                     choices=["mission", "receipt", "verifier_run",
+                              "guardian", "rotation"])
+    rwr.add_argument("--evidence-id", type=int, required=True)
+    rwr.set_defaults(func=cmd_rewards)
+    rwt = rwsub.add_parser("ticket", help="file a golden-ticket request "
+                                          "straight to Jason (1 per "
+                                          "specialist per quarter)")
+    rwt.add_argument("--specialist", required=True)
+    rwt.add_argument("--benefits", required=True)
+    rwt.add_argument("--evidence-kind", required=True,
+                     choices=["mission", "receipt", "verifier_run",
+                              "guardian", "rotation"])
+    rwt.add_argument("--evidence-id", type=int, required=True)
+    rwt.set_defaults(func=cmd_rewards)
+    rwd = rwsub.add_parser("decide", help="record Jason's decision on a "
+                                          "recommendation or ticket")
+    rwd.add_argument("--kind", required=True,
+                     choices=["recommendation", "ticket"])
+    rwd.add_argument("--request-id", type=int, required=True)
+    rwd.add_argument("--decision", required=True,
+                     choices=["approve", "decline"])
+    rwd.add_argument("--decided-by", default="jason")
+    rwd.add_argument("--note", default="")
+    rwd.set_defaults(func=cmd_rewards)
+    rwsub.add_parser("check", help="Rowan's cross-check: verify every "
+                                   "ledger row's evidence; quarantine "
+                                   "mismatches").set_defaults(
+                                       func=cmd_rewards)
+    rwsub.add_parser("currencies", help="list the 15 reward currencies "
+                                        "and monthly caps").set_defaults(
+                                            func=cmd_rewards)
+    rwr2 = rwsub.add_parser("rotation", help="record a scheduled "
+                                              "scenario rotation "
+                                              "completion (neutral, "
+                                              "universal)")
+    rwr2.add_argument("--specialist", required=True)
+    rwr2.add_argument("--scenario", required=True)
+    rwr2.add_argument("--by", default="mentor")
+    rwr2.add_argument("--note", default="")
+    rwr2.set_defaults(func=cmd_rewards)
+    rwc = rwsub.add_parser("clear", help="clear a quarantine flag "
+                                         "(new row; the flag row stays)")
+    rwc.add_argument("--reward-id", type=int, required=True)
+    rwc.add_argument("--by", default="jason", choices=["jason", "rowan"])
+    rwc.set_defaults(func=cmd_rewards)
+    rwsub.add_parser("expire", help="expire past-term rewards "
+                                    "(append-only)").set_defaults(
+                                        func=cmd_rewards)
 
     op = sub.add_parser("operator", help="Operator: Luna's hands \u2014 "
                                          "read-only, workspace-confined")
