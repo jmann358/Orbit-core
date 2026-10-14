@@ -17,6 +17,16 @@ Deliberate rules:
   mentor_review suggestion per specialist), so re-running a draft
   files no duplicates.
 
+Review-and-retire (Jason's 2026-10-14 direction): grades persist into
+mentor_grades; consistently weak specialists open review_cases with a
+recommendation (train/restrict/retire) and a redelegation draft. But
+Mentor only RECOMMENDS — decide_case refuses decided_by='mentor'
+(blank or missing deciders are refused too). Only Jason or Rowan may
+decide, and retirement/restriction land as specialist_status rows,
+never registry edits. Earned rewards are never touched: the only
+"teeth" are lower grades, fewer FUTURE rewards (resource grants pause
+while a case is open), and Jason's decision.
+
 Stdlib only.
 """
 
@@ -27,6 +37,7 @@ from datetime import datetime, timezone
 
 from luna_v2 import guardian as G
 from luna_v2 import missions as M
+from luna_v2 import builder as B
 from luna_v2 import specialists as SP
 from luna_v2.store import Store
 
@@ -36,6 +47,13 @@ class MentorError(M.LunaError):
 
 
 GRADES = ("strong", "ok", "weak")
+
+# Review thresholds — named constants, Jason's 2026-10-14 direction.
+REVIEW_MIN_GRADES = 5    # persisted grades a specialist needs before review
+REVIEW_WINDOW = 10       # last N persisted grades examined
+REVIEW_WEAK_TRIGGER = 3  # >= this many weak in the window opens a case
+RESTRICT_WEAK_SHARE = 0.5  # weak share >= this -> 'restrict'
+RETIRE_WEAK_SHARE = 0.8    # weak share >= this -> 'retire' (else 'train')
 
 MENTOR_REVIEWS_SCHEMA = """
 CREATE TABLE IF NOT EXISTS mentor_reviews (
@@ -48,6 +66,43 @@ CREATE TABLE IF NOT EXISTS mentor_reviews (
 );
 """
 
+MENTOR_GRADES_SCHEMA = """
+CREATE TABLE IF NOT EXISTS mentor_grades (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    owner       TEXT NOT NULL,
+    specialist  TEXT NOT NULL,
+    run_source  TEXT NOT NULL,          -- 'specialist_runs' | 'builder_runs'
+    run_id      INTEGER NOT NULL,
+    run_created_at TEXT NOT NULL DEFAULT '',  -- the RUN's own timestamp:
+                                  -- history is ordered by run recency,
+                                  -- never by grade-row insertion order
+    grade       TEXT NOT NULL CHECK (grade IN ('strong','ok','weak')),
+    reason      TEXT NOT NULL DEFAULT '',
+    graded_at   TEXT NOT NULL,
+    UNIQUE (owner, run_source, run_id)
+);
+"""
+
+REVIEW_CASES_SCHEMA = """
+CREATE TABLE IF NOT EXISTS review_cases (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    owner           TEXT NOT NULL,
+    specialist      TEXT NOT NULL,
+    status          TEXT NOT NULL DEFAULT 'open'
+                    CHECK (status IN ('open','decided')),
+    trigger_summary TEXT NOT NULL DEFAULT '',
+    recommendation  TEXT NOT NULL
+                    CHECK (recommendation IN ('train','restrict','retire')),
+    redelegation_plan TEXT NOT NULL DEFAULT '',
+    decided_by      TEXT,
+    decision        TEXT,
+    decided_at      TEXT,
+    created_at      TEXT NOT NULL
+);
+"""
+
+DECISIONS = ("train", "restrict", "retire", "dismiss")
+
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -55,6 +110,8 @@ def _now() -> str:
 
 def _ensure_schema(store: Store) -> None:
     store._db.execute(MENTOR_REVIEWS_SCHEMA)
+    store._db.execute(MENTOR_GRADES_SCHEMA)
+    store._db.execute(REVIEW_CASES_SCHEMA)
     store._db.commit()
 
 
@@ -87,6 +144,8 @@ def _grade_run(row) -> dict:
 
     return {
         "run_id": row["id"],
+        "run_source": row["run_source"],
+        "run_created_at": row["created_at"],
         "specialist": row["specialist"],
         "grade": grade,
         "reason": reason,
@@ -95,15 +154,34 @@ def _grade_run(row) -> dict:
 
 
 def grade_runs(store: Store, owner: str, *, limit: int = 20) -> list[dict]:
-    """Grade the owner's most recent specialist_runs (newest first).
+    """Grade the owner's most recent specialist runs (newest first).
 
-    Read-only: SELECTs from specialist_runs only, writes nothing.
+    Read-only. Builder keeps its own run table (builder_runs) rather
+    than specialist_runs, so Builder runs are mapped into the same
+    shape here: specialist='builder', result is the task with the test
+    exit code, and a failed build's error is the failing test tail.
+    Done builds (tests exited 0) grade strong; failed builds grade
+    weak, with the first failing line as the reason.
+
+    Read-only: SELECTs only, writes nothing.
     """
     SP._ensure_schema(store)
+    B._ensure_schema(store)
     rows = store._db.execute(
-        "SELECT * FROM specialist_runs WHERE owner = ? "
-        "ORDER BY id DESC LIMIT ?",
-        (owner, limit)).fetchall()
+        "SELECT id, run_source, owner, mission_id, specialist, status, "
+        "result, error, created_at FROM ("
+        "SELECT id, 'specialist_runs' AS run_source, owner, mission_id, "
+        "specialist, status, result, error, created_at "
+        "FROM specialist_runs WHERE owner = ? "
+        "UNION ALL "
+        "SELECT id, 'builder_runs' AS run_source, owner, mission_id, "
+        "'builder' AS specialist, status, "
+        "'task: ' || task || ' (tests exit ' || test_exit_code || ')' "
+        "AS result, "
+        "CASE WHEN status = 'failed' THEN test_tail ELSE '' END AS error, "
+        "created_at FROM builder_runs WHERE owner = ?) "
+        "ORDER BY created_at DESC, id DESC LIMIT ?",
+        (owner, owner, limit)).fetchall()
     return [_grade_run(r) for r in rows]
 
 
@@ -196,3 +274,249 @@ def draft_improvements(store: Store, owner: str, *,
          suggestions_filed))
     store._db.commit()
     return review
+
+
+# ---------------------------------------------------------------------------
+# Persistent grades
+# ---------------------------------------------------------------------------
+def persist_grades(store: Store, owner: str, *, limit: int = 50) -> dict:
+    """Grade recent runs and persist each run's grade exactly once.
+
+    Idempotent: re-running adds nothing (UNIQUE on
+    owner/run_source/run_id). Returns {"graded", "persisted_new"}.
+    """
+    _ensure_schema(store)
+    grades = grade_runs(store, owner, limit=limit)
+    added = 0
+    for g in grades:
+        cur = store._db.execute(
+            "INSERT OR IGNORE INTO mentor_grades (owner, specialist, "
+            "run_source, run_id, run_created_at, grade, reason, "
+            "graded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (owner, g["specialist"], g["run_source"], g["run_id"],
+             g["run_created_at"], g["grade"], g["reason"], _now()))
+        if cur.rowcount:
+            added += 1
+    store._db.commit()
+    return {"graded": len(grades), "persisted_new": added}
+
+
+def grade_history(store: Store, owner: str,
+                  specialist: str | None = None) -> list[dict]:
+    """Persisted grades, newest RUN first; optionally for one
+    specialist. Ordered by the run's own timestamp (ties broken
+    deterministically), never by grade-row insertion order."""
+    _ensure_schema(store)
+    order = ("ORDER BY run_created_at DESC, run_source DESC, "
+             "run_id DESC")
+    if specialist is not None:
+        rows = store._db.execute(
+            "SELECT * FROM mentor_grades WHERE owner = ? AND "
+            f"specialist = ? {order}",
+            (owner, specialist)).fetchall()
+    else:
+        rows = store._db.execute(
+            f"SELECT * FROM mentor_grades WHERE owner = ? {order}",
+            (owner,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def grade_summary(store: Store, owner: str, specialist: str,
+                  last_n: int = REVIEW_WINDOW) -> dict:
+    """Grade counts over the last N persisted grades of a specialist."""
+    rows = grade_history(store, owner, specialist)[:last_n]
+    counts = {"strong": 0, "ok": 0, "weak": 0}
+    for r in rows:
+        counts[r["grade"]] += 1
+    return {"specialist": specialist, "last_n": len(rows),
+            "counts": counts}
+
+
+# ---------------------------------------------------------------------------
+# Review cases
+# ---------------------------------------------------------------------------
+def open_case_for(store: Store, owner: str,
+                  specialist: str) -> dict | None:
+    """The specialist's open review case, if any."""
+    _ensure_schema(store)
+    row = store._db.execute(
+        "SELECT * FROM review_cases WHERE owner = ? AND specialist = ? "
+        "AND status = 'open' ORDER BY id DESC LIMIT 1",
+        (owner, specialist)).fetchone()
+    return dict(row) if row is not None else None
+
+
+def list_cases(store: Store, owner: str,
+               status: str | None = None) -> list[dict]:
+    """All review cases, newest first; optionally filtered by status."""
+    _ensure_schema(store)
+    if status is not None:
+        rows = store._db.execute(
+            "SELECT * FROM review_cases WHERE owner = ? AND status = ? "
+            "ORDER BY id DESC", (owner, status)).fetchall()
+    else:
+        rows = store._db.execute(
+            "SELECT * FROM review_cases WHERE owner = ? ORDER BY id DESC",
+            (owner,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def evaluate_reviews(store: Store, owner: str) -> dict:
+    """Open review cases for consistently weak specialists.
+
+    Persist grades first (idempotent), then for each specialist with
+    at least REVIEW_MIN_GRADES persisted grades: if at least
+    REVIEW_WEAK_TRIGGER of their last REVIEW_WINDOW grades are weak
+    and no case is already open, open one. The recommendation follows
+    the weak share: >= RETIRE_WEAK_SHARE -> 'retire',
+    >= RESTRICT_WEAK_SHARE -> 'restrict', else 'train'. Opening a
+    case files ONE Guardian suggestion (check_name='mentor_review_case',
+    severity warning) and saves a redelegation draft on the case.
+    Nothing is ever auto-decided. Returns {"cases_opened": [ids]}.
+    """
+    persist_grades(store, owner)
+    _ensure_schema(store)
+    owners_specialists = store._db.execute(
+        "SELECT DISTINCT specialist FROM mentor_grades WHERE owner = ?",
+        (owner,)).fetchall()
+    opened = []
+    for (specialist,) in owners_specialists:
+        if open_case_for(store, owner, specialist) is not None:
+            continue
+        summary = grade_summary(store, owner, specialist,
+                                last_n=REVIEW_WINDOW)
+        if summary["last_n"] < REVIEW_MIN_GRADES:
+            continue
+        weak = summary["counts"]["weak"]
+        if weak < REVIEW_WEAK_TRIGGER:
+            continue
+        share = weak / summary["last_n"]
+        if share >= RETIRE_WEAK_SHARE:
+            recommendation = "retire"
+        elif share >= RESTRICT_WEAK_SHARE:
+            recommendation = "restrict"
+        else:
+            recommendation = "train"
+        trigger = (f"{weak} of the last {summary['last_n']} persisted "
+                   f"grades weak ({share:.0%})")
+        plan = draft_redelegation(store, owner, specialist)
+        cid = store._db.execute(
+            "INSERT INTO review_cases (owner, specialist, status, "
+            "trigger_summary, recommendation, redelegation_plan, "
+            "created_at) VALUES (?, ?, 'open', ?, ?, ?, ?)",
+            (owner, specialist, trigger, recommendation, plan,
+             _now())).lastrowid
+        G.file_suggestion(
+            store, owner,
+            check_name="mentor_review_case",
+            subject=specialist,
+            severity="warning",
+            observation=(f"mentor: review case {cid} opened for "
+                         f"{specialist} — {trigger}; recommendation: "
+                         f"{recommendation}"),
+            evidence=(f"trigger: {trigger}\n\nredelegation draft:\n{plan}"),
+            proposed_action=(
+                f"For Jason/Rowan: review the evidence and decide "
+                f"(mentor decide {cid} --decision <train|restrict|retire|"
+                f"dismiss> --by <your name>). Training comes before "
+                f"removal; earned rewards are never revoked — poor work "
+                f"only throttles future rewards."))
+        store._db.commit()
+        opened.append(cid)
+    return {"cases_opened": opened}
+
+
+def _tokenize(text: str) -> set[str]:
+    import re as _re
+    return set(_re.findall(r"[a-z]+", text.lower()))
+
+
+def _tool_overlap(duty: str, profile: SP.SpecialistProfile) -> int:
+    """Deterministic overlap score: token intersection between the
+    duty and another profile's tool names, plus its purpose keywords."""
+    duty_tokens = _tokenize(duty.replace("-", " ").replace("_", " "))
+    best = 0
+    for tool in profile.tools:
+        best = max(best, len(duty_tokens & _tokenize(
+            tool.replace("-", " ").replace("_", " "))))
+    return best + len(duty_tokens & _tokenize(profile.purpose))
+
+
+def draft_redelegation(store: Store, owner: str, specialist: str) -> str:
+    """Draft (never apply) where a specialist's duties would go.
+
+    Each declared tool is a duty; for each, the best remaining ACTIVE
+    specialist whose tool set or purpose overlaps it is named (token
+    overlap, registry order breaks ties). Duties with no overlap
+    "return to Rowan/Jason". Deterministic: same registry, same draft.
+    """
+    profile = SP.get_profile(specialist)  # SpecialistNotFound if unknown
+    lines = [f"Redelegation draft for {specialist} ({profile.title}).",
+             f"Scope: {profile.purpose}",
+             "Duties:"]
+    for duty in profile.tools:
+        best = None
+        best_score = 0
+        for other in SP.list_specialists():
+            if other.name == specialist or other.status != "active":
+                continue
+            if SP.effective_status(store, owner, other.name) == "retired":
+                continue
+            score = _tool_overlap(duty, other)
+            if score > best_score:
+                best, best_score = other, score
+        if best is not None:
+            lines.append(f"- {duty} -> {best.name} ({best.title}) "
+                         f"[overlap {best_score}]")
+        else:
+            lines.append(f"- {duty} -> returns to Rowan/Jason (no active "
+                         "specialist overlaps)")
+    return "\n".join(lines)
+
+
+def decide_case(store: Store, owner: str, case_id: int, decision: str,
+                decided_by: str) -> dict:
+    """Record the decider's ruling on an open review case.
+
+    decided_by must be a non-empty name and must NOT be 'mentor' —
+    Mentor recommends, it never decides. 'train' and 'dismiss' change
+    nothing about the specialist's status; 'restrict'/'retire' append
+    a specialist_status row. Returns the decided case.
+    """
+    _ensure_schema(store)
+    by = (decided_by or "").strip()
+    if not by:
+        raise MentorError(
+            "decide_case needs a decider name (decided_by)")
+    if by.lower() == "mentor":
+        raise MentorError(
+            "Mentor recommends — it cannot decide cases; a Jason or "
+            "Rowan decision is required")
+    if decision not in DECISIONS:
+        raise MentorError(
+            f"decision must be one of {DECISIONS}, got {decision!r}")
+    row = store._db.execute(
+        "SELECT * FROM review_cases WHERE id = ? AND owner = ?",
+        (case_id, owner)).fetchone()
+    if row is None:
+        raise MentorError(f"review case {case_id} not found")
+    case = dict(row)
+    if case["status"] != "open":
+        raise MentorError(
+            f"review case {case_id} is already {case['status']}")
+    note = (f"review case {case_id}: {case['recommendation']} "
+            f"recommended, {decision} decided by {by}")
+    store._db.execute(
+        "UPDATE review_cases SET status = 'decided', decided_by = ?, "
+        "decision = ?, decided_at = ? WHERE id = ?",
+        (by, decision, _now(), case_id))
+    if decision == "restrict":
+        SP.set_specialist_status(store, owner, case["specialist"],
+                                 "restricted", by, note)
+    elif decision == "retire":
+        SP.set_specialist_status(store, owner, case["specialist"],
+                                 "retired", by, note)
+    store._db.commit()
+    case.update({"status": "decided", "decided_by": by,
+                 "decision": decision})
+    return case

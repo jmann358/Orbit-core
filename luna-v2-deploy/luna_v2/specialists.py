@@ -21,11 +21,12 @@ Framework rules, deliberate:
 - Planned teammates are registered but inert: asking one to run is a
   clean refusal, never a partial side effect.
 
-All fifteen specialists are active: Scout, Guardian, Verifier,
+All twenty-three specialists are active: Scout, Guardian, Verifier,
 Quartermaster, Watchman, Sentinel, Archivist, Scheduler, Armorer,
-Envoy, Designer, Builder, Mentor, Operator and Host \u2014 each behind
-the same framework rules, each activated with tests and a live
-proof on the real database.
+Envoy, Designer, Builder, Mentor, Operator, Host, Registrar,
+Locksmith, Warden, Lumen, Herald, Artificer, Conductor and
+Headhunter — each behind the same framework rules, each activated
+with tests and a live proof on the real database.
 
 Stdlib only.
 """
@@ -185,6 +186,89 @@ SPECIALISTS: dict[str, SpecialistProfile] = {
         tools=["namespace_admin"],
         max_provider_calls_per_run=1, max_fetches_per_run=0,
         status="active"),
+    "registrar": SpecialistProfile(
+        name="registrar", title="Account Registrar",
+        purpose="Keeps Luna's account book: every service she uses, the "
+                "plan, who owns it, what it's for, renewals and expiries. "
+                "Prepares signups end-to-end so Jason's part is one ready "
+                "tap-through. Never enters passwords or keys, never agrees "
+                "to terms, never puts a payment method anywhere — free "
+                "plans only.",
+        tools=["account_registry"],
+        max_provider_calls_per_run=0, max_fetches_per_run=0,
+        status="active"),
+    "locksmith": SpecialistProfile(
+        name="locksmith", title="Key Locksmith",
+        purpose="Owns Luna's key list: which keys she needs, their "
+                "windows and deadlines, renewals before anything lapses. "
+                "Prepares each key run for the secure vault page, verifies "
+                "keys work, and never stores a raw key — connector names "
+                "and dates only.",
+        tools=["key_registry", "provider_dispatch"],
+        max_provider_calls_per_run=1, max_fetches_per_run=0,
+        status="active"),
+    "warden": SpecialistProfile(
+        name="warden", title="Gate Warden",
+        purpose="Sentinel's partner at the gate: scans incoming code, "
+                "patches, and files for threats — secret access, egress, "
+                "shell-outs, path escapes, dependency surprises — before "
+                "they get anywhere near Luna. Holds (quarantines) "
+                "suspicious material; never approves anything for release.",
+        tools=["gate_scanner"],
+        max_provider_calls_per_run=0, max_fetches_per_run=0,
+        status="active"),
+    "lumen": SpecialistProfile(
+        name="lumen", title="Image Lumen",
+        purpose="Owns Luna's image requests: drafts prompts under "
+                "Jason's no-random-text house rule, routes them to "
+                "approved image sources, tracks each job to done. The "
+                "honest job desk — it drafts, queues, and tracks, never "
+                "pretends to generate images itself.",
+        tools=["image_desk"],
+        max_provider_calls_per_run=0, max_fetches_per_run=0,
+        status="active"),
+    "herald": SpecialistProfile(
+        name="herald", title="Briefing Herald",
+        purpose="Composes every briefing in Jason's format: short "
+                "first, the flow in plain marks, notes on what was left "
+                "out, and a validity stamp that is always RUN, never "
+                "claimed — mission briefings backed by the Verifier, "
+                "storm by the Watchman, rewards by the cross-check.",
+        tools=["briefing_composer"],
+        max_provider_calls_per_run=0, max_fetches_per_run=0,
+        status="active"),
+    "artificer": SpecialistProfile(
+        name="artificer", title="Interface Artificer",
+        purpose="Drafts Luna's master interface concepts — overview "
+                "screens drawn from the other agents' real records. "
+                "Light concepts are drafted, heavy ones are parked for "
+                "later automatically. Fun is allowed: JARVIS decks, "
+                "party screens, courts. Drains are never built.",
+        tools=["interface_drafts"],
+        max_provider_calls_per_run=0, max_fetches_per_run=0,
+        status="active"),
+    "conductor": SpecialistProfile(
+        name="conductor", title="Work Conductor",
+        purpose="Keeps everyone from sitting around: watches idleness "
+                "across the team, holds a backlog of useful routine "
+                "work, and assigns it to the most idle eligible "
+                "specialist — always inside their existing scopes and "
+                "budgets. Does no specialist work itself, grants nothing, "
+                "and never invents busywork.",
+        tools=["work_assignment"],
+        max_provider_calls_per_run=0, max_fetches_per_run=0,
+        status="active"),
+    "headhunter": SpecialistProfile(
+        name="headhunter", title="Talent Headhunter",
+        purpose="Stays on the prowl for S-tier agent talent: researches "
+                "agent models and structures, adopts their code only "
+                "through the license gate and Warden's gate scan, "
+                "otherwise studies them and rebuilds our own. Puts new "
+                "hires on probation — failures get removed. Proposes; "
+                "Jason or Rowan decides.",
+        tools=["talent_research"],
+        max_provider_calls_per_run=2, max_fetches_per_run=5,
+        status="active"),
 }
 
 
@@ -245,6 +329,24 @@ def _record_run(store: Store, specialist: str, owner: str,
 
 
 def _update_run(store: Store, run_id: int, **fields) -> None:
+    # A restricted specialist's runs are allowed, but every recorded
+    # result/error carries the marker — the restriction is visible on
+    # the run record itself, and therefore in Mentor's grades. The
+    # marker is idempotent (startswith guard) and changes nothing
+    # about how the run is graded.
+    if "result" in fields or "error" in fields:
+        _ensure_status_schema(store)
+        row = store._db.execute(
+            "SELECT specialist, owner FROM specialist_runs WHERE id = ?",
+            (run_id,)).fetchone()
+        if row is not None and effective_status(
+                store, row["owner"], row["specialist"]) == "restricted":
+            for k in ("result", "error"):
+                v = fields.get(k)
+                if isinstance(v, str) and not v.startswith(
+                        RESTRICTED_MARKER):
+                    fields[k] = (RESTRICTED_MARKER + " " + v) if v \
+                        else RESTRICTED_MARKER
     sets = ", ".join(f"{k} = ?" for k in fields)
     store._db.execute(
         f"UPDATE specialist_runs SET {sets} WHERE id = ?",
@@ -256,6 +358,75 @@ def get_run(store: Store, run_id: int) -> sqlite3.Row | None:
     _ensure_schema(store)
     return store._db.execute(
         "SELECT * FROM specialist_runs WHERE id = ?", (run_id,)).fetchone()
+
+
+# ---------------------------------------------------------------------------
+# Status overrides (Mentor review system — Jason's 2026-10-14 direction)
+# ---------------------------------------------------------------------------
+# Registry profiles stay 'active' in code; review outcomes are DB state.
+# 'retired' refuses new runs; 'restricted' lets runs through but marks
+# every recorded result/error so the restriction is visible in the
+# run record itself (and therefore in Mentor's grades).
+RESTRICTED_MARKER = "[restricted — under review]"
+
+SPECIALIST_STATUS_SCHEMA = """
+CREATE TABLE IF NOT EXISTS specialist_status (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    owner       TEXT NOT NULL,
+    specialist  TEXT NOT NULL,
+    status      TEXT NOT NULL
+                CHECK (status IN ('active','restricted','retired')),
+    decided_by  TEXT NOT NULL,
+    note        TEXT NOT NULL DEFAULT '',
+    created_at  TEXT NOT NULL
+);
+"""
+
+_VALID_STATUSES = ("active", "restricted", "retired")
+
+
+def _ensure_status_schema(store: Store) -> None:
+    store._db.execute(SPECIALIST_STATUS_SCHEMA)
+    store._db.commit()
+
+
+def set_specialist_status(store: Store, owner: str, specialist: str,
+                          status: str, decided_by: str,
+                          note: str = "") -> dict:
+    """Append a status override row. Latest row wins."""
+    if status not in _VALID_STATUSES:
+        raise SpecialistError(
+            f"status must be one of {_VALID_STATUSES}, got {status!r}")
+    by = (decided_by or "").strip()
+    if not by:
+        raise SpecialistError(
+            "a status override needs a decider (decided_by)")
+    get_profile(specialist)  # SpecialistNotFound for unknown names
+    _ensure_status_schema(store)
+    rid = store._db.execute(
+        "INSERT INTO specialist_status (owner, specialist, status, "
+        "decided_by, note, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+        (owner, specialist, status, by, note or "", _now())).lastrowid
+    store._db.commit()
+    return dict(store._db.execute(
+        "SELECT * FROM specialist_status WHERE id = ?", (rid,)).fetchone())
+
+
+def status_details(store: Store, owner: str,
+                   specialist: str) -> dict | None:
+    """The latest status row for a specialist, or None."""
+    _ensure_status_schema(store)
+    row = store._db.execute(
+        "SELECT * FROM specialist_status WHERE owner = ? AND "
+        "specialist = ? ORDER BY id DESC LIMIT 1",
+        (owner, specialist)).fetchone()
+    return dict(row) if row is not None else None
+
+
+def effective_status(store: Store, owner: str, specialist: str) -> str:
+    """'active' unless a status override says otherwise."""
+    det = status_details(store, owner, specialist)
+    return det["status"] if det is not None else "active"
 
 
 # ---------------------------------------------------------------------------
@@ -469,6 +640,18 @@ def run_specialist(name: str, question: str, urls=(), **kwargs):
         raise SpecialistNotActive(
             f"{profile.title} ({name}) is planned, not yet active — "
             "refusing with no side effects")
+    # Mentor review overrides (DB state, never a registry edit): a
+    # retired specialist refuses exactly like a planned one, naming
+    # the retirement and who decided it. Restricted specialists run
+    # normally; their runs are marked by _update_run.
+    owner = kwargs.get("owner", "jason")
+    if effective_status(store, owner, name) == "retired":
+        det = status_details(store, owner, name)
+        by = det["decided_by"] if det else "unknown"
+        note = det["note"] if det and det["note"] else "no note recorded"
+        raise SpecialistNotActive(
+            f"{profile.title} ({name}) was retired by {by} — runs "
+            f"refused (note: {note})")
     if name == "scout":
         return run_scout(store, question, urls, **kwargs)
     raise SpecialistError(
