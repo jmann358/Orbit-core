@@ -9,8 +9,12 @@ Design rules (deliberate):
 - The inventory is REAL paths on THIS machine (this VM and Jason's
   Mac-side tools the agent actually calls), seeded from SEED_TOOLS and
   kept in a table the module owns (CREATE TABLE IF NOT EXISTS;
-  store.py is never touched). Broken inventory rows are never
-  deleted by a check — Armorer reports breakage, it does not hide it.
+  store.py is never touched). Seeding is per-machine honest: a tool
+  whose location is a file path is seeded only when that file exists
+  here — a machine without the file gets a smaller, truthful toolbox,
+  never a row that could never pass its own check. Broken inventory
+  rows are never deleted by a check — Armorer reports breakage, it
+  does not hide it.
 - The default health check is SPEND-FREE: location exists (and
   doc_path too when set) -> ok, else broken with a detail that names
   the missing path. broker.route_explain is consulted for the
@@ -107,13 +111,41 @@ def _ensure_schema(store: Store) -> None:
     store._db.commit()
 
 
+def _location_is_file_path(loc: str) -> bool:
+    """Heuristic: is this location a filesystem path (vs a URL or an
+    opaque identifier)? Paths start with ~ or / or contain a path
+    separator; anything carrying a scheme (://) or a bare token is not
+    file-backed."""
+    loc = (loc or "").strip()
+    if not loc or "://" in loc:
+        return False
+    return (loc.startswith("~") or loc.startswith("/")
+            or "/" in loc or "\\" in loc)
+
+
+def tool_is_seedable(tool: dict) -> bool:
+    """Is this tool's inventory row truthful on THIS machine? Non-file
+    locations always seed. File paths seed only when the file exists
+    here — a helper that lives in Rowan's vault, not on this machine,
+    is simply absent from this machine's toolbox (Mac dispatch stays
+    fail-closed by design; the absence is the fact)."""
+    loc = tool.get("location", "")
+    if not _location_is_file_path(loc):
+        return True
+    return _exists(loc)
+
+
 def seed_tools(store: Store, owner: str = "jason") -> int:
-    """Seed the tool inventory from SEED_TOOLS. Idempotent: INSERT OR
-    IGNORE never touches existing rows, so statuses survive re-seeding
-    until a check runs. Returns the row count for the owner."""
+    """Seed the tool inventory from SEED_TOOLS, skipping tools whose
+    file-backed location is absent on this machine (see
+    tool_is_seedable). Idempotent: INSERT OR IGNORE never touches
+    existing rows, so statuses survive re-seeding until a check runs.
+    Returns the row count for the owner."""
     owner = _check_owner(owner)
     _ensure_schema(store)
     for tool in SEED_TOOLS:
+        if not tool_is_seedable(tool):
+            continue
         store._db.execute(
             "INSERT OR IGNORE INTO armorer_tools "
             "(owner, name, kind, location, doc_path, status) "
