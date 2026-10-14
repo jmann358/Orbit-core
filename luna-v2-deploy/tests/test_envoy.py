@@ -76,6 +76,8 @@ def test_mark_sent_twice_raises(store):
 
 def test_transitions_on_closed_package_raise(store):
     pid = E.create_package(store, "jason", "codex", "T", "B")
+    E.mark_sent(store, "jason", pid)
+    E.record_result(store, "jason", pid, "got it")
     E.close_package(store, "jason", pid)
     with pytest.raises(E.InvalidTransition):
         E.close_package(store, "jason", pid)
@@ -85,20 +87,19 @@ def test_transitions_on_closed_package_raise(store):
         E.record_result(store, "jason", pid, "late answer")
 
 
-def test_close_from_sent_leaves_unanswered_history(store):
+def test_close_from_sent_refused(store):
     pid = E.create_package(store, "jason", "codex", "T", "B")
     E.mark_sent(store, "jason", pid)
-    closed = E.close_package(store, "jason", pid)
-    assert closed["state"] == "closed"
-    assert closed["answered_at"] is None
-    assert closed["result_text"] == ""
-    assert closed["sent_at"] is not None
+    with pytest.raises(E.InvalidTransition):
+        E.close_package(store, "jason", pid)
+    assert E.get_package(store, "jason", pid)["state"] == "sent"
 
 
-def test_close_from_draft_works(store):
+def test_close_from_draft_refused(store):
     pid = E.create_package(store, "jason", "codex", "T", "B")
-    closed = E.close_package(store, "jason", pid)
-    assert closed["state"] == "closed"
+    with pytest.raises(E.InvalidTransition):
+        E.close_package(store, "jason", pid)
+    assert E.get_package(store, "jason", pid)["state"] == "draft"
 
 
 def test_mark_sent_on_answered_raises(store):
@@ -147,7 +148,7 @@ def test_list_packages_filters_by_state_and_owner(store):
     s1 = E.create_package(store, "jason", "chatgpt", "T2", "B2")
     E.mark_sent(store, "jason", s1)
     E.record_result(store, "jason", s1, "answer")
-    E.close_package(store, "jason", d1)
+    E.close_package(store, "jason", s1)
     other = E.create_package(store, "frankie", "external", "T3", "B3")
 
     all_jason = E.list_packages(store, "jason")
@@ -155,9 +156,9 @@ def test_list_packages_filters_by_state_and_owner(store):
     assert all(p["owner"] == "jason" for p in all_jason)
 
     closed = E.list_packages(store, "jason", state="closed")
-    assert [p["id"] for p in closed] == [d1]
+    assert [p["id"] for p in closed] == [s1]
     drafts = E.list_packages(store, "jason", state="draft")
-    assert drafts == []
+    assert [p["id"] for p in drafts] == [d1]
     assert [p["id"] for p in E.list_packages(store, "frankie")] == [other]
 
     with pytest.raises(E.EnvoyValidationError):

@@ -59,7 +59,7 @@ def test_art_covers_every_profile():
             assert art[key], f"{name} missing {key}"
 
 
-def test_team_page_lists_all_fifteen(store):
+def test_team_page_lists_all_nineteen(store):
     status, _, body = _g(store, "/team", {"owner": OWNER})
     assert status == 200
     for name, profile in SP.SPECIALISTS.items():
