@@ -21,12 +21,13 @@ Framework rules, deliberate:
 - Planned teammates are registered but inert: asking one to run is a
   clean refusal, never a partial side effect.
 
-All twenty-three specialists are active: Scout, Guardian, Verifier,
+All thirty specialists are active: Scout, Guardian, Verifier,
 Quartermaster, Watchman, Sentinel, Archivist, Scheduler, Armorer,
 Envoy, Designer, Builder, Mentor, Operator, Host, Registrar,
-Locksmith, Warden, Lumen, Herald, Artificer, Conductor and
-Headhunter — each behind the same framework rules, each activated
-with tests and a live proof on the real database.
+Locksmith, Warden, Lumen, Herald, Artificer, Conductor,
+Headhunter, Taster, Alchemist, Pathfinder, Marshal, Weaver,
+Cartographer and Jester — each behind the same framework rules, each
+activated with tests and a live proof on the real database.
 
 Stdlib only.
 """
@@ -268,6 +269,81 @@ SPECIALISTS: dict[str, SpecialistProfile] = {
                 "Jason or Rowan decides.",
         tools=["talent_research"],
         max_provider_calls_per_run=2, max_fetches_per_run=5,
+        status="active"),
+    "taster": SpecialistProfile(
+        name="taster", title="Threat Taster",
+        purpose="Watches the outside world for malware, exploits and AI/"
+                "tech developments, and turns them into bulletins, gate-"
+                "rule proposals and warnings for the team. Researches and "
+                "warns; never edits gate rules, downloads, or executes "
+                "anything. Enforces Jason's containment law: nothing leaves "
+                "ORBIT except on his order.",
+        tools=["threat_research"],
+        max_provider_calls_per_run=2, max_fetches_per_run=5,
+        status="active"),
+    "alchemist": SpecialistProfile(
+        name="alchemist", title="Lab Alchemist",
+        purpose="Runs experiments — hypothesis, method, budget, measured "
+                "result, verdict — on scratch copies, sandboxes and the "
+                "island only. Never experiments on the living system; "
+                "failed experiments are published results. Curious and "
+                "experimental: transmutates studied ideas into tested "
+                "ones.",
+        tools=["experimentation"],
+        max_provider_calls_per_run=2, max_fetches_per_run=0,
+        status="active"),
+    "pathfinder": SpecialistProfile(
+        name="pathfinder", title="Web Pathfinder",
+        purpose="Plans web work and executes the read-only half — "
+                "navigate, fetch, extract — against a per-plan site "
+                "allowlist, through Scout's hardened fetch. Never "
+                "operates a real browser: interact steps become Envoy "
+                "packages for Rowan, never executed clicks. Fetched "
+                "text is secret-screened before storage.",
+        tools=["browser_act"],
+        max_provider_calls_per_run=3, max_fetches_per_run=5,
+        status="active"),
+    "marshal": SpecialistProfile(
+        name="marshal", title="Swarm Marshal",
+        purpose="Coordinates, never commands: poses one question to "
+                "2–5 existing specialists and records every member's "
+                "outcome with a deterministic consensus. v1 fields "
+                "zero-spend deterministic members only; a retired "
+                "member is refused, a restricted one carries its "
+                "marker. Creates no missions, spends nothing.",
+        tools=["swarm_deploy"],
+        max_provider_calls_per_run=0, max_fetches_per_run=0,
+        status="active"),
+    "weaver": SpecialistProfile(
+        name="weaver", title="Memory Weaver",
+        purpose="Mines Luna's own records — active memories and "
+                "mission titles — for recurring themes and proposes "
+                "them as cited patterns. Proposes only: patterns become "
+                "memory solely through Archivist's approved filing; "
+                "never edits or retires anything.",
+        tools=["memory_mine"],
+        max_provider_calls_per_run=1, max_fetches_per_run=0,
+        status="active"),
+    "cartographer": SpecialistProfile(
+        name="cartographer", title="Research Cartographer",
+        purpose="Runs sustained research campaigns: 2–4 caller-"
+                "supplied sub-questions, budgeted evidence gathering, "
+                "deterministic evidence grades, contradictions surfaced "
+                "and named — then one broker-accounted synthesis "
+                "dispatch. Never invents the decomposition, never "
+                "acts on findings.",
+        tools=["research_campaign"],
+        max_provider_calls_per_run=5, max_fetches_per_run=12,
+        status="active"),
+    "jester": SpecialistProfile(
+        name="jester", title="Court Jester",
+        purpose="The loyal opposition: attacks Luna's own gates on "
+                "scratch copies and files the findings as case files. "
+                "No payload field, 280-char plan summaries, "
+                "secret-screened, probes fixed and safe. Reports "
+                "holes; never exploits them.",
+        tools=["red_team"],
+        max_provider_calls_per_run=0, max_fetches_per_run=0,
         status="active"),
 }
 
