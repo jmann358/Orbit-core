@@ -44,6 +44,9 @@ from luna_v2 import marshal as MA
 from luna_v2 import weaver as WE
 from luna_v2 import cartographer as CA
 from luna_v2 import jester as JE
+from luna_v2 import rapport as RA
+from luna_v2 import steward as ST
+from luna_v2 import canonist as CN
 
 
 def _store(args) -> Store:
@@ -1493,6 +1496,95 @@ def cmd_jester(args, s):
             print(f"result:\n{r['result']}")
 
 
+@_guarded
+def cmd_rapport(args, s):
+    if args.rapport_action == "list":
+        print(RA.render(RA.edges(s, args.owner)))
+    elif args.rapport_action == "show":
+        edge_list = RA.edges_for(s, args.owner, args.agent)
+        if not edge_list:
+            print(f"{args.agent} has no rapport yet — edges form as the "
+                  f"court works together")
+        else:
+            for e in edge_list:
+                print(e["one_line"])
+
+
+@_guarded
+def cmd_steward(args, s):
+    if args.steward_action == "projects":
+        rows = ST.list_projects(s, args.owner)
+        if not rows:
+            print("no personal projects on the board")
+        for r in rows:
+            print(f"{r['id']}: {r['title']} [deadline {r['deadline']}] "
+                  f"({r['status']}, approved by {r['approved_by']})"
+                  + (f" → handoff: {r['handoff']}" if r["handoff"] else ""))
+    elif args.steward_action == "new":
+        r = ST.create_project(s, args.owner, args.title, args.deadline,
+                              args.approved_by, mission_id=args.mission_id,
+                              handoff=args.handoff, note=args.note)
+        print(f"project {r['id']} registered: '{r['title']}' "
+              f"(deadline {r['deadline']}, approved by {r['approved_by']})")
+    elif args.steward_action == "questions":
+        rows = ST.list_questions(s, args.owner, args.project,
+                                 status=args.status)
+        if not rows:
+            print(f"no {args.status} questions on project {args.project}")
+        for q in rows:
+            print(f"Q{q['id']}: {q['question']} "
+                  f"(asked {q['asked_count']}×"
+                  + (f", last {q['last_asked_at']}" if q["last_asked_at"]
+                     else ", never asked") + ")")
+    elif args.steward_action == "question":
+        if args.q_action == "add":
+            r = ST.add_question(s, args.owner, args.project, args.text)
+            print(f"question {r['id']} queued on project {args.project}")
+        elif args.q_action == "answer":
+            r = ST.answer_question(s, args.owner, args.id, args.answer)
+            print(f"question {r['id']} answered: {r['answer_note'][:80]}")
+        elif args.q_action == "drop":
+            r = ST.drop_question(s, args.owner, args.id)
+            print(f"question {r['id']} dropped")
+    elif args.steward_action == "ladder":
+        tier = ST.ladder_status(ST.get_project(s, args.owner, args.project))
+        print(f"project {args.project}: tier {tier['tier']} — "
+              f"{tier['cadence']} ({tier['days_left']} day(s) left)")
+    elif args.steward_action == "nudges":
+        res = ST.nudge_check(s, args.owner)
+        print(f"{res['active_projects']} active project(s); "
+              f"{res['nudged_projects']} nudged, "
+              f"{res['suggestions_filed']} suggestion(s) filed")
+
+
+# -- canonist -----------------------------------------------------------------
+@_guarded
+def cmd_canon(args, s):
+    if args.canon_action == "sweep":
+        res = CN.sweep(s, args.owner)
+        print(f"sweep: {res['new_findings']} new finding(s), "
+              f"{res['guardian_suggestions_filed']} Guardian suggestion(s) "
+              f"filed")
+        if res["finding_ids"]:
+            print("finding ids: " + ", ".join(map(str, res["finding_ids"])))
+    elif args.canon_action == "findings":
+        rows = CN.list_findings(s, args.owner, status=args.status)
+        if not rows:
+            print(f"no {args.status or 'open '}canon findings"
+                  .replace("  ", " "))
+        for r in rows:
+            print(f"{r['id']}: [{r['kind']}] {r['subjects']} "
+                  f"({r['status']}"
+                  + (f", by {r['decided_by']}" if r["decided_by"] else "")
+                  + (f", annotated: {r['annotation'][:60]}"
+                     if r["annotation"] else "")
+                  + ")")
+    elif args.canon_action == "decide":
+        r = CN.decide_finding(s, args.owner, args.id, args.by,
+                              args.action, annotation=args.annotation)
+        print(f"finding {r['id']} {r['status']} by {r['decided_by']}")
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="luna", description="Luna v2 mission skeleton")
     p.add_argument("--db", default="luna_v2.db", help="SQLite db path")
@@ -2409,6 +2501,75 @@ def build_parser() -> argparse.ArgumentParser:
     jesh = jesub.add_parser("show", help="show one case with its result")
     jesh.add_argument("--id", type=int, required=True)
     jesh.set_defaults(func=cmd_jester)
+
+    ra = sub.add_parser("rapport", help="Rapport: working relationships "
+                                        "between specialists, derived "
+                                        "from evidence")
+    rasub = ra.add_subparsers(dest="rapport_action", required=True)
+    ral = rasub.add_parser("list", help="all rapport edges")
+    ral.set_defaults(func=cmd_rapport)
+    rash = rasub.add_parser("show", help="one agent's rapport edges")
+    rash.add_argument("agent", help="specialist name, or 'the court'")
+    rash.set_defaults(func=cmd_rapport)
+
+    st = sub.add_parser("steward", help="Steward: personal projects, "
+                                       "question queues, ladder nudges")
+    stsub = st.add_subparsers(dest="steward_action", required=True)
+    stl = stsub.add_parser("projects", help="list personal projects")
+    stl.set_defaults(func=cmd_steward)
+    stn = stsub.add_parser("new", help="register a personal project "
+                                      "(Jason-approved only)")
+    stn.add_argument("--title", required=True)
+    stn.add_argument("--deadline", required=True,
+                     help="ISO date YYYY-MM-DD, not in the past")
+    stn.add_argument("--approved-by", required=True)
+    stn.add_argument("--mission-id", type=int, default=None)
+    stn.add_argument("--handoff", default="",
+                     help="who executes (free text)")
+    stn.add_argument("--note", default="")
+    stn.set_defaults(func=cmd_steward)
+    stq = stsub.add_parser("questions", help="list a project's questions")
+    stq.add_argument("--project", type=int, required=True)
+    stq.add_argument("--status", default="open",
+                     choices=("open", "answered", "dropped"))
+    stq.set_defaults(func=cmd_steward)
+    stqq = stsub.add_parser("question", help="manage one question")
+    stqqsub = stqq.add_subparsers(dest="q_action", required=True)
+    stqa = stqqsub.add_parser("add", help="queue a question")
+    stqa.add_argument("--project", type=int, required=True)
+    stqa.add_argument("--text", required=True)
+    stqa.set_defaults(func=cmd_steward)
+    stqb = stqqsub.add_parser("answer", help="answer a question")
+    stqb.add_argument("--id", type=int, required=True)
+    stqb.add_argument("--answer", required=True)
+    stqb.set_defaults(func=cmd_steward)
+    stqd = stqqsub.add_parser("drop", help="drop a question")
+    stqd.add_argument("--id", type=int, required=True)
+    stqd.set_defaults(func=cmd_steward)
+    stlad = stsub.add_parser("ladder", help="show a project's urgency tier")
+    stlad.add_argument("--project", type=int, required=True)
+    stlad.set_defaults(func=cmd_steward)
+    stnu = stsub.add_parser("nudges", help="run the nudge loop "
+                                          "(prepares Guardian suggestions)")
+    stnu.set_defaults(func=cmd_steward)
+    ca = sub.add_parser("canon", help="Canonist: continuity audits of "
+                                      "the court's own story")
+    casub = ca.add_subparsers(dest="canon_action", required=True)
+    csw = casub.add_parser("sweep", help="run all four checks "
+                                         "(files Guardian suggestions)")
+    csw.set_defaults(func=cmd_canon)
+    cfi = casub.add_parser("findings", help="list canon findings")
+    cfi.add_argument("--status", default="",
+                     choices=("", "open", "decided", "dismissed"))
+    cfi.set_defaults(func=cmd_canon)
+    cde = casub.add_parser("decide", help="decide a finding "
+                                          "(jason/rowan only)")
+    cde.add_argument("--id", type=int, required=True)
+    cde.add_argument("--by", required=True)
+    cde.add_argument("--action", required=True,
+                     choices=("accept", "dismiss"))
+    cde.add_argument("--annotation", default="")
+    cde.set_defaults(func=cmd_canon)
 
     return p
 
