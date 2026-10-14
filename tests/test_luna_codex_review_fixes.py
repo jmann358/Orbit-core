@@ -95,7 +95,7 @@ def test_backup_failure_prevents_unattended_queue_or_job_processing():
                     with patch.object(cloud_worker.time, "monotonic",
                                       return_value=101):
                         assert cloud_worker.run_once() is None
-                    assert back.call_count == 1
+                    assert back.call_count == 2
                     queued.assert_not_called()
                     processed.assert_not_called()
     assert cloud_worker._backup_blocked is True
