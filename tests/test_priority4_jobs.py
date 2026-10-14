@@ -227,6 +227,47 @@ def test_persisted_retry_result_survives_secondary_sqlite_failures():
         directory.cleanup()
 
 
+@pytest.mark.parametrize("failure", ["request", "bridge"])
+def test_project_health_result_survives_optional_escalation_failure(failure):
+    from app import _process_job
+
+    directory, path = new_db()
+    try:
+        with patch.object(core, "DB_PATH", path):
+            jobs.create_job("project_health", "Check real health summary")
+            health = {
+                "passed": 1,
+                "total": 2,
+                "checks": [{"name": "local check", "detail": "unavailable",
+                            "ok": False}],
+            }
+            request_patch = patch(
+                "luna.requests.create_request",
+                side_effect=(sqlite3.OperationalError("request database busy")
+                             if failure == "request" else None),
+                return_value={"id": 7, "created": True},
+            )
+            bridge_patch = patch(
+                "luna.bridge.create_thread",
+                side_effect=sqlite3.OperationalError("bridge database busy"),
+            )
+            with patch("app.project_health", return_value=health), \
+                    patch("luna.development.inspect_source",
+                          return_value={"findings": []}), \
+                    request_patch as create_request, bridge_patch as create_thread:
+                result = run_once(_process_job)
+
+            assert result["state"] == "attention"
+            assert result["result"] == "Health 1/2"
+            create_request.assert_called_once()
+            if failure == "request":
+                create_thread.assert_not_called()
+            else:
+                create_thread.assert_called_once()
+    finally:
+        directory.cleanup()
+
+
 def test_handler_exception_fails_closed_without_unbounded_replay():
     directory, path = new_db()
     try:
