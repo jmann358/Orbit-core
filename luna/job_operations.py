@@ -23,6 +23,7 @@ def _deliver_pending_retry_escalations():
                 "Please inspect the connection or CI status. No permissions or "
                 "code were changed.",
                 "Job #" + str(job["id"]) + "; " + job["result"][:250],
+                dedupe_context=True,
             )
             jobs.mark_retry_escalation_sent(job["id"], request["id"])
         except Exception:

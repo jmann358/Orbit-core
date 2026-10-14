@@ -100,3 +100,19 @@ a preserved historical record; these fixes are not installed yet.
 Full regression: 502 passed, 13 warnings, zero skips in 35.91 seconds.
 Transport, consent, rejection, retry and local-only scope tests passed.
 Reference: https://docs.ollama.com/capabilities/structured-outputs
+
+## 2026-10-14 — PR #74 per-job escalation evidence
+
+Against PR head `5dc00cb20971be6a1836386ae222f969157866d6`, three new
+regression cases failed: two pending jobs were marked sent against unrelated
+request evidence, and acknowledged/dismissed requests were recreated after a
+failed delivery-marker write. The fix opts escalation requests into exact
+kind/title/context deduplication across all statuses, with a serialized lookup
+and insert. The existing general request deduplication remains unchanged.
+
+Verification in a disposable clone with Python 3.15: focused suite 21 passed;
+full suite 532 passed, 6 skipped, 13 warnings (35.71 s); compileall passed.
+The three new cases pass. Tests use disposable databases and injected SQLite
+failures; this is draft-source evidence, not installed-host verification.
+Pending events after manual retry remain gated by current job state and are
+not reconciled by this change. No merge or deployment performed.

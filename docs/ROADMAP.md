@@ -20,3 +20,11 @@ Stages 4 and 5 may be designed independently once core dependencies hold.
 No cloud-hosting migration, Chromebook repair or three-station coordination
 is on the active critical path. Preserve historical evidence in
 [the prior roadmap](archive/ROADMAP-pre-throne.md); do not restart its completed tasks.
+
+## 2026-10-14 — PR #74 escalation evidence follow-up
+
+Implemented in draft source: retain each exhausted job's bounded evidence in
+its own request before recording delivery. Exact-context deduplication also
+reuses resolved requests after a failed delivery-marker write. Pending audit
+events left behind by manual job retries remain a separate lifecycle issue.
+This change is not merged, released, or installed; see PROGRESS.md.
