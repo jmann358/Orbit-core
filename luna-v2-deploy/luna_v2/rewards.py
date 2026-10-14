@@ -43,6 +43,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from luna_v2 import guardian as G
+from luna_v2 import mentor as MT
 from luna_v2 import missions as M
 from luna_v2 import specialists as SP
 from luna_v2.store import Store
@@ -50,6 +51,10 @@ from luna_v2.store import Store
 
 class RewardsError(M.LunaError):
     """Base error for the rewards system."""
+
+
+class ReviewPaused(RewardsError):
+    """A resource grant was refused while a review case is open."""
 
 
 class SelfDealing(RewardsError):
@@ -384,6 +389,17 @@ def grant(store: Store, owner: str, specialist: str, tier: str,
             f"tier {tier!r} cannot be granted directly: permission "
             "rewards need recommend_permission + Jason's decision, and "
             "golden tickets need request_golden_ticket + Jason's decision")
+    # Jason's rule: poor work throttles FUTURE rewards. While a
+    # review case is open, resource grants pause; cosmetic grants
+    # (recognition) and the permission/golden paths are unaffected,
+    # and existing ledger rows are never modified.
+    if tier == "resource":
+        case = MT.open_case_for(store, owner, specialist)
+        if case is not None:
+            raise ReviewPaused(
+                f"resource rewards paused for {specialist} while "
+                f"review case {case['id']} is open — Jason's rule: "
+                "fewer future rewards for specialists under review")
     if tier == "cosmetic" and expires_at is None:
         expires_at = (datetime.now(timezone.utc) +
                       timedelta(days=COSMETIC_DEFAULT_TERM_DAYS)
