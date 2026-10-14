@@ -71,7 +71,9 @@ BUILTIN_KINDS = ("health_check", "guardian_scan", "qm_report",
                  "sentinel_audit", "verify_recent", "mentor_grades")
 # Mission kinds: become real routine-step missions for the assignee.
 MISSION_KINDS = ("training", "research", "tidy", "design", "scan",
-                 "talent_hunt")
+                 "talent_hunt", "threat_sweep", "experiment",
+                 "web_mission", "swarm", "memory_mining",
+                 "research_campaign", "red_team")
 VALID_KINDS = BUILTIN_KINDS + MISSION_KINDS
 VALID_STATUSES = ("open", "assigned", "done", "dropped")
 
@@ -88,6 +90,13 @@ BUILTIN_OWNER = {
 # Natural owner for mission kinds with a standing specialist of record.
 MISSION_OWNER = {
     "talent_hunt": "headhunter",
+    "threat_sweep": "taster",
+    "experiment": "alchemist",
+    "web_mission": "pathfinder",
+    "swarm": "marshal",
+    "memory_mining": "weaver",
+    "research_campaign": "cartographer",
+    "red_team": "jester",
 }
 
 # Mission kinds that need a human-ish reading of the request; if no target
