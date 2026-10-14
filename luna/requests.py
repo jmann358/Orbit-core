@@ -12,7 +12,13 @@ def _setup(db):
       status TEXT NOT NULL DEFAULT 'open', created_at TEXT NOT NULL,
       resolved_at TEXT)""")
 
-def create_request(kind, priority, title, message, context=""):
+def create_request(kind, priority, title, message, context="", *, dedupe_context=False):
+    """Create a local request, optionally reusing exact evidence in any status.
+
+    Evidence delivery uses kind, title and the complete bounded context as its
+    identity. A resolved matching request still proves that evidence arrived.
+    Other callers retain the existing kind/title/open-request deduplication.
+    """
     if kind not in KINDS or priority not in PRIORITIES:
         raise ValueError("Invalid request type or priority")
     if not isinstance(title,str) or not 3 <= len(title.strip()) <= 120:
@@ -21,12 +27,23 @@ def create_request(kind, priority, title, message, context=""):
         raise ValueError("Message must be 5-3000 characters")
     if not isinstance(context,str) or len(context)>3000:
         raise ValueError("Context is too long")
+    if type(dedupe_context) is not bool:
+        raise ValueError("Invalid context deduplication option")
     with core.connect() as db:
+        if dedupe_context:
+            # Serialize evidence lookup and insert across worker connections.
+            db.execute("BEGIN IMMEDIATE")
         _setup(db)
-        # Prevent repeated identical open requests.
-        existing=db.execute(
-            "SELECT id FROM luna_requests WHERE kind=? AND title=? AND status='open' LIMIT 1",
-            (kind,title.strip())).fetchone()
+        if dedupe_context:
+            existing=db.execute(
+                "SELECT id FROM luna_requests WHERE kind=? AND title=? "
+                "AND context=? ORDER BY id LIMIT 1",
+                (kind,title.strip(),context.strip())).fetchone()
+        else:
+            # Prevent repeated identical open requests.
+            existing=db.execute(
+                "SELECT id FROM luna_requests WHERE kind=? AND title=? AND status='open' LIMIT 1",
+                (kind,title.strip())).fetchone()
         if existing:
             return {"id":existing[0],"created":False}
         cur=db.execute("""INSERT INTO luna_requests

@@ -279,7 +279,56 @@ def finish_job(job_id, success, result, *, retryable=False, now=None):
                    "Review needed" if state == "attention" else
                    "Transient check will retry" if state == "retry_wait" else
                    "Completed successfully", stamp)
+            if (state == "attention" and retryable
+                    and kind in AUTOMATIC_RETRY_KINDS
+                    and attempt >= max_attempts):
+                # Persist the one-time escalation intent with the terminal job
+                # result so a later worker tick can deliver it if the request
+                # store is temporarily unavailable.
+                _event(db, job_id, "escalation_pending",
+                       "GitHub check exhausted its bounded retries", stamp)
         return cur.rowcount == 1
+
+
+def pending_retry_escalations(limit=MAX_ACTIVE):
+    """Return terminal retry escalations whose local request is not recorded."""
+    if type(limit) is not int or not 1 <= limit <= MAX_ACTIVE:
+        raise ValueError("Invalid escalation batch limit")
+    with core.connect() as db:
+        _setup(db)
+        rows = db.execute(
+            """SELECT w.id,w.result FROM work_items w
+               WHERE w.kind='github_status' AND w.state='attention'
+                 AND EXISTS (
+                   SELECT 1 FROM work_events e WHERE e.job_id=w.id
+                     AND e.event='escalation_pending')
+                 AND NOT EXISTS (
+                   SELECT 1 FROM work_events e WHERE e.job_id=w.id
+                     AND e.event='escalation_sent')
+               ORDER BY w.id LIMIT ?""", (limit,),
+        ).fetchall()
+    return [{"id": job_id, "result": result} for job_id, result in rows]
+
+
+def mark_retry_escalation_sent(job_id, request_id):
+    """Record successful or deduplicated local escalation delivery."""
+    with core.connect() as db:
+        _setup(db)
+        pending = db.execute(
+            """SELECT 1 FROM work_items w
+               WHERE w.id=? AND w.kind='github_status' AND w.state='attention'
+                 AND EXISTS (
+                   SELECT 1 FROM work_events e WHERE e.job_id=w.id
+                     AND e.event='escalation_pending')
+                 AND NOT EXISTS (
+                   SELECT 1 FROM work_events e WHERE e.job_id=w.id
+                     AND e.event='escalation_sent')""", (job_id,),
+        ).fetchone()
+        if not pending:
+            return False
+        _event(db, job_id, "escalation_sent",
+               "Local review request #" + str(request_id))
+        return True
 
 
 def queue_once(kind, title, detail=""):

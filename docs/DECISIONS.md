@@ -96,3 +96,13 @@ See [PR #13](https://github.com/jmann358/Orbit-core/pull/13) and
 **Next:** Verify and fix pending-send/session-switch behavior before expanding
 the interface. Live inference, browser usage, Mac installation, and iPhone
 access remain unverified. The PR is open; no merge or deployment occurred.
+
+## 2026-10-14 — evidence-scoped escalation requests (PR #74)
+
+Use an opt-in exact-context request lookup for retry escalations: the context
+contains the job ID and at most 250 result characters. Reuse the request only
+when that evidence matches, including after acknowledgment or dismissal, so
+a failed delivery-marker write cannot lose evidence or reopen a handled alert.
+Serialize lookup/insert with BEGIN IMMEDIATE; return only after commit, then
+record escalation_sent. Keep other request callers' open-title deduplication
+and leave manual-retry audit-event reconciliation outside this bounded fix.

@@ -8,6 +8,7 @@ import argparse
 import asyncio
 import os
 from pathlib import Path
+import sqlite3
 import sys
 import time
 
@@ -70,11 +71,12 @@ def _service_backup_tick():
     try:
         from luna.backup_schedule import maybe_backup
         result = maybe_backup(db_path(), root=ROOT)
-    except (ValueError, OSError):
-        # Do not run model tasks or alter the queue after a backup failure.
+    except (ValueError, OSError, sqlite3.Error):
+        # Skip this tick without running tasks. Retry the backup immediately
+        # on the next tick instead of taking down the supervised processes.
         _backup_blocked = True
-        _next_backup_check = now + 60
-        print("Luna's private local backup failed; worker suspended.",
+        _next_backup_check = now
+        print("Luna's private local backup failed; worker tick skipped.",
               file=sys.stderr, flush=True)
         return False
     _backup_blocked = False

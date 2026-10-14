@@ -1605,20 +1605,29 @@ def _process_job(job):
         result=project_health()
         critical=[x for x in inspection["findings"] if x["severity"]=="high"]
         ok=result["passed"]==result["total"] and not critical
+        summary="Health "+str(result["passed"])+"/"+str(result["total"])
         if not ok:
             from luna.requests import create_request
             failed=[x["name"]+": "+x["detail"] for x in result["checks"] if not x["ok"]]
             failed += [x["path"]+": "+x["detail"] for x in critical]
-            issue=create_request("issue","high","Local project health needs attention",
-                           "Please relay the following failing checks to ChatGPT for investigation.",
-                           "; ".join(failed)[:3000])
-            if issue["created"]:
-                from luna.bridge import create_thread
-                create_thread("Investigate failing ORBIT health checks","high",
-                              "Luna detected failing local checks. Evidence: "+
-                              "; ".join(failed)[:2500]+
-                              "\\nPlease suggest a safe diagnostic and repair plan. No automatic code application.")
-        report = "Health "+str(result["passed"])+"/"+str(result["total"])
+            try:
+                issue=create_request("issue","high","Local project health needs attention",
+                               "Please relay the following failing checks to ChatGPT for investigation.",
+                               "; ".join(failed)[:3000])
+            except Exception:
+                issue=None
+            if issue and issue.get("created"):
+                try:
+                    from luna.bridge import create_thread
+                    create_thread("Investigate failing ORBIT health checks","high",
+                                  "Luna detected failing local checks. Evidence: "+
+                                  "; ".join(failed)[:2500]+
+                                  "\\nPlease suggest a safe diagnostic and repair plan. No automatic code application.")
+                except Exception:
+                    # Health evidence is the task result; the bridge is only
+                    # an optional follow-up and must not replace that result.
+                    pass
+        report = summary
         # New successful jobs carry a fixed, read-only source fingerprint.
         # Prior unstamped jobs remain unverified; no historical backfill.
         if ok:
@@ -1627,6 +1636,7 @@ def _process_job(job):
             if observed["sha256"] and observed["passed"] == observed["total"] == 4:
                 report += "; source_sha256=" + observed["sha256"]
         return ok,report
+
     if kind=="github_status":
         try:
             result=github_checks()

@@ -80,3 +80,26 @@ def test_service_backup_tick_is_opt_in_and_rare():
             cloud_worker._service_backup_tick()
             cloud_worker._service_backup_tick()
             assert backed.call_count == 1
+
+
+def test_sqlite_backup_failure_skips_one_tick_then_retries(monkeypatch):
+    monkeypatch.setattr(cloud_worker, "_next_backup_check", 0)
+    monkeypatch.setattr(cloud_worker, "_backup_blocked", False)
+    with patch.dict(os.environ, {"LUNA_SERVICE_MODE": "1"}, clear=True), \
+            patch("luna.backup_schedule.maybe_backup", side_effect=[
+                sqlite3.OperationalError("snapshot database busy"),
+                {"created": True, "reason": "backed_up"},
+            ]) as backed, \
+            patch.object(cloud_worker, "maybe_queue_automatic") as queued, \
+            patch.object(cloud_worker, "process_one",
+                         return_value={"id": "processed"}) as processed:
+        assert cloud_worker.run_once() is None
+        queued.assert_not_called()
+        processed.assert_not_called()
+
+        # A failed snapshot does not terminate the loop or defer recovery for
+        # the hourly healthy-backup cadence; the very next tick retries.
+        assert cloud_worker.run_once() == {"id": "processed"}
+        assert backed.call_count == 2
+        queued.assert_called_once()
+        processed.assert_called_once()

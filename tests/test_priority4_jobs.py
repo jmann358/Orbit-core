@@ -190,6 +190,158 @@ def test_worker_step_escalates_only_after_exhausting_safe_retries():
         directory.cleanup()
 
 
+def test_persisted_retry_result_survives_secondary_sqlite_failures():
+    directory, path = new_db()
+    base = datetime(2026, 10, 11, 12, 0, tzinfo=timezone.utc)
+    try:
+        with patch.object(core, "DB_PATH", path):
+            jobs.create_job("github_status", "Check retry-safe escalation")
+
+            def failed(_job):
+                return False, "GitHub unavailable"
+
+            assert run_once(failed, now=base)["state"] == "retry_wait"
+            assert run_once(failed, now=base + timedelta(seconds=30))["state"] == "retry_wait"
+
+            with patch.object(
+                    core, "record_agent_run",
+                    side_effect=sqlite3.OperationalError("audit database busy")), \
+                    patch("luna.requests.create_request",
+                          side_effect=sqlite3.OperationalError("request database busy")):
+                final = run_once(failed, now=base + timedelta(seconds=150))
+
+            assert final["state"] == "attention"
+            assert jobs.get_job(final["id"])["state"] == "attention"
+            assert list_requests(open_only=True) == []
+
+            # The final job cannot be claimed again; its durable escalation
+            # intent must be delivered by a later worker tick instead.
+            assert run_once(failed, now=base + timedelta(days=1)) is None
+            requests = list_requests(open_only=True)
+            assert len(requests) == 1
+            assert requests[0]["title"] == "GitHub check retry limit reached"
+            events = [event["event"] for event in jobs.list_events(final["id"])]
+            assert "escalation_pending" in events
+            assert "escalation_sent" in events
+    finally:
+        directory.cleanup()
+
+
+def _exhaust_retry_job(title, result):
+    ident = jobs.create_job("github_status", title)
+    base = datetime(2026, 10, 11, 12, 0, tzinfo=timezone.utc)
+    for seconds in (0, 30, 150):
+        now = base + timedelta(seconds=seconds)
+        assert jobs.claim_next(now=now)["id"] == ident
+        assert jobs.finish_job(ident, False, result, retryable=True, now=now)
+    return ident
+
+
+def test_pending_escalations_retain_each_jobs_evidence():
+    from luna.requests import create_request
+
+    directory, path = new_db()
+    try:
+        with patch.object(core, "DB_PATH", path):
+            legacy = create_request(
+                "issue", "medium", "GitHub check retry limit reached",
+                "An earlier incident needs review.", "Earlier job evidence",
+            )
+            evidence = {}
+            for label in ("First", "Second"):
+                result = label + " diagnostic " + "x" * 300
+                ident = _exhaust_retry_job(label + " GitHub check", result)
+                evidence[ident] = "Job #" + str(ident) + "; " + result[:250]
+
+            assert len(jobs.pending_retry_escalations()) == 2
+            assert run_once(lambda job: pytest.fail("No job should be replayed")) is None
+            requests = {r["id"]: r for r in list_requests()}
+            for ident, context in evidence.items():
+                sent = [e for e in jobs.list_events(ident)
+                        if e["event"] == "escalation_sent"]
+                assert len(sent) == 1
+                request_id = int(sent[0]["note"].split("#")[-1])
+                assert requests[request_id]["context"] == context
+            assert len(requests) == 3
+            assert requests[legacy["id"]]["context"] == "Earlier job evidence"
+            assert jobs.pending_retry_escalations() == []
+            assert run_once(lambda job: pytest.fail("No job should be replayed")) is None
+            assert len(list_requests()) == 3
+    finally:
+        directory.cleanup()
+
+
+@pytest.mark.parametrize("decision", ["acknowledged", "dismissed"])
+def test_escalation_retry_reuses_resolved_evidence_request(decision):
+    from luna.requests import decide_request
+
+    directory, path = new_db()
+    try:
+        with patch.object(core, "DB_PATH", path):
+            ident = _exhaust_retry_job("Check interrupted delivery", "GitHub unavailable")
+            with patch.object(jobs, "mark_retry_escalation_sent",
+                              side_effect=sqlite3.OperationalError("marker write busy")):
+                assert run_once(lambda job: pytest.fail("No replay")) is None
+            original = list_requests()[0]
+            assert len(jobs.pending_retry_escalations()) == 1
+            assert decide_request(original["id"], decision)
+
+            assert run_once(lambda job: pytest.fail("No replay")) is None
+            requests = list_requests()
+            assert len(requests) == 1
+            assert requests[0]["id"] == original["id"]
+            assert requests[0]["status"] == decision
+            assert requests[0]["context"] == "Job #" + str(ident) + "; GitHub unavailable"
+            sent = [e for e in jobs.list_events(ident)
+                    if e["event"] == "escalation_sent"]
+            assert len(sent) == 1
+            assert sent[0]["note"] == "Local review request #" + str(original["id"])
+            assert jobs.pending_retry_escalations() == []
+    finally:
+        directory.cleanup()
+
+
+@pytest.mark.parametrize("failure", ["request", "bridge"])
+def test_project_health_result_survives_optional_escalation_failure(failure):
+    from app import _process_job
+
+    directory, path = new_db()
+    try:
+        with patch.object(core, "DB_PATH", path):
+            jobs.create_job("project_health", "Check real health summary")
+            health = {
+                "passed": 1,
+                "total": 2,
+                "checks": [{"name": "local check", "detail": "unavailable",
+                            "ok": False}],
+            }
+            request_patch = patch(
+                "luna.requests.create_request",
+                side_effect=(sqlite3.OperationalError("request database busy")
+                             if failure == "request" else None),
+                return_value={"id": 7, "created": True},
+            )
+            bridge_patch = patch(
+                "luna.bridge.create_thread",
+                side_effect=sqlite3.OperationalError("bridge database busy"),
+            )
+            with patch("app.project_health", return_value=health), \
+                    patch("luna.development.inspect_source",
+                          return_value={"findings": []}), \
+                    request_patch as create_request, bridge_patch as create_thread:
+                result = run_once(_process_job)
+
+            assert result["state"] == "attention"
+            assert result["result"] == "Health 1/2"
+            create_request.assert_called_once()
+            if failure == "request":
+                create_thread.assert_not_called()
+            else:
+                create_thread.assert_called_once()
+    finally:
+        directory.cleanup()
+
+
 def test_handler_exception_fails_closed_without_unbounded_replay():
     directory, path = new_db()
     try:
