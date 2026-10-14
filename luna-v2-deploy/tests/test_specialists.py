@@ -203,9 +203,9 @@ def test_scout_partial_fetch_failure_noted(store):
 # ---------------------------------------------------------------------------
 # (g) the approved team roster
 # ---------------------------------------------------------------------------
-def test_roster_has_twenty_three_profiles_all_active():
+def test_roster_has_thirty_profiles_all_active():
     profiles = SP.list_specialists()
-    assert len(profiles) == 23
+    assert len(profiles) == 30
     by_name = {p.name: p for p in profiles}
     assert set(by_name) == {"scout", "verifier", "builder",
                             "quartermaster", "archivist", "watchman",
@@ -215,9 +215,31 @@ def test_roster_has_twenty_three_profiles_all_active():
                             "registrar", "locksmith",
                             "warden", "lumen",
                             "herald", "artificer", "conductor",
-                            "headhunter"}
+                            "headhunter", "taster", "alchemist",
+                            "pathfinder", "marshal", "weaver", "cartographer", "jester",
+                            "pathfinder"}
     active = [p for p in profiles if p.status == "active"]
-    assert [p.name for p in active] == ["scout", "verifier", "builder", "quartermaster", "archivist", "watchman", "envoy", "designer", "guardian", "armorer", "scheduler", "operator", "mentor", "sentinel", "host", "registrar", "locksmith", "warden", "lumen", "herald", "artificer", "conductor", "headhunter"]
+    assert [p.name for p in active] == ["scout", "verifier", "builder", "quartermaster", "archivist", "watchman", "envoy", "designer", "guardian", "armorer", "scheduler", "operator", "mentor", "sentinel", "host", "registrar", "locksmith", "warden", "lumen", "herald", "artificer", "conductor", "headhunter", "taster", "alchemist", "pathfinder", "marshal", "weaver", "cartographer", "jester"]
+    pathfinder = by_name["pathfinder"]
+    assert pathfinder.tools == ["browser_act"]
+    assert (pathfinder.max_provider_calls_per_run,
+            pathfinder.max_fetches_per_run) == (3, 5)
+    marshal = by_name["marshal"]
+    assert marshal.tools == ["swarm_deploy"]
+    assert (marshal.max_provider_calls_per_run,
+            marshal.max_fetches_per_run) == (0, 0)
+    weaver = by_name["weaver"]
+    assert weaver.tools == ["memory_mine"]
+    assert (weaver.max_provider_calls_per_run,
+            weaver.max_fetches_per_run) == (1, 0)
+    cartographer = by_name["cartographer"]
+    assert cartographer.tools == ["research_campaign"]
+    assert (cartographer.max_provider_calls_per_run,
+            cartographer.max_fetches_per_run) == (5, 12)
+    jester = by_name["jester"]
+    assert jester.tools == ["red_team"]
+    assert (jester.max_provider_calls_per_run,
+            jester.max_fetches_per_run) == (0, 0)
     conductor = by_name["conductor"]
     assert conductor.tools == ["work_assignment"]
     assert (conductor.max_provider_calls_per_run,
@@ -228,6 +250,10 @@ def test_roster_has_twenty_three_profiles_all_active():
     assert headhunter.tools == ["talent_research"]
     assert (headhunter.max_provider_calls_per_run,
             headhunter.max_fetches_per_run) == (2, 5)
+    taster = by_name["taster"]
+    assert taster.tools == ["threat_research"]
+    assert (taster.max_provider_calls_per_run,
+            taster.max_fetches_per_run) == (2, 5)
     assert (warden.max_provider_calls_per_run,
             warden.max_fetches_per_run) == (0, 0)
     lumen = by_name["lumen"]
