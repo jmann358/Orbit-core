@@ -42,6 +42,10 @@ def _job_content(record):
         "<p class='result'>" + _text(recorded or "No final outcome has been recorded.") + "</p>" +
         "<dl>" + _line("Task kind", record["job_kind"]) +
         _line("Attempts", str(record["attempt_count"]) + " of " + str(record["max_attempts"])) +
+        _line("Independent verification", record.get("verification_status", "not_checked")) +
+        _line("Verified scope", record.get("verification_scope", "")) +
+        _line("Verification limits", record.get("verification_limitations", "")) +
+        _line("Verified at", record.get("verified_at")) +
         _line("Created", record["created_at"]) +
         _line("Updated", record["updated_at"]) + "</dl></section>" +
         "<details><summary>Saved audit events</summary>" +

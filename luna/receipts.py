@@ -16,7 +16,7 @@ def job_receipt(job_id):
         return None
     events = jobs.list_events(job_id)
     state = record["state"]
-    return {
+    receipt = {
         "receipt_id": "job:" + str(job_id),
         "kind": "job",
         "id": job_id,
@@ -36,6 +36,9 @@ def job_receipt(job_id):
         "result_url": "/agent/jobs/" + str(job_id) + "/receipt",
         "read_only": True,
     }
+    from luna.result_verification import verification_for_job
+    receipt.update(verification_for_job(record))
+    return receipt
 
 
 def goal_receipt(goal_id):

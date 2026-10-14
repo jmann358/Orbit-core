@@ -38,14 +38,14 @@ def test_chat_to_worker_to_persistent_result_link(tmp_path):
         ):
             ok, outcome = _process_job(claimed)
         assert ok is True
-        assert outcome == "Health 3/3"
+        assert outcome.startswith("Health 3/3")
         assert jobs.finish_job(job_id, ok, outcome)
 
         # Reopen a new API client against the same persisted database.
         reopened = TestClient(app)
         saved = reopened.get(link).json()
         assert saved["receipt_id"] == f"job:{job_id}"
-        assert saved["recorded_result"] == "Health 3/3"
+        assert saved["recorded_result"] == outcome
         assert saved["state"] == "completed"
         assert saved["worker_reported_complete"] is True
         assert saved["independently_verified"] is False

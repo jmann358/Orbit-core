@@ -108,15 +108,20 @@ def test_real_http_chat_worker_receipt_survives_process_restart():
             final = None
             for _ in range(100):
                 candidate = _get_json(url + path)
-                if candidate["state"] in ("completed", "attention"):
+                # Completed worker state and independent verification are
+                # separate observations; allow the checker to finish.
+                if (candidate["state"] == "attention" or (
+                        candidate["state"] == "completed"
+                        and candidate["verification_status"] != "not_checked")):
                     final = candidate
                     break
                 time.sleep(0.2)
-            assert final is not None, "Real worker did not finish in 20 seconds"
+            assert final is not None, "Worker/observer did not finish in 20 seconds"
             assert final["state"] == "completed", final
             assert final["recorded_result"].startswith("Health ")
             assert final["worker_reported_complete"] is True
-            assert final["independently_verified"] is False
+            assert final["verification_status"] == "verified"
+            assert final["independently_verified"] is True
             assert [event["event"] for event in final["events"]] == [
                 "queued", "claimed", "completed",
             ]
@@ -125,6 +130,8 @@ def test_real_http_chat_worker_receipt_survives_process_restart():
             assert restored["receipt_id"] == f"job:{job_id}"
             assert restored["state"] == "completed"
             assert restored["recorded_result"] == final["recorded_result"]
+            assert restored["verification_status"] == "verified"
+            assert restored["independently_verified"] is True
             saved = _get_json(url + "/history/page?session=worker-smoke")
             assert saved["messages"][0]["content"] == "Run a health check"
 

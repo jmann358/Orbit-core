@@ -1548,6 +1548,18 @@ def agent_job_receipt(job_id:int):
     if receipt is None:
         raise HTTPException(404,"Job not found")
     return receipt
+
+
+@app.post("/agent/jobs/{job_id}/verify-local-health")
+def verify_job_local_health(job_id:int):
+    """Independently re-observe one saved health job; no model or network."""
+    from luna.result_verification import verify_local_health
+    try:
+        return verify_local_health(job_id)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+
+
 def _receipt_html_response(receipt):
     from luna.receipt_views import render_receipt
     return HTMLResponse(render_receipt(receipt), headers={
@@ -1606,7 +1618,15 @@ def _process_job(job):
                               "Luna detected failing local checks. Evidence: "+
                               "; ".join(failed)[:2500]+
                               "\\nPlease suggest a safe diagnostic and repair plan. No automatic code application.")
-        return ok,"Health "+str(result["passed"])+"/"+str(result["total"])
+        report = "Health "+str(result["passed"])+"/"+str(result["total"])
+        # New successful jobs carry a fixed, read-only source fingerprint.
+        # Prior unstamped jobs remain unverified; no historical backfill.
+        if ok:
+            from luna.result_verification import source_snapshot
+            observed = source_snapshot(Path(__file__).resolve().parent)
+            if observed["sha256"] and observed["passed"] == observed["total"] == 4:
+                report += "; source_sha256=" + observed["sha256"]
+        return ok,report
     if kind=="github_status":
         try:
             result=github_checks()

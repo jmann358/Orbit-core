@@ -3,6 +3,8 @@
 No extra agent loop, shell access, provider calls, repository writes or
 privilege escalation. Executes only the processor supplied by app.py.
 """
+import sqlite3
+
 from luna import core, jobs
 
 
@@ -33,6 +35,16 @@ def run_once(processor, now=None):
                 "error": "Unable to persist job outcome; investigate"}
     result = jobs.get_job(job["id"])
     state = result["state"]
+    # The local health observer re-reads fixed source files independently.
+    # A missing/stale/invalid result stays unverified, never becomes a false pass.
+    if state == "completed" and job["kind"] == "project_health":
+        try:
+            from luna.result_verification import verify_local_health
+            verify_local_health(job["id"])
+        except (ValueError, OSError, sqlite3.Error):
+            # Observation is an optional separate evidence operation; the
+            # durable worker result remains available with no verified badge.
+            pass
     core.record_agent_run(
         "job:" + str(job["id"]),
         "passed" if state == "completed" else
