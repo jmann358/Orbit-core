@@ -190,6 +190,43 @@ def test_worker_step_escalates_only_after_exhausting_safe_retries():
         directory.cleanup()
 
 
+def test_persisted_retry_result_survives_secondary_sqlite_failures():
+    directory, path = new_db()
+    base = datetime(2026, 10, 11, 12, 0, tzinfo=timezone.utc)
+    try:
+        with patch.object(core, "DB_PATH", path):
+            jobs.create_job("github_status", "Check retry-safe escalation")
+
+            def failed(_job):
+                return False, "GitHub unavailable"
+
+            assert run_once(failed, now=base)["state"] == "retry_wait"
+            assert run_once(failed, now=base + timedelta(seconds=30))["state"] == "retry_wait"
+
+            with patch.object(
+                    core, "record_agent_run",
+                    side_effect=sqlite3.OperationalError("audit database busy")), \
+                    patch("luna.requests.create_request",
+                          side_effect=sqlite3.OperationalError("request database busy")):
+                final = run_once(failed, now=base + timedelta(seconds=150))
+
+            assert final["state"] == "attention"
+            assert jobs.get_job(final["id"])["state"] == "attention"
+            assert list_requests(open_only=True) == []
+
+            # The final job cannot be claimed again; its durable escalation
+            # intent must be delivered by a later worker tick instead.
+            assert run_once(failed, now=base + timedelta(days=1)) is None
+            requests = list_requests(open_only=True)
+            assert len(requests) == 1
+            assert requests[0]["title"] == "GitHub check retry limit reached"
+            events = [event["event"] for event in jobs.list_events(final["id"])]
+            assert "escalation_pending" in events
+            assert "escalation_sent" in events
+    finally:
+        directory.cleanup()
+
+
 def test_handler_exception_fails_closed_without_unbounded_replay():
     directory, path = new_db()
     try:
