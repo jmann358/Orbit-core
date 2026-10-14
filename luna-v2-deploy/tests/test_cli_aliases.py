@@ -17,6 +17,9 @@ from luna_v2 import marshal as marshal_mod
 from luna_v2 import weaver as weaver_mod
 from luna_v2 import cartographer as cartographer_mod
 from luna_v2 import jester as jester_mod
+from luna_v2 import rapport as rapport_mod
+from luna_v2 import steward as steward_mod
+from luna_v2 import canonist as canonist_mod
 
 OWNER = "jason"
 
@@ -32,6 +35,9 @@ def test_cli_aliases_point_at_the_right_modules():
     assert cli.WE is weaver_mod
     assert cli.CA is cartographer_mod
     assert cli.JE is jester_mod
+    assert cli.RA is rapport_mod
+    assert cli.ST is steward_mod
+    assert cli.CN is canonist_mod
 
 
 def test_cli_archivist_and_interface_both_work(tmp_path, capsys):

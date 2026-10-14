@@ -203,23 +203,23 @@ def test_scout_partial_fetch_failure_noted(store):
 # ---------------------------------------------------------------------------
 # (g) the approved team roster
 # ---------------------------------------------------------------------------
-def test_roster_has_thirty_profiles_all_active():
+def test_roster_has_thirty_two_profiles_all_active():
     profiles = SP.list_specialists()
-    assert len(profiles) == 30
+    assert len(profiles) == 32
     by_name = {p.name: p for p in profiles}
     assert set(by_name) == {"scout", "verifier", "builder",
                             "quartermaster", "archivist", "watchman",
                             "envoy", "designer", "guardian",
                             "armorer", "scheduler", "operator",
                             "mentor", "sentinel", "host",
-                            "registrar", "locksmith",
+                            "registrar", "locksmith", "canonist",
                             "warden", "lumen",
                             "herald", "artificer", "conductor",
                             "headhunter", "taster", "alchemist",
                             "pathfinder", "marshal", "weaver", "cartographer", "jester",
-                            "pathfinder"}
+                            "steward"}
     active = [p for p in profiles if p.status == "active"]
-    assert [p.name for p in active] == ["scout", "verifier", "builder", "quartermaster", "archivist", "watchman", "envoy", "designer", "guardian", "armorer", "scheduler", "operator", "mentor", "sentinel", "host", "registrar", "locksmith", "warden", "lumen", "herald", "artificer", "conductor", "headhunter", "taster", "alchemist", "pathfinder", "marshal", "weaver", "cartographer", "jester"]
+    assert [p.name for p in active] == ["scout", "verifier", "builder", "quartermaster", "archivist", "watchman", "envoy", "designer", "guardian", "armorer", "scheduler", "operator", "mentor", "sentinel", "host", "registrar", "locksmith", "warden", "lumen", "herald", "artificer", "conductor", "headhunter", "taster", "alchemist", "pathfinder", "marshal", "weaver", "cartographer", "jester", "steward", "canonist"]
     pathfinder = by_name["pathfinder"]
     assert pathfinder.tools == ["browser_act"]
     assert (pathfinder.max_provider_calls_per_run,

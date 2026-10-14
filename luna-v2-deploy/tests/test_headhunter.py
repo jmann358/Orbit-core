@@ -237,4 +237,4 @@ def test_headhunter_registry_profile():
     assert p.tools == ["talent_research"]
     assert (p.max_provider_calls_per_run, p.max_fetches_per_run) == (2, 5)
     assert p.status == "active"
-    assert len(SP.list_specialists()) == 30
+    assert len(SP.list_specialists()) == 32

@@ -164,3 +164,31 @@ def test_fresh_db_shows_no_runs_without_writing(store):
     tables = {r["name"] for r in store._db.execute(
         "SELECT name FROM sqlite_master WHERE type='table'")}
     assert "specialist_runs" not in tables
+
+
+def test_rapport_card_on_specialist_page(store):
+    from luna_v2 import rapport as R
+    from luna_v2 import warden as W
+    W._ensure_schema(store)
+    store._db.execute(
+        "INSERT INTO gate_scans (owner, item_ref, kind, verdict, findings, "
+        "created_at) VALUES (?, 'luna_v2/pathfinder.py', 'file', 'hold', "
+        "'f', 't')", (OWNER,))
+    store._db.commit()
+    _, _, pathfinder = _g(store, "/specialist/pathfinder")
+    assert "Rapport" in pathfinder
+    assert "grumbles at Warden" in pathfinder
+    _, _, scout = _g(store, "/specialist/scout")
+    assert "No rapport yet" in scout
+
+
+def test_team_index_shows_strongest_rapport(store):
+    from luna_v2 import warden as W
+    W._ensure_schema(store)
+    store._db.execute(
+        "INSERT INTO gate_scans (owner, item_ref, kind, verdict, findings, "
+        "created_at) VALUES (?, 'luna_v2/pathfinder.py', 'file', 'hold', "
+        "'f', 't')", (OWNER,))
+    store._db.commit()
+    _, _, team = _g(store, "/team")
+    assert "grumbles at Warden" in team
