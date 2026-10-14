@@ -203,17 +203,37 @@ def test_scout_partial_fetch_failure_noted(store):
 # ---------------------------------------------------------------------------
 # (g) the approved team roster
 # ---------------------------------------------------------------------------
-def test_roster_has_fifteen_profiles_all_active():
+def test_roster_has_twenty_three_profiles_all_active():
     profiles = SP.list_specialists()
-    assert len(profiles) == 15
+    assert len(profiles) == 23
     by_name = {p.name: p for p in profiles}
     assert set(by_name) == {"scout", "verifier", "builder",
                             "quartermaster", "archivist", "watchman",
                             "envoy", "designer", "guardian",
                             "armorer", "scheduler", "operator",
-                            "mentor", "sentinel", "host"}
+                            "mentor", "sentinel", "host",
+                            "registrar", "locksmith",
+                            "warden", "lumen",
+                            "herald", "artificer", "conductor",
+                            "headhunter"}
     active = [p for p in profiles if p.status == "active"]
-    assert [p.name for p in active] == ["scout", "verifier", "builder", "quartermaster", "archivist", "watchman", "envoy", "designer", "guardian", "armorer", "scheduler", "operator", "mentor", "sentinel", "host"]
+    assert [p.name for p in active] == ["scout", "verifier", "builder", "quartermaster", "archivist", "watchman", "envoy", "designer", "guardian", "armorer", "scheduler", "operator", "mentor", "sentinel", "host", "registrar", "locksmith", "warden", "lumen", "herald", "artificer", "conductor", "headhunter"]
+    conductor = by_name["conductor"]
+    assert conductor.tools == ["work_assignment"]
+    assert (conductor.max_provider_calls_per_run,
+            conductor.max_fetches_per_run) == (0, 0)
+    warden = by_name["warden"]
+    assert warden.tools == ["gate_scanner"]
+    headhunter = by_name["headhunter"]
+    assert headhunter.tools == ["talent_research"]
+    assert (headhunter.max_provider_calls_per_run,
+            headhunter.max_fetches_per_run) == (2, 5)
+    assert (warden.max_provider_calls_per_run,
+            warden.max_fetches_per_run) == (0, 0)
+    lumen = by_name["lumen"]
+    assert lumen.tools == ["image_desk"]
+    assert (lumen.max_provider_calls_per_run,
+            lumen.max_fetches_per_run) == (0, 0)
     guardian = by_name["guardian"]
     assert guardian.tools == ["state_inspection", "suggestion_filing"]
     assert (guardian.max_provider_calls_per_run,

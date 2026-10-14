@@ -44,13 +44,38 @@ SECRET_PATTERNS: list[tuple[str, re.Pattern]] = [
 # are skipped cleanly (the scan never assumes another specialist's
 # tables are present).
 TEXT_FIELDS: dict[str, list[str]] = {
+    # Free-text fields Luna's secret scan sweeps. The loop intersects
+    # these against the table's actual columns, so tables missing from
+    # an older DB are skipped safely. Every field here is somewhere a
+    # human (or a model drafting from pasted material) can put
+    # credential-shaped text; identifier/json/date columns are
+    # deliberately out of scope.
     "missions": ["title", "outcome"],
     "steps": ["description", "result", "evidence"],
     "receipts": ["summary", "evidence_json"],
     "specialist_runs": ["question", "result", "error"],
-    "guardian_suggestions": ["observation", "evidence", "proposed_action"],
+    "builder_runs": ["task", "proposed_content", "diff_text", "test_tail"],
+    "guardian_suggestions": ["observation", "evidence", "proposed_action",
+                             "resolution_note"],
+    "envoy_packages": ["title", "body", "result_text"],
+    "approvals": ["reason"],
+    "memory_entries": ["text", "source", "approval_note", "retire_reason"],
+    "operator_actions": ["params_json", "outcome", "detail"],
     "broker_usage": ["note"],
     "broker_ledger": ["note"],
+    "broker_providers": ["reset_note", "notes"],
+    "value_ledger": ["baseline_note"],
+    "reward_ledger": ["note"],
+    "reward_recommendations": ["request", "decision_note"],
+    "golden_tickets": ["benefits", "decision_note"],
+    "reward_flags": ["reason"],
+    "rotation_completions": ["scenario", "note"],
+    "armorer_tools": ["detail"],
+    "design_proposals": ["rationale"],
+    "storm_events": ["detail"],
+    "storm_snapshots": ["reason", "note"],
+    "storm_watch_days": ["summary"],
+    "storm_state": ["last_error"],
 }
 
 _NEVER_ROUTE_STATUSES = ("retired", "evaluation_only")
@@ -184,7 +209,11 @@ def _check_secret_scan(store: Store, owner: str, findings: list) -> None:
         cols = _table_cols(store, table) & set(columns)
         if not cols:
             continue
-        select = ", ".join(["id"] + sorted(cols))
+        # Some tables (e.g. broker_providers) have no 'id' column;
+        # rowid identifies the row just as well for the finding.
+        id_expr = ("id" if "id" in _table_cols(store, table)
+                   else "rowid AS id")
+        select = ", ".join([id_expr] + sorted(cols))
         for row in store._db.execute(f"SELECT {select} FROM {table} "
                                      "WHERE owner = ?", (owner,)):
             for col in sorted(cols):

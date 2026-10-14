@@ -28,6 +28,7 @@ from pathlib import Path
 
 from luna_v2 import dispatch as D
 from luna_v2 import missions as M
+from luna_v2 import specialists as SP
 from luna_v2.store import Store
 
 MAX_TARGET_BYTES = 30 * 1024          # same bar as the old Luna dev validator
@@ -81,6 +82,28 @@ def _record_run(store: Store, owner: str, mission_id: int | None, task: str,
          diff_text, exit_code, test_tail, _now()))
     store._db.commit()
     return cur.lastrowid
+
+
+def _mark_restricted(store: Store, owner: str, run_id: int) -> None:
+    """Prefix the recorded run's test_tail with the restricted marker.
+
+    The draft itself (proposed_content) is never touched — the marker
+    goes on the outcome field only. Idempotent via a startswith guard.
+    """
+    if SP.effective_status(store, owner, "builder") != "restricted":
+        return
+    row = store._db.execute(
+        "SELECT test_tail FROM builder_runs WHERE id = ?",
+        (run_id,)).fetchone()
+    if row is None:
+        return
+    tail = row["test_tail"] or ""
+    if not tail.startswith(SP.RESTRICTED_MARKER):
+        store._db.execute(
+            "UPDATE builder_runs SET test_tail = ? WHERE id = ?",
+            ((SP.RESTRICTED_MARKER + " " + tail) if tail
+             else SP.RESTRICTED_MARKER, run_id))
+        store._db.commit()
 
 
 def get_run(store: Store, run_id: int):
@@ -196,6 +219,16 @@ def build(store: Store, owner: str, task: str, *, project_dir: str,
             "sandbox limit")
 
     _ensure_schema(store)
+    # Mentor review override (DB state, never a registry edit): a
+    # retired Builder refuses before any work; a restricted Builder
+    # runs, and its recorded run is marked by _mark_restricted.
+    if SP.effective_status(store, owner, "builder") == "retired":
+        det = SP.status_details(store, owner, "builder")
+        by = det["decided_by"] if det else "unknown"
+        note = det["note"] if det and det["note"] else "no note recorded"
+        raise SP.SpecialistNotActive(
+            f"Builder was retired by {by} — runs refused "
+            f"(note: {note})")
     current = target.read_text(encoding="utf-8")
 
     # -- sandbox: a disposable copy; the original is never touched -------
@@ -218,6 +251,7 @@ def build(store: Store, owner: str, task: str, *, project_dir: str,
                 store, owner, mission_id, task, target_relpath, "failed",
                 "", "", -1,
                 f"provider call failed before any draft existed: {e}"[:TEST_TAIL_CHARS])
+            _mark_restricted(store, owner, run_id)
             return get_run(store, run_id)
         proposed = _strip_code_fence(result.response_text)
 
@@ -247,6 +281,7 @@ def build(store: Store, owner: str, task: str, *, project_dir: str,
         run_id = _record_run(
             store, owner, mission_id, task, target_relpath, status,
             proposed, diff_text, exit_code, output[-TEST_TAIL_CHARS:])
+        _mark_restricted(store, owner, run_id)
         return get_run(store, run_id)
     finally:
         shutil.rmtree(sandbox, ignore_errors=True)

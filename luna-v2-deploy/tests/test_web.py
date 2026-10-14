@@ -294,7 +294,9 @@ def test_front_page_is_the_landing(store):
     # the approved design's hero and section headlines
     assert "Give Luna the task. Get your time back" in body
     assert "One request. A real result." in body
-    assert "One Luna. Fifteen specialists." in body
+    # headline count comes from the registry, not a constant
+    from luna_v2 import specialists as SP
+    assert f"One Luna. {len(SP.SPECIALISTS)} specialists." in body
     assert "She remembers what you choose." in body
     assert "Step away. Come back to progress." in body
     assert "Luna is yours. ORBIT is where she grows." in body
