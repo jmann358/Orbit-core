@@ -403,14 +403,20 @@ def _page(title: str, body: str, owner: str) -> str:
 
 
 def _orbit_svg() -> str:
-    """Luna at the center of a quiet orbit: 15 specialist points on one
-    ring, grouped under Research / Planning / Making / Checking."""
-    dots = [(70, 160), (83, 124), (119, 92), (175, 69), (244, 57),
-            (317, 57), (385, 69), (441, 92), (477, 124), (490, 160),
-            (477, 196), (441, 228), (385, 251), (317, 263), (244, 263)]
+    """Luna at the center of a quiet orbit: one specialist point per
+    registry entry on the same ring, grouped under Research / Planning /
+    Making / Checking. The count is drawn from the registry, not a
+    constant — the arc is fixed (180 deg -> 460 deg) and the dots are
+    spread evenly along it."""
+    import math
+    n = len(SP.SPECIALISTS)
+    step = 280.0 / (n - 1) if n > 1 else 0.0
+    dots = [(280 + 210 * math.cos(math.radians(180 + i * step)),
+             160 + 105 * math.sin(math.radians(180 + i * step)))
+            for i in range(n)]
     circles = "".join(
-        f"<circle cx='{x}' cy='{y}' r='5' fill='{c}'/>"
-        for (x, y), c in zip(dots, ["#9c27b0", "#c66bda"] * 8))
+        f"<circle cx='{x:.1f}' cy='{y:.1f}' r='5' fill='{c}'/>"
+        for (x, y), c in zip(dots, ["#9c27b0", "#c66bda"] * ((n + 1) // 2)))
     return (
         "<svg viewBox='0 0 560 320' width='560' height='320' "
         "style='max-width:100%;height:auto' role='img' "
@@ -491,7 +497,7 @@ def _page_landing(owner: str):
 </div></section>
 
 <section class='lsec' id='team'><div class='lwrap'>
-<h2>One Luna. Fifteen specialists. One clear answer to you.</h2>
+<h2>One Luna. {len(SP.SPECIALISTS)} specialists. One clear answer to you.</h2>
 <div class='orbit-wrap'>{_orbit_svg()}</div>
 <p class='lcopy'>You work with Luna&mdash;not a jumble of separate agents. She coordinates specialists behind the scenes, brings their work together, and stays accountable for the result.</p>
 </div></section>
@@ -782,6 +788,22 @@ TEAM_ART = {
                  "flavor": "Nothing gets in, nothing leaks out, nothing goes unlogged."},
     "host": {"emoji": "🗝️", "color": "#FFE082",
              "flavor": "Holds the spare keys, for the day family comes to visit."},
+    "registrar": {"emoji": "📋", "color": "#B0BEC5",
+                  "flavor": "Keeps the account book — every service, plan, and renewal date."},
+    "locksmith": {"emoji": "🔑", "color": "#FFCA28",
+                  "flavor": "Guards the key queue. Never writes a raw key down."},
+    "warden": {"emoji": "🛡️", "color": "#90CAF9",
+               "flavor": "Stands at the gate. Holds what's suspicious, never lets anything past unseen."},
+    "lumen": {"emoji": "🎨", "color": "#BA68C8",
+              "flavor": "Runs the image desk — drafts, queues, and tracks, never fakes the photo."},
+    "herald": {"emoji": "📣", "color": "#81D4FA",
+               "flavor": "Short first, the flow, what's left out — and a stamp that proves it."},
+    "artificer": {"emoji": "🔮", "color": "#E1BEE7",
+                  "flavor": "Dreams up Luna's faces. Light ones today, heavy ones later."},
+    "conductor": {"emoji": "🎼", "color": "#FFD54F",
+                  "flavor": "Keeps everyone from sitting around — idleness in, good work out."},
+    "headhunter": {"emoji": "🎯", "color": "#FF7043",
+                   "flavor": "On the prowl for S-tier agent talent — adopts only what is safe, builds our own after studying the rest."},
 }
 
 _SEV_CLS = {"info": "sev-info", "warning": "sev-warning",
