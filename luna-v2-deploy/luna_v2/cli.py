@@ -29,6 +29,14 @@ from luna_v2 import rewards as RW
 from luna_v2 import operator as OP
 from luna_v2 import host as HO
 from luna_v2 import stormwatch as SW
+from luna_v2 import registrar as RE
+from luna_v2 import locksmith as LK
+from luna_v2 import warden as WD
+from luna_v2 import lumen as LU
+from luna_v2 import herald as HE
+from luna_v2 import artificer as AF
+from luna_v2 import conductor as CO
+from luna_v2 import headhunter as HH
 
 
 def _store(args) -> Store:
@@ -642,6 +650,39 @@ def cmd_mentor(args, s):
         for name, counts in (out["per_specialist"] or {}).items():
             print(f"  {name}: {counts}")
         print(f"suggestions filed: {out['suggestions_filed']}")
+    elif args.mentor_action == "grades":
+        out = MT.persist_grades(s, args.owner, limit=args.limit)
+        print(f"graded {out['graded']} runs, "
+              f"persisted {out['persisted_new']} new")
+        names = sorted({g["specialist"]
+                        for g in MT.grade_history(s, args.owner)})
+        for name in names:
+            sm = MT.grade_summary(s, args.owner, name, last_n=10)
+            c = sm["counts"]
+            print(f"  {name}: last {sm['last_n']} — strong {c['strong']}, "
+                  f"ok {c['ok']}, weak {c['weak']}")
+    elif args.mentor_action == "reviews":
+        out = MT.evaluate_reviews(s, args.owner)
+        if out["cases_opened"]:
+            print("cases opened: " +
+                  ", ".join(str(i) for i in out["cases_opened"]))
+        else:
+            print("no new cases opened")
+        for r in MT.list_cases(s, args.owner):
+            extra = (f", decided {r['decision']} by {r['decided_by']}"
+                     if r["status"] == "decided" else "")
+            print(f"  case {r['id']}: {r['specialist']} [{r['status']}] "
+                  f"rec={r['recommendation']}{extra}")
+    elif args.mentor_action == "decide":
+        case = MT.decide_case(s, args.owner, args.case_id, args.decision,
+                              args.by)
+        print(f"case {case['id']} ({case['specialist']}): "
+              f"{case['decision']} decided by {case['decided_by']}")
+    elif args.mentor_action == "status":
+        st = SP.effective_status(s, args.owner, args.specialist)
+        det = SP.status_details(s, args.owner, args.specialist)
+        extra = f" (by {det['decided_by']}: {det['note']})" if det else ""
+        print(f"{args.specialist}: {st}{extra}")
 
 
 @_guarded
@@ -790,6 +831,189 @@ def cmd_host(args, s):
 
 
 @_guarded
+def cmd_accounts(args, s):
+    if args.accounts_action == "add":
+        row = RE.register_account(
+            s, args.owner, args.service, plan=args.plan,
+            status=args.status, purpose=args.purpose,
+            expires_at=args.expires, renewal_at=args.renewal,
+            requires_card=args.requires_card, notes=args.note or "")
+        card = "needs card" if row["requires_card"] else "no card"
+        print(f"account {row['id']}: {row['service']} [{row['plan']}] "
+              f"status={row['status']} ({card})")
+    elif args.accounts_action == "list":
+        rows = RE.list_accounts(s, args.owner)
+        if not rows:
+            print("no accounts on the books")
+        for r in rows:
+            card = " [requires card]" if r["requires_card"] else ""
+            dates = (" expires " + r["expires_at"]) if r["expires_at"] else ""
+            dates += (" renews " + r["renewal_at"]) if r["renewal_at"] else ""
+            print(f"{r['service']}: [{r['plan']}] {r['status']}{card}"
+                  f"{dates} — {r['purpose'] or 'no purpose on record'}")
+    elif args.accounts_action == "expiring":
+        rows = RE.expiring_soon(s, args.owner, days=args.days)
+        if not rows:
+            print(f"nothing expiring or renewing in the next {args.days} days")
+        for r in rows:
+            date = r["expires_at"] or r["renewal_at"]
+            print(f"{r['service']}: {r['status']} — {date}")
+    elif args.accounts_action == "prepare":
+        row = RE.prepare_signup(s, args.owner, args.service, plan=args.plan,
+                                purpose=args.purpose, steps=args.step)
+        print(f"signup prepared for {row['service']} "
+              f"(status={row['status']}); Jason's tap-through is next")
+    elif args.accounts_action == "connect":
+        row = RE.set_status(s, args.owner, args.service, "connected")
+        print(f"{row['service']} -> connected")
+
+
+@_guarded
+def cmd_keys(args, s):
+    if args.keys_action == "seed":
+        rows = LK.seed_queue(s, args.owner)
+        print(f"key queue seeded: {len(rows)} rows "
+              f"({', '.join(r['provider'] for r in rows)})")
+    elif args.keys_action == "queue":
+        row = LK.queue_key(s, args.owner, args.provider,
+                           reason=args.reason or "",
+                           needed_by=args.needed_by or "",
+                           status="queued" if args.queued else "need")
+        print(f"key {row['provider']}: {row['status']} — {row['reason']}")
+    elif args.keys_action == "obtained":
+        row = LK.mark_obtained(s, args.owner, args.provider,
+                               vault_ref=args.vault_ref,
+                               expires_at=args.expires,
+                               notes=args.note or "")
+        print(f"key {row['provider']}: have (vault: {row['vault_ref']}"
+              f"{', expires ' + row['expires_at'] if row['expires_at'] else ''})")
+    elif args.keys_action == "board":
+        board = LK.board(s, args.owner)
+        if board["lapsing"]:
+            print("LAPSING SOON:")
+            for r in board["lapsing"]:
+                print(f"  {r['provider']}: expires {r['expires_at']}")
+        if board["need"]:
+            print("NEED:")
+            for r in board["need"]:
+                print(f"  {r['provider']}: {r['status']} — {r['reason']}")
+        if board["have"]:
+            print("HAVE:")
+            for r in board["have"]:
+                print(f"  {r['provider']}: vault {r['vault_ref']}")
+        if not (board["lapsing"] or board["need"] or board["have"]):
+            print("the key queue is empty")
+
+
+@_guarded
+def cmd_gate(args, s):
+    if args.gate_action == "scan-file":
+        out = WD.scan_file(s, args.owner, args.path)
+        print(f"gate scan {out['id']}: {out['item_ref']} — "
+              f"{out['verdict'].upper()}")
+        if out["findings"]:
+            for f in out["findings"]:
+                print(f"  hold: {f}")
+        else:
+            print("  pass — no findings; a pass is a note, not an approval")
+    elif args.gate_action == "scans":
+        rows = WD.recent_scans(s, args.owner, limit=args.limit)
+        if not rows:
+            print("no gate scans on record")
+        for r in rows:
+            n = len(r["findings"].splitlines()) if r["findings"] else 0
+            print(f"{r['id']}: {r['item_ref']} [{r['kind']}] "
+                  f"{r['verdict'].upper()} ({n} finding(s))")
+
+
+@_guarded
+def cmd_images(args, s):
+    if args.images_action == "draft":
+        row = LU.draft_job(s, args.owner, args.prompt, args.route,
+                           want_text=args.want_text)
+        print(f"image job {row['id']}: {row['status']} via {row['route']}")
+        print(f"  prompt: {row['prompt']}")
+    elif args.images_action == "list":
+        rows = LU.list_jobs(s, args.owner)
+        if not rows:
+            print("no image jobs on the desk")
+        for r in rows:
+            print(f"{r['id']}: [{r['status']}] {r['route']} — {r['prompt']}")
+    elif args.images_action == "board":
+        board = LU.board(s, args.owner)
+        for status in ("drafted", "queued", "sent", "done", "failed"):
+            jobs = board[status]
+            if jobs:
+                print(status.upper() + ":")
+                for j in jobs:
+                    print(f"  {j['id']}: {j['route']} — {j['prompt']}")
+        if not any(board.values()):
+            print("the image desk is empty")
+    elif args.images_action == "advance":
+        row = LU.set_status(s, args.owner, args.job_id, args.to,
+                            result_ref=args.result_ref or "")
+        print(f"image job {row['id']} -> {row['status']}")
+
+
+def _print_briefing(b):
+    print(b["short_text"])
+    print()
+    print("FLOW")
+    print(b["flow_text"])
+    print()
+    print("NOTES")
+    print(b["notes"])
+    print()
+    print("STAMP")
+    print(b["stamp"])
+
+
+@_guarded
+def cmd_brief(args, s):
+    if args.brief_action == "mission":
+        b = HE.compose_mission_briefing(s, args.owner, args.mission_id)
+    elif args.brief_action == "storm":
+        b = HE.compose_storm_briefing(s, args.owner)
+    elif args.brief_action == "rewards":
+        b = HE.compose_rewards_briefing(s, args.owner)
+    _print_briefing(b)
+
+
+@_guarded
+def cmd_interface(args, s):
+    if args.interface_action == "seed":
+        rows = AF.seed_concepts(s, args.owner)
+        print(f"interface seeds ready: {len(rows)} draft(s)")
+    elif args.interface_action == "propose":
+        row = AF.propose(s, args.owner, args.name, args.concept,
+                         args.theme_source, args.cost,
+                         cpu_note=args.cpu_note or "",
+                         wifi_note=args.wifi_note or "",
+                         notes=args.notes or "")
+        print(f"draft {row['id']}: {row['name']} [{row['cost']}] — "
+              f"{row['status']}")
+        if row["cost"] == "heavy":
+            print("  parked automatically: too heavy for now")
+    elif args.interface_action == "list":
+        rows = AF.list_drafts(s, args.owner)
+        if not rows:
+            print("no interface drafts on the desk")
+        for r in rows:
+            sel = " ★ selected" if r["status"] == "selected" else ""
+            print(f"{r['id']}: {r['name']} [{r['cost']}] "
+                  f"{r['status']}{sel} — {r['theme_source']}")
+    elif args.interface_action == "select":
+        row = AF.select_draft(s, args.owner, args.draft_id)
+        print(f"selected: {row['name']} (draft {row['id']})")
+    elif args.interface_action == "rescore":
+        row = AF.rescore(s, args.owner, args.draft_id, args.cost,
+                         cpu_note=args.cpu_note or "",
+                         wifi_note=args.wifi_note or "")
+        print(f"draft {row['id']}: {row['name']} rescored to "
+              f"{row['cost']} — {row['status']}")
+
+
+@_guarded
 def cmd_storm(args, s):
     try:
         _cmd_storm(args, s)
@@ -893,6 +1117,151 @@ def cmd_storm_restore(args):
     print(f"restored from {out['restored_from']}")
     if out["safety_copy"]:
         print(f"safety copy of the old database: {out['safety_copy']}")
+
+
+@_guarded
+def cmd_conductor(args, s):
+    if args.conductor_action == "status":
+        board = CO.idleness(s, args.owner)
+        for r in board:
+            idle = (f"{r['days_idle']:.1f}d idle" if r["days_idle"] is not None
+                    else "never ran")
+            status = r["effective_status"]
+            tag = f" [{status}]" if status != "active" else ""
+            last = r["last_activity"] or "—"
+            print(f"{r['specialist']:15} {idle:14} {last}{tag}")
+    elif args.conductor_action == "backlog":
+        rows = CO.list_backlog(s, args.owner, status=args.status)
+        if not rows:
+            print("backlog is empty")
+        for r in rows:
+            tgt = f" -> {r['target_specialist']}" if r[
+                "target_specialist"] != "any" else ""
+            inv = " [invented]" if (r["origin"] or "standing") == \
+                "invented" else ""
+            print(f"{r['id']}: [{r['kind']}]{tgt} pri={r['priority']}{inv} "
+                  f"— {r['title']}")
+            if inv and r["value_case"]:
+                print(f"    worth it because: {r['value_case']}")
+    elif args.conductor_action == "backlog-add":
+        bid = CO.add_backlog(s, args.owner, args.title, args.kind,
+                             target_specialist=args.target,
+                             payload=args.payload or "",
+                             priority=args.priority,
+                             created_by=args.created_by or "cli",
+                             origin=args.origin,
+                             value_case=args.value_case or "")
+        print(f"backlog item {bid} added ({args.kind}, "
+              f"origin={args.origin})")
+    elif args.conductor_action == "seed":
+        ids = CO.seed_backlog(s, args.owner)
+        print(f"conductor backlog seeded: {len(ids)} item(s)")
+    elif args.conductor_action == "tick":
+        out = CO.tick(s, args.owner, max_assignments=args.max)
+        for a in out["assigned"]:
+            print(f"assigned: {a['specialist']} <- [{a['how']}] "
+                  f"{a['title']}")
+            print(f"  {a['outcome']}")
+        for sk in out["skipped"]:
+            print(f"skipped: {sk['title']} — {sk['reason']}")
+        if out["note"]:
+            print(out["note"])
+    elif args.conductor_action == "assignments":
+        rows = CO.recent_assignments(s, args.owner, limit=args.limit)
+        if not rows:
+            print("no assignments on record")
+        for r in rows:
+            when = r["assigned_at"][:16].replace("T", " ")
+            m = f" (mission {r['mission_id']})" if r["mission_id"] else ""
+            inv = " [invented]" if (r["origin"] or "standing") == \
+                "invented" else ""
+            print(f"{when} {r['specialist']:15} <- {r['how']}{m}{inv}: "
+                  f"{r['outcome']}")
+    elif args.conductor_action == "invent":
+        out = CO.invent_work(s, args.owner, limit=args.limit)
+        for i in out["invented"]:
+            print(f"invented #{i['backlog_id']}: [{i['kind']}] "
+                  f"-> {i['target']} — {i['title']}")
+            print(f"  worth it because: {i['value_case']}")
+        seen: dict = {}
+        for sk in out["skipped"]:
+            key = (sk["pattern"], sk["reason"])
+            seen[key] = seen.get(key, 0) + 1
+        for (pattern, reason), n in seen.items():
+            more = f" (×{n})" if n > 1 else ""
+            print(f"no invention ({pattern}): {reason}{more}")
+        if out["note"]:
+            print(out["note"])
+
+
+@_guarded
+def cmd_headhunter(args, s):
+    if args.headhunter_action == "candidates":
+        rows = HH.list_candidates(s, args.owner, status=args.status)
+        if not rows:
+            print("no dossiers on file")
+        for r in rows:
+            print(f"{r['id']}: [{r['tier']}] {r['name']} ({r['kind']}) — "
+                  f"{r['recommendation']} / {r['status']} "
+                  f"license={r['license'] or 'unrecorded'}")
+    elif args.headhunter_action == "add":
+        r = HH.add_candidate(s, args.owner, args.name, args.kind,
+                             args.tier, source_url=args.url,
+                             license=args.license, summary=args.summary,
+                             strengths=args.strengths, risks=args.risks,
+                             recommendation=args.recommendation)
+        print(f"dossier {r['id']} filed: {r['name']} "
+              f"[{r['recommendation']}/{r['status']}]")
+    elif args.headhunter_action == "vet":
+        if args.license is not None:
+            HH.set_license(s, args.id, args.owner, args.license)
+        if args.recommendation is not None:
+            HH.set_recommendation(s, args.id, args.owner,
+                                  args.recommendation)
+        r = HH.advance(s, args.id, args.owner, "vetted")
+        print(f"dossier {r['id']} vetted: {r['name']} "
+              f"license={r['license'] or 'unrecorded'} "
+              f"rec={r['recommendation']}")
+    elif args.headhunter_action == "propose":
+        r = HH.advance(s, args.id, args.owner, "proposed")
+        print(f"dossier {r['id']} proposed: {r['name']} — awaiting "
+              "Jason/Rowan's decision")
+    elif args.headhunter_action == "decide":
+        r = HH.decide(s, args.id, args.owner, args.decision, args.by,
+                      note=args.note)
+        print(f"dossier {r['id']} {r['status']} by {r['decided_by']}: "
+              f"{r['name']}")
+    elif args.headhunter_action == "hire":
+        r = HH.mark_hired(s, args.id, args.owner, args.gate_scan)
+        print(f"dossier {r['id']} hired: {r['name']} "
+              f"(gate scan on record)")
+    elif args.headhunter_action == "probation":
+        if args.probation_action == "start":
+            r = HH.start_probation(s, args.owner, args.specialist,
+                                   days=args.days,
+                                   candidate_id=args.candidate_id,
+                                   note=args.note)
+            print(f"probation {r['id']} started: {r['specialist']} "
+                  f"(review due {r['review_due'][:10]})")
+        elif args.probation_action == "list":
+            rows = HH.list_probation(s, args.owner, status=args.status)
+            if not rows:
+                print("no probations on record")
+            for r in rows:
+                print(f"{r['id']}: {r['specialist']} — {r['status']} "
+                      f"(due {r['review_due'][:10]})")
+        elif args.probation_action == "due":
+            rows = HH.probation_due(s, args.owner)
+            if not rows:
+                print("no past-due probations")
+            for r in rows:
+                print(f"due: {r['specialist']} (probation {r['id']}, "
+                      f"due {r['review_due'][:10]}) — Guardian notified")
+        elif args.probation_action == "close":
+            r = HH.close_probation(s, args.id, args.owner, args.outcome,
+                                   by=args.by)
+            print(f"probation {r['id']} closed: {r['specialist']} — "
+                  f"{r['status']}")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1186,6 +1555,28 @@ def build_parser() -> argparse.ArgumentParser:
                                           "drafts to Guardian's inbox")
     mer.add_argument("--limit", type=int, default=20)
     mer.set_defaults(func=cmd_mentor)
+    megr = mesub.add_parser("grades", help="persist run grades and show "
+                                           "per-specialist summaries")
+    megr.add_argument("--limit", type=int, default=50)
+    megr.set_defaults(func=cmd_mentor)
+    mere = mesub.add_parser("reviews", help="evaluate and open review "
+                                             "cases for consistently weak "
+                                             "specialists")
+    mere.set_defaults(func=cmd_mentor)
+    med = mesub.add_parser("decide", help="record Jason/Rowan's decision "
+                                          "on a review case (Mentor "
+                                          "cannot decide)")
+    med.add_argument("case_id", type=int)
+    med.add_argument("--decision", required=True,
+                     choices=["train", "restrict", "retire", "dismiss"])
+    med.add_argument("--by", required=True,
+                     help="decider name — must not be 'mentor'")
+    med.set_defaults(func=cmd_mentor)
+    mest = mesub.add_parser("status", help="a specialist's effective "
+                                           "status (active/restricted/"
+                                           "retired)")
+    mest.add_argument("specialist")
+    mest.set_defaults(func=cmd_mentor)
 
     rw = sub.add_parser("rewards", help="Rewards: Mentor-administered "
                                         "recognition for the team (Jason's "
@@ -1358,6 +1749,264 @@ def build_parser() -> argparse.ArgumentParser:
     str_.add_argument("snapshot")
     str_.add_argument("--yes", action="store_true")
     str_.set_defaults(func=cmd_storm_restore)
+
+    ac = sub.add_parser("accounts", help="Registrar: Luna's account book — "
+                                        "services, plans, renewals, signup prep")
+    acsub = ac.add_subparsers(dest="accounts_action", required=True)
+    aca = acsub.add_parser("add", help="register (or re-register) an account")
+    aca.add_argument("service")
+    aca.add_argument("--plan", default="free")
+    aca.add_argument("--status", default="wanted",
+                     choices=["wanted", "prepared", "connected", "parked"])
+    aca.add_argument("--purpose", default="")
+    aca.add_argument("--expires", default=None,
+                     help="YYYY-MM-DD or empty")
+    aca.add_argument("--renewal", default=None,
+                     help="YYYY-MM-DD or empty")
+    aca.add_argument("--requires-card", action="store_true",
+                     help="the signup demands a payment method")
+    aca.add_argument("--note", default="")
+    aca.set_defaults(func=cmd_accounts)
+    acsub.add_parser("list", help="show the account book").set_defaults(
+        func=cmd_accounts)
+    ace = acsub.add_parser("expiring", help="accounts expiring or renewing soon")
+    ace.add_argument("--days", type=int, default=30)
+    ace.set_defaults(func=cmd_accounts)
+    acp = acsub.add_parser("prepare", help="prepare a signup end-to-end "
+                                           "(lays out the steps; submits nothing)")
+    acp.add_argument("service")
+    acp.add_argument("--plan", default="free")
+    acp.add_argument("--purpose", default="")
+    acp.add_argument("--step", action="append", default=[],
+                     help="one signup step; repeat for more")
+    acp.set_defaults(func=cmd_accounts)
+    acc = acsub.add_parser("connect", help="mark an account connected "
+                                           "(card-required refuses)")
+    acc.add_argument("service")
+    acc.set_defaults(func=cmd_accounts)
+
+    ky = sub.add_parser("keys", help="Locksmith: Luna's key list — what she "
+                                     "needs, what she has, what is lapsing")
+    kysub = ky.add_subparsers(dest="keys_action", required=True)
+    kysub.add_parser("seed", help="seed the standing key queue (idempotent)"
+                     ).set_defaults(func=cmd_keys)
+    kyq = kysub.add_parser("queue", help="queue a key Luna needs")
+    kyq.add_argument("provider")
+    kyq.add_argument("--reason", default="")
+    kyq.add_argument("--needed-by", default="")
+    kyq.add_argument("--queued", action="store_true",
+                     help="queue it as actively queued rather than wanted")
+    kyq.set_defaults(func=cmd_keys)
+    kyo = kysub.add_parser("obtained", help="record a key as obtained "
+                                            "(connector name only; a raw key "
+                                            "in --vault-ref or --note refuses)")
+    kyo.add_argument("provider")
+    kyo.add_argument("--vault-ref", required=True,
+                     help="connector NAME the key lives in (never the key)")
+    kyo.add_argument("--expires", default=None, help="YYYY-MM-DD or empty")
+    kyo.add_argument("--note", default="")
+    kyo.set_defaults(func=cmd_keys)
+    kysub.add_parser("board", help="the key board: lapsing, need, have"
+                     ).set_defaults(func=cmd_keys)
+
+    gt = sub.add_parser("gate", help="Warden: scan incoming material at "
+                                     "the gate — pass or hold, never approve")
+    gtsub = gt.add_subparsers(dest="gate_action", required=True)
+    gts = gtsub.add_parser("scan-file", help="scan a file "
+                                             "(refuses files over 200 KB)")
+    gts.add_argument("path")
+    gts.set_defaults(func=cmd_gate)
+    gtl = gtsub.add_parser("scans", help="recent gate scans")
+    gtl.add_argument("--limit", type=int, default=20)
+    gtl.set_defaults(func=cmd_gate)
+
+    im = sub.add_parser("images", help="Lumen: the image desk — draft, "
+                                       "queue, and track image jobs")
+    imsub = im.add_subparsers(dest="images_action", required=True)
+    imd = imsub.add_parser("draft", help="draft an image job "
+                                         "(no-text suffix applied unless "
+                                         "--want-text)")
+    imd.add_argument("prompt")
+    imd.add_argument("--route", default="chatgpt",
+                     choices=["chatgpt", "bing"])
+    imd.add_argument("--want-text", action="store_true",
+                     help="the image is SUPPOSED to contain text")
+    imd.set_defaults(func=cmd_images)
+    imsub.add_parser("list", help="all image jobs").set_defaults(
+        func=cmd_images)
+    imsub.add_parser("board", help="the image job board by status"
+                     ).set_defaults(func=cmd_images)
+    ima = imsub.add_parser("advance", help="move a job along the lifecycle "
+                                            "(drafted -> queued -> sent -> "
+                                            "done/failed)")
+    ima.add_argument("job_id", type=int)
+    ima.add_argument("--to", required=True,
+                     choices=["queued", "sent", "done", "failed"])
+    ima.add_argument("--result-ref", default="",
+                     help="where the finished image lives")
+    ima.set_defaults(func=cmd_images)
+
+    br = sub.add_parser("brief", help="Herald: Jason's four-part "
+                                     "briefings — short, flow, notes, "
+                                     "stamp (the stamp is always run, "
+                                     "never claimed)")
+    brsub = br.add_subparsers(dest="brief_action", required=True)
+    brm = brsub.add_parser("mission", help="brief a mission (stamp backed "
+                                          "by a real Verifier run)")
+    brm.add_argument("mission_id", type=int)
+    brm.set_defaults(func=cmd_brief)
+    brsub.add_parser("storm", help="brief storm watch (stamp backed by "
+                                  "the Watchman's verdict)"
+                     ).set_defaults(func=cmd_brief)
+    brsub.add_parser("rewards", help="brief the rewards ledger (stamp "
+                                     "backed by the cross-check)"
+                     ).set_defaults(func=cmd_brief)
+
+    inf = sub.add_parser("interface", help="Artificer: master-interface "
+                                          "drafts — light first, heavy "
+                                          "parks automatically")
+    infsub = inf.add_subparsers(dest="interface_action", required=True)
+    infsub.add_parser("seed", help="seed the three light starter "
+                                  "concepts (idempotent)"
+                      ).set_defaults(func=cmd_interface)
+    inp = infsub.add_parser("propose", help="draft a new concept (heavy "
+                                           "cost parks automatically)")
+    inp.add_argument("name")
+    inp.add_argument("concept")
+    inp.add_argument("--theme-source", default="original")
+    inp.add_argument("--cost", required=True,
+                     choices=["light", "medium", "heavy"])
+    inp.add_argument("--cpu-note", default="")
+    inp.add_argument("--wifi-note", default="")
+    inp.add_argument("--notes", default="")
+    inp.set_defaults(func=cmd_interface)
+    infsub.add_parser("list", help="all interface drafts"
+                      ).set_defaults(func=cmd_interface)
+    ins = infsub.add_parser("select", help="select one draft (only one "
+                                           "selected at a time; parked "
+                                           "drafts refuse)")
+    ins.add_argument("draft_id", type=int)
+    ins.set_defaults(func=cmd_interface)
+    inr = infsub.add_parser("rescore", help="re-score a draft's cost "
+                                           "(a parked draft re-scored "
+                                           "light/medium returns to draft)")
+    inr.add_argument("draft_id", type=int)
+    inr.add_argument("--cost", required=True,
+                     choices=["light", "medium", "heavy"])
+    inr.add_argument("--cpu-note", default="")
+    inr.add_argument("--wifi-note", default="")
+    inr.set_defaults(func=cmd_interface)
+
+    co = sub.add_parser("conductor", help="Conductor: keeps everyone from "
+                                          "sitting around — idleness board, "
+                                          "work backlog, assignments")
+    cosub = co.add_subparsers(dest="conductor_action", required=True)
+    cosub.add_parser("status", help="idleness board: last activity and "
+                                    "days idle per specialist"
+                     ).set_defaults(func=cmd_conductor)
+    cbl = cosub.add_parser("backlog", help="list backlog items")
+    cbl.add_argument("--status", default="open",
+                     choices=["open", "assigned", "done", "dropped"])
+    cbl.set_defaults(func=cmd_conductor)
+    cba = cosub.add_parser("backlog-add", help="add one backlog item")
+    cba.add_argument("title")
+    cba.add_argument("--kind", required=True,
+                     choices=list(CO.VALID_KINDS))
+    cba.add_argument("--target", default="any",
+                     help="target specialist (default: any)")
+    cba.add_argument("--payload", default="")
+    cba.add_argument("--priority", type=int, default=5)
+    cba.add_argument("--created-by", default="")
+    cba.add_argument("--origin", default="standing",
+                     choices=list(CO.VALID_ORIGINS),
+                     help="provenance; invented items need --value-case")
+    cba.add_argument("--value-case", default="",
+                     help="one sentence naming the payoff (required for "
+                          "invented items)")
+    cba.set_defaults(func=cmd_conductor)
+    cin = cosub.add_parser("invent", help="invent state-driven work — "
+                                       "only if it is worth it")
+    cin.add_argument("--limit", type=int, default=2)
+    cin.set_defaults(func=cmd_conductor)
+    cosub.add_parser("seed", help="seed the standing backlog jobs "
+                                 "(idempotent)"
+                     ).set_defaults(func=cmd_conductor)
+    cti = cosub.add_parser("tick", help="assign open backlog work to the "
+                                        "most idle eligible specialists")
+    cti.add_argument("--max", type=int, default=3)
+    cti.set_defaults(func=cmd_conductor)
+    cas = cosub.add_parser("assignments", help="recent assignments")
+    cas.add_argument("--limit", type=int, default=20)
+    cas.set_defaults(func=cmd_conductor)
+
+    hh = sub.add_parser("headhunter", help="Headhunter: S-tier talent "
+                                           "dossiers, licenses, hiring, "
+                                           "probation")
+    hhsub = hh.add_subparsers(dest="headhunter_action", required=True)
+    hhc = hhsub.add_parser("candidates", help="list talent dossiers")
+    hhc.add_argument("--status", default="",
+                     choices=[""] + list(HH.STATUSES))
+    hhc.set_defaults(func=cmd_headhunter)
+    hha = hhsub.add_parser("add", help="file a new talent dossier")
+    hha.add_argument("name")
+    hha.add_argument("--kind", required=True, choices=list(HH.KINDS))
+    hha.add_argument("--tier", required=True, choices=list(HH.TIERS))
+    hha.add_argument("--url", default="")
+    hha.add_argument("--license", default="")
+    hha.add_argument("--summary", default="")
+    hha.add_argument("--strengths", default="")
+    hha.add_argument("--risks", default="")
+    hha.add_argument("--recommendation", default="study",
+                     choices=list(HH.RECOMMENDATIONS))
+    hha.set_defaults(func=cmd_headhunter)
+    hhv = hhsub.add_parser("vet", help="mark a dossier vetted")
+    hhv.add_argument("--id", type=int, required=True)
+    hhv.add_argument("--license", default=None,
+                     help="update the license while vetting")
+    hhv.add_argument("--recommendation", default=None,
+                     choices=list(HH.RECOMMENDATIONS),
+                     help="update the recommendation while vetting")
+    hhv.set_defaults(func=cmd_headhunter)
+    hhp = hhsub.add_parser("propose", help="propose a vetted candidate "
+                                          "for Jason/Rowan's decision")
+    hhp.add_argument("--id", type=int, required=True)
+    hhp.set_defaults(func=cmd_headhunter)
+    hhd = hhsub.add_parser("decide", help="Jason/Rowan approve or reject "
+                                         "a proposed candidate")
+    hhd.add_argument("--id", type=int, required=True)
+    hhd.add_argument("--decision", required=True,
+                     choices=list(HH.DECISIONS))
+    hhd.add_argument("--by", required=True, help="decider name")
+    hhd.add_argument("--note", default="")
+    hhd.set_defaults(func=cmd_headhunter)
+    hhr = hhsub.add_parser("hire", help="record the hire — gate scan "
+                                       "reference required")
+    hhr.add_argument("--id", type=int, required=True)
+    hhr.add_argument("--gate-scan", required=True,
+                     help="Warden gate scan id or scan note")
+    hhr.set_defaults(func=cmd_headhunter)
+    hhb = hhsub.add_parser("probation", help="probation bookkeeping")
+    hhbsub = hhb.add_subparsers(dest="probation_action", required=True)
+    hbs = hhbsub.add_parser("start", help="start a probation period")
+    hbs.add_argument("specialist")
+    hbs.add_argument("--days", type=int, default=30)
+    hbs.add_argument("--candidate-id", type=int, default=None)
+    hbs.add_argument("--note", default="")
+    hbs.set_defaults(func=cmd_headhunter)
+    hhbl = hhbsub.add_parser("list", help="list probations")
+    hhbl.add_argument("--status", default="",
+                      choices=[""] + list(HH.PROBATION_STATUSES))
+    hhbl.set_defaults(func=cmd_headhunter)
+    hhbd = hhbsub.add_parser("due", help="past-due probations; files one "
+                                        "Guardian suggestion each")
+    hhbd.set_defaults(func=cmd_headhunter)
+    hbc = hhbsub.add_parser("close", help="Jason/Rowan pass or fail a "
+                                         "hireling")
+    hbc.add_argument("--id", type=int, required=True)
+    hbc.add_argument("--outcome", required=True,
+                     choices=list(HH.PROBATION_OUTCOMES))
+    hbc.add_argument("--by", required=True, help="decider name")
+    hbc.set_defaults(func=cmd_headhunter)
 
     return p
 
