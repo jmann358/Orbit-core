@@ -133,3 +133,38 @@ def test_worker_automatically_saves_independent_evidence_for_eligible_health(tmp
         assert (tmp_path / "app.py").read_text().splitlines() == [
             "def start():", "    return True"
         ]
+
+
+def test_worker_survives_verifier_database_error(tmp_path, monkeypatch):
+    """Regression: the optional verifier must never abort the worker.
+
+    A database error inside verify_local_health (sqlite3.OperationalError,
+    e.g. a locked database) is neither ValueError nor OSError. Before the
+    fix it escaped run_once after the job result was persisted, so the
+    completed result was never returned and the agent run never recorded —
+    contradicting the design that observation is optional and the durable
+    worker result remains available.
+    """
+    import sqlite3
+
+    from luna.job_operations import run_once
+
+    _source(tmp_path)
+    monkeypatch.setattr(verification, "SOURCE_ROOT", tmp_path)
+
+    def locked(_job_id):
+        raise sqlite3.OperationalError("database is locked")
+
+    monkeypatch.setattr(verification, "verify_local_health", locked)
+    with patch.object(core, "DB_PATH", tmp_path / "locked.sqlite"):
+        snapshot = verification.source_snapshot()
+        ident = jobs.create_job("project_health", "Synthetic locked health")
+        report = "Health 4/4; source_sha256=" + snapshot["sha256"]
+        processed = run_once(lambda job: (True, report))
+        assert processed["id"] == ident
+        assert processed["state"] == "completed"
+        receipt = TestClient(app).get(f"/agent/jobs/{ident}/receipt").json()
+        assert receipt["state"] == "completed"
+        # No false badge: the failed observation leaves the job unverified.
+        assert receipt["verification_status"] == "not_checked"
+        assert receipt["independently_verified"] is False

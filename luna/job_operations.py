@@ -3,6 +3,8 @@
 No extra agent loop, shell access, provider calls, repository writes or
 privilege escalation. Executes only the processor supplied by app.py.
 """
+import sqlite3
+
 from luna import core, jobs
 
 
@@ -39,7 +41,7 @@ def run_once(processor, now=None):
         try:
             from luna.result_verification import verify_local_health
             verify_local_health(job["id"])
-        except (ValueError, OSError):
+        except (ValueError, OSError, sqlite3.Error):
             # Observation is an optional separate evidence operation; the
             # durable worker result remains available with no verified badge.
             pass
