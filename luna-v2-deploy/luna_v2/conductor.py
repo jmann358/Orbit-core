@@ -68,7 +68,8 @@ CREATE TABLE IF NOT EXISTS assignments (
 
 # Built-in kinds: executed as deterministic module calls, immediately.
 BUILTIN_KINDS = ("health_check", "guardian_scan", "qm_report",
-                 "sentinel_audit", "verify_recent", "mentor_grades")
+                 "sentinel_audit", "verify_recent", "mentor_grades",
+                 "project_tick", "canon_sweep")
 # Mission kinds: become real routine-step missions for the assignee.
 MISSION_KINDS = ("training", "research", "tidy", "design", "scan",
                  "talent_hunt", "threat_sweep", "experiment",
@@ -85,6 +86,8 @@ BUILTIN_OWNER = {
     "sentinel_audit": "sentinel",
     "verify_recent": "verifier",
     "mentor_grades": "mentor",
+    "project_tick": "steward",
+    "canon_sweep": "canonist",
 }
 
 # Natural owner for mission kinds with a standing specialist of record.
@@ -404,6 +407,20 @@ def _run_mentor_grades(store, owner) -> str:
             f"persisted {res['persisted_new']} new")
 
 
+def _run_project_tick(store, owner) -> str:
+    from luna_v2 import steward as ST
+    res = ST.nudge_check(store, owner)
+    return (f"nudge check: {res['nudged_projects']} project(s) with due "
+            f"questions, {res['suggestions_filed']} suggestion(s) filed")
+
+
+def _run_canon_sweep(store, owner) -> str:
+    from luna_v2 import canonist as CN
+    res = CN.sweep(store, owner)
+    return (f"canon sweep: {res['new_findings']} new finding(s), "
+            f"{res['guardian_suggestions_filed']} suggestion(s) filed")
+
+
 BUILTIN_RUNNERS = {
     "health_check": (_run_health_check, "watchman"),
     "guardian_scan": (_run_guardian_scan, "guardian"),
@@ -411,6 +428,8 @@ BUILTIN_RUNNERS = {
     "sentinel_audit": (_run_sentinel_audit, "sentinel"),
     "verify_recent": (_run_verify_recent, "verifier"),
     "mentor_grades": (_run_mentor_grades, "mentor"),
+    "project_tick": (_run_project_tick, "steward"),
+    "canon_sweep": (_run_canon_sweep, "canonist"),
 }
 
 

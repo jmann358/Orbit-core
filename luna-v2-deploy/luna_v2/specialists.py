@@ -21,13 +21,14 @@ Framework rules, deliberate:
 - Planned teammates are registered but inert: asking one to run is a
   clean refusal, never a partial side effect.
 
-All thirty specialists are active: Scout, Guardian, Verifier,
+All thirty-two specialists are active: Scout, Guardian, Verifier,
 Quartermaster, Watchman, Sentinel, Archivist, Scheduler, Armorer,
 Envoy, Designer, Builder, Mentor, Operator, Host, Registrar,
 Locksmith, Warden, Lumen, Herald, Artificer, Conductor,
 Headhunter, Taster, Alchemist, Pathfinder, Marshal, Weaver,
-Cartographer and Jester — each behind the same framework rules, each
-activated with tests and a live proof on the real database.
+Cartographer, Jester, Steward and Canonist — each behind the same
+framework rules, each activated with tests and a live proof on the
+real database.
 
 Stdlib only.
 """
@@ -343,6 +344,30 @@ SPECIALISTS: dict[str, SpecialistProfile] = {
                 "secret-screened, probes fixed and safe. Reports "
                 "holes; never exploits them.",
         tools=["red_team"],
+        max_provider_calls_per_run=0, max_fetches_per_run=0,
+        status="active"),
+    "steward": SpecialistProfile(
+        name="steward", title="House Steward",
+        purpose="The human-facing half of the court: owns Jason's "
+                "personal projects (holidays, birthdays, trip prep) "
+                "end-to-end across months, keeps the outstanding-"
+                "questions queue for Jason, and escalates the nudge "
+                "as the deadline ladder steepens. Jason-approved "
+                "projects only; executes nothing himself (hands "
+                "execution to Conductor, Herald, Scout, "
+                "Quartermaster); prepares nudges, never sends them.",
+        tools=["project_care"],
+        max_provider_calls_per_run=0, max_fetches_per_run=0,
+        status="active"),
+    "canonist": SpecialistProfile(
+        name="canonist", title="Court Canonist",
+        purpose="Keeper of canon: audits the court's own story for "
+                "identity collisions, self-referential glitches, stale "
+                "counts and contradictions. Deterministic checks only; "
+                "proposes fixes to Jason or Rowan, never edits another "
+                "agent's identity, text, or records. Reads rapport to "
+                "check the story, never to decide anything.",
+        tools=["continuity_audit"],
         max_provider_calls_per_run=0, max_fetches_per_run=0,
         status="active"),
 }
