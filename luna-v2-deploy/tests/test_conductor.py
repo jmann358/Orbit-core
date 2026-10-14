@@ -57,7 +57,7 @@ def _now_utc():
 def test_idleness_ranks_never_ran_first(store):
     _stamp_run(store, "scout", age_days=0)
     board = CO.idleness(store, OWNER)
-    assert len(board) == 23
+    assert len(board) == 30
     first = board[0]
     assert first["days_idle"] is None  # never ran: most idle
     scout = next(r for r in board if r["specialist"] == "scout")

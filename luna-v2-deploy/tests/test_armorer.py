@@ -50,18 +50,38 @@ def _fake_transport_factory(calls, usage=None):
     return transport
 
 
+def _plant_groq(store, tmp_path, owner=OWNER):
+    """Register a groq-connector-helper row pointing at a file that
+    really exists, independent of what this machine's toolbox seeds.
+    The two probe/routability tests must not depend on the ambient
+    machine having Rowan's helper file."""
+    helper = tmp_path / "groq_chat.py"
+    helper.write_text("# stand-in for the real connector helper\n")
+    _upsert_raw(store, owner, "groq-connector-helper", str(helper))
+    return helper
+
+
+def _seedable_names():
+    return [t["name"] for t in A.SEED_TOOLS if A.tool_is_seedable(t)]
+
+
 # ---------------------------------------------------------------------------
 # Seeding
 # ---------------------------------------------------------------------------
 def test_seed_is_idempotent_and_preserves_status(store):
-    assert A.seed_tools(store, OWNER) == 3
-    row = A.get_tool(store, OWNER, "groq-connector-helper")
+    # A machine missing a helper file seeds fewer, truthful rows.
+    seedable = _seedable_names()
+    assert A.seed_tools(store, OWNER) == len(seedable)
+    assert A.seed_tools(store, OWNER) == len(seedable)
+    if not seedable:
+        pytest.skip("no seedable tools on this machine")
+    row = A.get_tool(store, OWNER, seedable[0])
     # Break one row manually: re-seeding must not touch it.
     store._db.execute("UPDATE armorer_tools SET status = 'broken', "
                       "detail = 'hand-placed' WHERE id = ?", (row["id"],))
     store._db.commit()
-    assert A.seed_tools(store, OWNER) == 3
-    again = A.get_tool(store, OWNER, "groq-connector-helper")
+    assert A.seed_tools(store, OWNER) == len(seedable)
+    again = A.get_tool(store, OWNER, seedable[0])
     assert again["status"] == "broken"
     assert again["detail"] == "hand-placed"
 
@@ -69,9 +89,41 @@ def test_seed_is_idempotent_and_preserves_status(store):
 def test_seed_tables_match_seed_tools(store):
     A.seed_tools(store, OWNER)
     rows = A.list_tools(store, OWNER)
-    assert {r["name"] for r in rows} == {t["name"] for t in A.SEED_TOOLS}
+    assert {r["name"] for r in rows} == set(_seedable_names())
     assert all(r["status"] == "unknown" for r in rows)
     assert all(r["last_checked_at"] is None for r in rows)
+
+
+def test_missing_helper_file_is_not_seeded(store, monkeypatch):
+    """Portability pin (THRONE sync, Step 4): a machine without the
+    helper file gets NO groq-connector-helper row at all — never a row
+    that could only ever read 'broken'. The rest of the toolbox seeds
+    untouched, and nothing raises."""
+    real_exists = A._exists
+
+    def fake_exists(path_text):
+        if "groq_chat.py" in str(path_text):
+            return False
+        return real_exists(path_text)
+
+    monkeypatch.setattr(A, "_exists", fake_exists)
+    A.seed_tools(store, OWNER)
+    assert A.get_tool(store, OWNER, "groq-connector-helper") is None
+    names = {r["name"] for r in A.list_tools(store, OWNER)}
+    assert "groq-connector-helper" not in names
+    # Every other seedable tool still seeds, nothing else dropped.
+    assert names == {t["name"] for t in A.SEED_TOOLS
+                     if t["name"] != "groq-connector-helper"
+                     and A.tool_is_seedable(t)}
+
+
+def test_file_path_heuristic():
+    assert A._location_is_file_path("~/x/y.py")
+    assert A._location_is_file_path("/opt/x")
+    assert A._location_is_file_path("rel/dir/file")
+    assert not A._location_is_file_path("https://example.com/x")
+    assert not A._location_is_file_path("api://service")
+    assert not A._location_is_file_path("")
 
 
 def test_seed_misuse_raises(store):
@@ -127,8 +179,9 @@ def test_broken_checks_never_raise(store):
     assert all(r["status"] == "broken" for r in planted)
 
 
-def test_groq_detail_carries_spend_free_routability_note(store):
+def test_groq_detail_carries_spend_free_routability_note(store, tmp_path):
     B.seed_providers(store, OWNER)
+    _plant_groq(store, tmp_path)
     rows = A.check_tools(store, OWNER)
     groq = next(r for r in rows if r["name"] == "groq-connector-helper")
     assert "route check:" in groq["detail"]
@@ -149,8 +202,9 @@ def test_groq_detail_notes_missing_inventory(store):
 # ---------------------------------------------------------------------------
 # Live probe
 # ---------------------------------------------------------------------------
-def test_probe_success_makes_exactly_one_dispatch(store):
+def test_probe_success_makes_exactly_one_dispatch(store, tmp_path):
     B.seed_providers(store, OWNER)
+    _plant_groq(store, tmp_path)
     calls = []
     rows = A.check_tools(store, OWNER,
                          probe_transport=_fake_transport_factory(calls))
@@ -168,8 +222,9 @@ def test_probe_success_makes_exactly_one_dispatch(store):
     assert used == 1.0
 
 
-def test_probe_failure_marks_groq_broken_with_error(store):
+def test_probe_failure_marks_groq_broken_with_error(store, tmp_path):
     B.seed_providers(store, OWNER)
+    _plant_groq(store, tmp_path)
 
     def failing(provider, prompt):
         raise D.DispatchError("boom: network down")
@@ -185,14 +240,20 @@ def test_probe_failure_marks_groq_broken_with_error(store):
     assert used == 0.0
 
 
-def test_no_probe_means_no_dispatch(store):
+def test_no_probe_means_no_dispatch(store, tmp_path):
     B.seed_providers(store, OWNER)
+    _plant_groq(store, tmp_path)
     calls = []
     rows = A.check_tools(store, OWNER, probe_transport=None)
     _ = _fake_transport_factory(calls)  # exists, but never handed over
     assert calls == []
     groq = next(r for r in rows if r["name"] == "groq-connector-helper")
-    assert "probe" not in groq["detail"]
+    # No probe ran: neither probe outcome marker may appear in the
+    # detail. (The location itself echoes the pytest tmp dir, whose
+    # name contains this test's name, so a bare "probe" substring
+    # check would be a false positive.)
+    assert "probe ok" not in groq["detail"]
+    assert "probe failed" not in groq["detail"]
 
 
 def test_probe_transport_must_be_callable(store):
@@ -206,6 +267,9 @@ def test_probe_transport_must_be_callable(store):
 def test_render_text_names_every_tool(store):
     A.seed_tools(store, OWNER)
     text = A.render_text(A.list_tools(store, OWNER))
-    for t in A.SEED_TOOLS:
+    seedable = [t for t in A.SEED_TOOLS if A.tool_is_seedable(t)]
+    for t in seedable:
         assert t["name"] in text
+    if not seedable:
+        assert text == "no tools inventoried"
     assert A.render_text([]) == "no tools inventoried"
