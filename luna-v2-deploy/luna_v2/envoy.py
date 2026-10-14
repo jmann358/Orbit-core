@@ -192,15 +192,22 @@ def close_package(store: Store, owner: str, package_id: int) -> sqlite3.Row:
     """Close a package. Terminal: an already-closed package cannot be
     reopened or touched again.
 
-    Closing from 'sent' is explicitly allowed — the caller accepts that
-    the result may never come — and the row keeps the proof: no
-    answered_at, result_text empty, state 'closed'.
+    Closing is only honest from 'answered'. Closing a package that was
+    never answered — whether still a draft or sent and awaiting a
+    reply — is refused: a 'closed' package must never misrepresent a
+    liaison that never completed. (Earlier versions permitted closing
+    from 'sent'; the stress battery proved that let 'closed' lie, so
+    the rule is now answered-only.)
     """
     _ensure_schema(store)
     pkg = _get_owned(store, owner, package_id)
     if pkg["state"] == "closed":
         raise InvalidTransition(
             f"package {package_id} is already closed — closing is terminal")
+    if pkg["state"] != "answered":
+        raise InvalidTransition(
+            f"package {package_id} cannot be closed from state "
+            f"{pkg['state']!r} — only an answered package can be closed")
     store._db.execute(
         "UPDATE envoy_packages SET state = 'closed', closed_at = ? "
         "WHERE id = ?", (_now(), package_id))
