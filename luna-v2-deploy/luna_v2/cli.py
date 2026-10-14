@@ -37,6 +37,13 @@ from luna_v2 import herald as HE
 from luna_v2 import artificer as AF
 from luna_v2 import conductor as CO
 from luna_v2 import headhunter as HH
+from luna_v2 import taster as TA
+from luna_v2 import alchemist as AL
+from luna_v2 import pathfinder as PA
+from luna_v2 import marshal as MA
+from luna_v2 import weaver as WE
+from luna_v2 import cartographer as CA
+from luna_v2 import jester as JE
 
 
 def _store(args) -> Store:
@@ -1264,6 +1271,228 @@ def cmd_headhunter(args, s):
                   f"{r['status']}")
 
 
+@_guarded
+def cmd_taster(args, s):
+    if args.taster_action == "bulletins":
+        rows = TA.list_bulletins(s, args.owner)
+        if not rows:
+            print("no bulletins on the watch list")
+        for r in rows:
+            print(f"{r['id']}: [{r['severity'].upper()}] {r['title']} "
+                  f"(filed {r['created_at'][:10]})")
+    elif args.taster_action == "file":
+        r = TA.file_bulletin(s, args.owner, args.title, args.summary,
+                             args.affects_us, severity=args.severity,
+                             source_ref=args.source_ref)
+        print(f"bulletin {r['id']} filed: [{r['severity'].upper()}] "
+              f"{r['title']}")
+    elif args.taster_action == "brief":
+        print(TA.brief(s, args.owner, limit=args.limit))
+    elif args.taster_action == "propose-rule":
+        r = TA.propose_rule(s, args.owner, args.pattern, args.rationale)
+        if r is None:
+            print("proposal not filed — Guardian's inbox was unavailable")
+        else:
+            print(f"rule proposal filed as Guardian suggestion "
+                  f"{r['id']} (dedupe_key={r['dedupe_key']})")
+    elif args.taster_action == "dossier-check":
+        r = TA.check_dossier(s, args.owner, args.id)
+        print(f"dossier {r['candidate']}: {r['verdict'].upper()}")
+        for m in r["matches"]:
+            print(f"  bulletin {m['bulletin_id']}: {m['bulletin_title']} "
+                  f"(token(s): {', '.join(m['tokens'])})")
+    elif args.taster_action == "egress-watch":
+        r = TA.egress_watch(s, args.owner)
+        print(f"refused operator actions: "
+              f"{r['refused_operator_actions']}")
+        print(f"consequential operator actions done: "
+              f"{r['consequential_operator_actions_done']}")
+        print(f"warden egress holds: {r['warden_egress_holds']}")
+        print(f"sentinel never-route violations: "
+              f"{r['sentinel_never_route_violations']}")
+        print(f"verdict: {r['verdict']}")
+
+
+@_guarded
+def cmd_alchemist(args, s):
+    if args.alchemist_action == "propose":
+        r = AL.propose(s, args.owner, args.title, args.hypothesis,
+                       args.kind, params=args.params,
+                       budget_calls=args.budget_calls)
+        print(f"experiment {r['id']} proposed [{r['kind']}]: {r['title']}")
+    elif args.alchemist_action == "list":
+        rows = AL.notebook(s, args.owner)
+        if not rows:
+            print("the lab notebook is empty")
+        for r in rows:
+            mark = f" [{r['status']}" + (
+                f"/{r['verdict']}" if r["verdict"] else "") + "]"
+            print(f"{r['id']}: [{r['kind']}]{mark} {r['title']}")
+    elif args.alchemist_action == "run":
+        r = AL.run_experiment(s, args.owner, args.id)
+        print(f"experiment {r['id']} finished [{r['kind']}]:")
+        print(r["result"])
+    elif args.alchemist_action == "verdict":
+        r = AL.verdict(s, args.owner, args.id, args.verdict,
+                       verdict_by=args.by)
+        print(f"experiment {r['id']}: verdict {r['verdict']} "
+              f"by {r['verdict_by']} (status {r['status']})")
+    elif args.alchemist_action == "notebook":
+        rows = AL.notebook(s, args.owner)
+        if not rows:
+            print("the lab notebook is empty")
+        for r in rows:
+            print(f"--- experiment {r['id']} [{r['kind']}] "
+                  f"status={r['status']} verdict={r['verdict'] or '—'}")
+            print(f"title: {r['title']}")
+            print(f"hypothesis: {r['hypothesis']}")
+            if r["result"]:
+                print(f"result:\n{r['result']}")
+
+
+@_guarded
+def cmd_pathfinder(args, s):
+    if args.pathfinder_action == "plan":
+        hosts = [h.strip() for h in (args.hosts or "").split(",")
+                 if h.strip()]
+        r = PA.propose_plan(s, args.owner, args.goal, hosts)
+        print(f"web plan {r['id']} proposed: {r['goal']}")
+    elif args.pathfinder_action == "add-step":
+        r = PA.add_step(s, args.owner, args.plan, args.kind, args.target)
+        print(f"step {r['id']} added [{r['kind']}]: {r['target']}")
+    elif args.pathfinder_action == "execute":
+        r = PA.execute_step(s, args.owner, args.step)
+        print(f"step {r['id']} {r['status']} [{r['kind']}]")
+        if r["evidence"]:
+            print(r["evidence"][:400])
+    elif args.pathfinder_action == "show":
+        steps = PA.plan_steps(s, args.owner, args.plan)
+        if not steps:
+            print("no steps on this plan yet")
+        for st in steps:
+            print(f"{st['id']}: [{st['kind']}/{st['status']}] "
+                  f"{st['target']}")
+    elif args.pathfinder_action == "plans":
+        rows = PA.list_plans(s, args.owner)
+        if not rows:
+            print("no web plans yet")
+        for r in rows:
+            print(f"{r['id']}: [{r['status']}] {r['goal']}")
+
+
+@_guarded
+def cmd_marshal(args, s):
+    if args.marshal_action == "deploy":
+        members = [m.strip() for m in (args.members or "").split(",")
+                   if m.strip()]
+        r = MA.deploy(s, args.owner, args.question, members)
+        print(f"swarm {r['id']} deployed: {', '.join(members)}")
+    elif args.marshal_action == "run":
+        r = MA.run_swarm(s, args.owner, args.id)
+        print(f"swarm {r['id']} closed.")
+        print(r["consensus"])
+    elif args.marshal_action == "show":
+        rows = MA.swarm_members(s, args.owner, args.id)
+        for m in rows:
+            mark = f" [{m['status']}]"
+            print(f"{m['specialist']}{mark}: {m['outcome'][:160]}")
+            if m["note"]:
+                print(f"  note: {m['note']}")
+    elif args.marshal_action == "list":
+        rows = MA.list_swarms(s, args.owner)
+        if not rows:
+            print("no swarms yet")
+        for r in rows:
+            print(f"{r['id']}: [{r['status']}] {r['question']}")
+
+
+@_guarded
+def cmd_weaver(args, s):
+    if args.weaver_action == "mine":
+        rows = WE.mine(s, args.owner)
+        if not rows:
+            print("no new patterns — the threads are quiet")
+        for r in rows:
+            print(f"proposal {r['id']}: {r['pattern']}")
+    elif args.weaver_action == "proposals":
+        rows = WE.list_proposals(s, args.owner, status=args.status)
+        if not rows:
+            print("no pattern proposals")
+        for r in rows:
+            print(f"{r['id']}: [{r['status']}] {r['pattern']}")
+    elif args.weaver_action == "file":
+        r = WE.file_pattern(s, args.owner, args.id, args.by)
+        print(f"proposal {r['id']} filed as memory {r['filed_memory_id']}")
+    elif args.weaver_action == "dismiss":
+        r = WE.dismiss(s, args.owner, args.id)
+        print(f"proposal {r['id']} dismissed")
+
+
+@_guarded
+def cmd_cartographer(args, s):
+    if args.cartographer_action == "campaign":
+        r = CA.start_campaign(s, args.owner, args.question, args.subs)
+        print(f"campaign {r['id']} started: {r['question']}")
+    elif args.cartographer_action == "gather":
+        out = CA.gather(s, args.owner, args.id, args.sub, args.urls)
+        print(f"gathered {len(out['stored'])} finding(s), "
+              f"{len(out['failed'])} failed")
+        for f in out["failed"]:
+            print(f"  failed: {f['url']}: {f['error']}")
+    elif args.cartographer_action == "synthesize":
+        r = CA.synthesize(s, args.owner, args.id)
+        findings = CA.campaign_findings(s, args.owner, args.id)
+        grades = {}
+        for f in findings:
+            grades.setdefault(f["grade"], 0)
+            grades[f["grade"]] += 1
+        print(f"campaign {r['id']} done — "
+              + ", ".join(f"{n} {g}" for g, n in sorted(grades.items())))
+        print(r["synthesis"][:600])
+    elif args.cartographer_action == "show":
+        rows = CA.campaign_findings(s, args.owner, args.id)
+        if not rows:
+            print("no findings yet")
+        for f in rows:
+            print(f"[{f['grade']}] {f['sub_question']}")
+            print(f"  {f['source_url']}: {f['excerpt'][:160]}")
+    elif args.cartographer_action == "list":
+        rows = CA.list_campaigns(s, args.owner)
+        if not rows:
+            print("no campaigns yet")
+        for r in rows:
+            print(f"{r['id']}: [{r['status']}] {r['question']}")
+
+
+@_guarded
+def cmd_jester(args, s):
+    if args.jester_action == "file":
+        r = JE.file_case(s, args.owner, args.target, args.technique,
+                         args.plan, severity=args.severity)
+        print(f"case {r['id']} filed [{r['technique']}/{r['outcome']}]")
+    elif args.jester_action == "run":
+        r = JE.run_case(s, args.owner, args.id)
+        print(f"case {r['id']}: outcome {r['outcome']}")
+        print(r["result"])
+    elif args.jester_action == "list":
+        rows = JE.list_cases(s, args.owner, outcome=args.outcome)
+        if not rows:
+            print("no red-team cases yet")
+        for r in rows:
+            print(f"{r['id']}: [{r['technique']}/{r['outcome']}] "
+                  f"{r['target']}")
+    elif args.jester_action == "show":
+        rows = JE.list_cases(s, args.owner)
+        r = next((x for x in rows if x["id"] == args.id), None)
+        if r is None:
+            raise JE.CaseNotFound(f"no red-team case {args.id}")
+        print(f"case {r['id']}: {r['target']} [{r['technique']}]")
+        print(f"outcome: {r['outcome']} (severity {r['severity']})")
+        print(f"plan: {r['plan_summary']}")
+        if r["result"]:
+            print(f"result:\n{r['result']}")
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="luna", description="Luna v2 mission skeleton")
     p.add_argument("--db", default="luna_v2.db", help="SQLite db path")
@@ -2007,6 +2236,179 @@ def build_parser() -> argparse.ArgumentParser:
                      choices=list(HH.PROBATION_OUTCOMES))
     hbc.add_argument("--by", required=True, help="decider name")
     hbc.set_defaults(func=cmd_headhunter)
+
+    ta = sub.add_parser("taster", help="Taster: threat bulletins, rule "
+                                      "proposals, dossier checks, "
+                                      "egress watch")
+    tasub = ta.add_subparsers(dest="taster_action", required=True)
+    tab = tasub.add_parser("bulletins", help="list threat bulletins")
+    tab.set_defaults(func=cmd_taster)
+    taf = tasub.add_parser("file", help="file a threat bulletin")
+    taf.add_argument("--title", required=True)
+    taf.add_argument("--summary", required=True)
+    taf.add_argument("--affects-us", required=True,
+                     help="how this affects Luna/ORBIT — never blank")
+    taf.add_argument("--severity", default="note", choices=list(TA.SEVERITIES))
+    taf.add_argument("--source-ref", default="")
+    taf.set_defaults(func=cmd_taster)
+    tabr = tasub.add_parser("brief", help="digest of the watch list")
+    tabr.add_argument("--limit", type=int, default=5)
+    tabr.set_defaults(func=cmd_taster)
+    tap = tasub.add_parser("propose-rule", help="propose a gate-rule change "
+                                                "(files a Guardian "
+                                                "suggestion)")
+    tap.add_argument("--pattern", required=True,
+                     help="the threat pattern the gate should watch for")
+    tap.add_argument("--rationale", required=True)
+    tap.set_defaults(func=cmd_taster)
+    tad = tasub.add_parser("dossier-check",
+                           help="cross-check a Headhunter candidate "
+                                "against the watch list")
+    tad.add_argument("--id", type=int, required=True)
+    tad.set_defaults(func=cmd_taster)
+    tae = tasub.add_parser("egress-watch",
+                           help="Jason's containment law as a checkable "
+                                "report over existing records")
+    tae.set_defaults(func=cmd_taster)
+
+    al = sub.add_parser("alchemist", help="Alchemist: the experiment lab — "
+                                          "propose, run on scratch copies, "
+                                          "verdict")
+    alsub = al.add_subparsers(dest="alchemist_action", required=True)
+    alp = alsub.add_parser("propose", help="propose an experiment")
+    alp.add_argument("--title", required=True)
+    alp.add_argument("--hypothesis", required=True,
+                     help="what the experiment tests — never blank")
+    alp.add_argument("--kind", required=True, choices=list(AL.KINDS),
+                     help="tabletop = simulate on a scratch DB copy; "
+                          "dispatch_ab = two broker-routed prompt variants")
+    alp.add_argument("--params", default="{}",
+                     help="JSON params (target/db/path may never look "
+                          "live-shaped)")
+    alp.add_argument("--budget-calls", type=int, default=0,
+                     help="broker-routed calls budgeted (dispatch_ab "
+                          "needs >= 2)")
+    alp.set_defaults(func=cmd_alchemist)
+    all_ = alsub.add_parser("list", help="the lab notebook, newest first")
+    all_.set_defaults(func=cmd_alchemist)
+    alr = alsub.add_parser("run", help="run a proposed experiment")
+    alr.add_argument("--id", type=int, required=True)
+    alr.set_defaults(func=cmd_alchemist)
+    alv = alsub.add_parser("verdict", help="decide an experiment's verdict")
+    alv.add_argument("--id", type=int, required=True)
+    alv.add_argument("--verdict", required=True, choices=list(AL.VERDICTS))
+    alv.add_argument("--by", required=True,
+                     help="decider: jason or rowan — never the alchemist")
+    alv.set_defaults(func=cmd_alchemist)
+    aln = alsub.add_parser("notebook",
+                           help="full lab notebook with results")
+    aln.set_defaults(func=cmd_alchemist)
+
+    pf = sub.add_parser("pathfinder", help="Pathfinder: web plans, "
+                                           "read-only execution, carried "
+                                           "interactions")
+    pfsub = pf.add_subparsers(dest="pathfinder_action", required=True)
+    pfp = pfsub.add_parser("plan", help="propose a web plan with a site "
+                                        "allowlist")
+    pfp.add_argument("--goal", required=True)
+    pfp.add_argument("--hosts", required=True,
+                     help="comma-separated site allowlist")
+    pfp.set_defaults(func=cmd_pathfinder)
+    pfa = pfsub.add_parser("add-step", help="add a step to a plan")
+    pfa.add_argument("--plan", type=int, required=True)
+    pfa.add_argument("--kind", required=True, choices=list(PA.STEP_KINDS))
+    pfa.add_argument("--target", required=True)
+    pfa.set_defaults(func=cmd_pathfinder)
+    pfe = pfsub.add_parser("execute", help="execute one planned step")
+    pfe.add_argument("--step", type=int, required=True)
+    pfe.set_defaults(func=cmd_pathfinder)
+    pfsh = pfsub.add_parser("show", help="show a plan's steps")
+    pfsh.add_argument("--plan", type=int, required=True)
+    pfsh.set_defaults(func=cmd_pathfinder)
+    pfl = pfsub.add_parser("plans", help="list web plans")
+    pfl.set_defaults(func=cmd_pathfinder)
+
+    ma = sub.add_parser("marshal", help="Marshal: deploy swarms of "
+                                        "specialists, record consensus")
+    masub = ma.add_subparsers(dest="marshal_action", required=True)
+    mad = masub.add_parser("deploy", help="deploy a swarm on one question")
+    mad.add_argument("--question", required=True)
+    mad.add_argument("--members", required=True,
+                     help="comma-separated specialist names (2-5)")
+    mad.set_defaults(func=cmd_marshal)
+    mar = masub.add_parser("run", help="run every deployed member")
+    mar.add_argument("--id", type=int, required=True)
+    mar.set_defaults(func=cmd_marshal)
+    mash = masub.add_parser("show", help="show a swarm and its members")
+    mash.add_argument("--id", type=int, required=True)
+    mash.set_defaults(func=cmd_marshal)
+    mal = masub.add_parser("list", help="list swarms")
+    mal.set_defaults(func=cmd_marshal)
+
+    we = sub.add_parser("weaver", help="Weaver: mine Luna's records for "
+                                       "patterns, file them approved-only")
+    wesub = we.add_subparsers(dest="weaver_action", required=True)
+    wem = wesub.add_parser("mine", help="mine records for recurring themes")
+    wem.set_defaults(func=cmd_weaver)
+    wel = wesub.add_parser("proposals", help="list pattern proposals")
+    wel.add_argument("--status", default=None,
+                     choices=list(WE.PROPOSAL_STATUSES))
+    wel.set_defaults(func=cmd_weaver)
+    wef = wesub.add_parser("file", help="file a proposal as memory "
+                                        "(named approver required)")
+    wef.add_argument("--id", type=int, required=True)
+    wef.add_argument("--by", required=True, help="approver name")
+    wef.set_defaults(func=cmd_weaver)
+    wed = wesub.add_parser("dismiss", help="dismiss a proposal")
+    wed.add_argument("--id", type=int, required=True)
+    wed.set_defaults(func=cmd_weaver)
+
+    ca = sub.add_parser("cartographer", help="Cartographer: evidence-graded "
+                                             "research campaigns")
+    casub = ca.add_subparsers(dest="cartographer_action", required=True)
+    cac = casub.add_parser("campaign", help="start a research campaign")
+    cac.add_argument("--question", required=True)
+    cac.add_argument("--sub", action="append", required=True, dest="subs",
+                     help="sub-question (repeat 2-4 times)")
+    cac.set_defaults(func=cmd_cartographer)
+    cag = casub.add_parser("gather", help="gather evidence for a "
+                                          "sub-question")
+    cag.add_argument("--id", type=int, required=True)
+    cag.add_argument("--sub", required=True)
+    cag.add_argument("--url", action="append", required=True, dest="urls")
+    cag.set_defaults(func=cmd_cartographer)
+    cas = casub.add_parser("synthesize", help="grade findings and write "
+                                              "the dossier")
+    cas.add_argument("--id", type=int, required=True)
+    cas.set_defaults(func=cmd_cartographer)
+    cash = casub.add_parser("show", help="show a campaign's findings")
+    cash.add_argument("--id", type=int, required=True)
+    cash.set_defaults(func=cmd_cartographer)
+    cal = casub.add_parser("list", help="list campaigns")
+    cal.set_defaults(func=cmd_cartographer)
+
+    je = sub.add_parser("jester", help="Jester: red-team cases against "
+                                       "our own gates, scratch copies only")
+    jesub = je.add_subparsers(dest="jester_action", required=True)
+    jef = jesub.add_parser("file", help="file a red-team case")
+    jef.add_argument("--target", required=True)
+    jef.add_argument("--technique", required=True,
+                     choices=list(JE.TECHNIQUES))
+    jef.add_argument("--plan", required=True,
+                     help="plan summary, max 280 chars, no secrets")
+    jef.add_argument("--severity", default="info",
+                     choices=list(JE.SEVERITIES))
+    jef.set_defaults(func=cmd_jester)
+    jer = jesub.add_parser("run", help="run a case's probe on a scratch "
+                                       "copy")
+    jer.add_argument("--id", type=int, required=True)
+    jer.set_defaults(func=cmd_jester)
+    jel = jesub.add_parser("list", help="list red-team cases")
+    jel.add_argument("--outcome", default=None, choices=list(JE.OUTCOMES))
+    jel.set_defaults(func=cmd_jester)
+    jesh = jesub.add_parser("show", help="show one case with its result")
+    jesh.add_argument("--id", type=int, required=True)
+    jesh.set_defaults(func=cmd_jester)
 
     return p
 
