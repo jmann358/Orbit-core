@@ -20,6 +20,7 @@ from luna_v2.store import Store
 from luna_v2 import missions as M
 from luna_v2 import broker as B
 from luna_v2 import specialists as SP
+from luna_v2 import rapport as R
 
 OWNER_DEFAULT = "jason"
 HOST = "127.0.0.1"
@@ -774,7 +775,7 @@ TEAM_ART = {
               "flavor": "Carries Luna's questions out into the world, and brings the answers home."},
     "designer": {"emoji": "🎨", "color": "#F06292",
                  "flavor": "Gives Luna her look, one shade of night at a time."},
-    "guardian": {"emoji": "🛡️", "color": "#4DB6AC",
+    "guardian": {"emoji": "👁", "color": "#4DB6AC",
                  "flavor": "Watches over Luna, and speaks up when she needs a hand."},
     "armorer": {"emoji": "🧰", "color": "#DCE775",
                 "flavor": "Keeps every tool sharp, tested, and ready to grab."},
@@ -794,7 +795,7 @@ TEAM_ART = {
                   "flavor": "Guards the key queue. Never writes a raw key down."},
     "warden": {"emoji": "🛡️", "color": "#90CAF9",
                "flavor": "Stands at the gate. Holds what's suspicious, never lets anything past unseen."},
-    "lumen": {"emoji": "🎨", "color": "#BA68C8",
+    "lumen": {"emoji": "🖼️", "color": "#BA68C8",
               "flavor": "Runs the image desk — drafts, queues, and tracks, never fakes the photo."},
     "herald": {"emoji": "📣", "color": "#81D4FA",
                "flavor": "Short first, the flow, what's left out — and a stamp that proves it."},
@@ -818,6 +819,10 @@ TEAM_ART = {
                "flavor": "Maps hard questions with graded evidence — contradictions on the chart, never averaged away."},
     "jester": {"emoji": "🃏", "color": "#D81B60",
                "flavor": "The loyal opposition — tries to break our own gates so nobody else does. Reports holes, never exploits them."},
+    "steward": {"emoji": "🏠", "color": "#A1887F",
+               "flavor": "Keeps Jason's personal projects warm across months — politely relentless questions, escalating as the date nears. Owns the project, never the tools."},
+    "canonist": {"emoji": "📏", "color": "#7C4DFF",
+               "flavor": "Checks the court's story against its own records — two faces can't share one face. Proposes; Jason decides."},
 }
 
 _SEV_CLS = {"info": "sev-info", "warning": "sev-warning",
@@ -935,7 +940,11 @@ def _team_card(store: Store, owner: str, name: str) -> str:
         quick = "<div class='small'>On duty — no runs yet.</div>"
     else:
         quick = "<div class='small'>In training — awaiting activation.</div>"
+    rapport = R.edges_for(store, owner, name)
+    strongest = (f"<div class='small flavor'>"
+                 f"{esc(rapport[0]['one_line'])}</div>" if rapport else "")
     pop = (f"<div class='popover'><strong>{esc(profile.title)}</strong><br>"
+           f"{strongest}"
            f"<span class='flavor'>{esc(art['flavor'])}</span>"
            f"<p>{esc(profile.purpose)}</p>{quick}"
            f"<p class='small'>Click for the full card →</p></div>")
@@ -1003,6 +1012,17 @@ def _page_specialist(store: Store, owner: str, name: str):
             f"{_status_chip(profile)}</div></div>")
     body += (f"<div class='card'><h3>About</h3>"
              f"<p>{esc(profile.purpose)}</p></div>")
+    redges = R.edges_for(store, owner, name)[:3]
+    if redges:
+        body += ("<div class='card'><h3>Rapport</h3><ul class='tl'>"
+                 + "".join(f"<li><span class='dot' "
+                           f"style='background:#ba68c8'></span>"
+                           f"{esc(e['one_line'])}</li>" for e in redges)
+                 + "</ul></div>")
+    else:
+        body += ("<div class='card'><h3>Rapport</h3>"
+                 "<p class='flavor'>No rapport yet — edges form as the "
+                 "court works together.</p></div>")
     gear = "".join(f"<span class='chip'>{esc(t)}</span>"
                    for t in profile.tools) or \
         "<span class='small'>no tools assigned yet</span>"
