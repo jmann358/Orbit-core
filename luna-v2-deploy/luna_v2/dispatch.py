@@ -63,16 +63,22 @@ def dispatch(store: Store, prompt: str, *, owner: str = "jason",
              note: str = "") -> DispatchResult:
     """Route a prompt to a free provider, call it, and account the usage.
 
-    1. broker.route() picks the eligible provider for `needs`
-       (raises NoEligibleProvider if none — transport is never called).
+    1. broker.route(require_model=True) picks the eligible provider for
+       `needs` (raises NoEligibleProvider if none — transport is never
+       called). Model-needing routes skip providers with no dispatch
+       model configured on their record, so routing can never hand back
+       a provider that cannot serve the call.
     2. The provider's configured model is read from its record; if none
-       is configured, DispatchError (no model, no call).
+       is configured, DispatchError (no model, no call) — a defensive
+       guard behind the routing rule.
     3. transport(provider, prompt) makes the real call.
     4. The provider-reported usage is recorded through broker.record_usage
        (usage row + resource-ledger entry, atomically, owner-attributed).
        Anything that fails before or during step 3 records nothing.
     """
-    choice = B.route(store, owner, needs)  # fail-closed: raises before any call
+    # fail-closed: raises before any call; require_model keeps model-less
+    # providers (e.g. openrouter) out of a route that must place a call
+    choice = B.route(store, owner, needs, require_model=True)
     model = provider_model(store, owner, choice.provider)
     if not model:
         raise DispatchError(

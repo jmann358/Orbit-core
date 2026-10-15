@@ -12,6 +12,11 @@ Routing rules (deliberate, documented):
   production allocation.
 - Providers whose free quota is UNKNOWN are never routed: we cannot verify
   a job fits, and broker-lite never invents quotas.
+- A route that will place a MODEL CALL (require_model=True, used by live
+  dispatch) additionally skips providers with no dispatch model configured
+  on their record: they cannot serve the call, and broker-lite never
+  invents a model for them. Plain bookkeeping routes impose no such
+  requirement.
 - Units are never converted: tokens != requests != neurons != credits.
   A job states what it needs per unit (e.g. {"tokens": 8000,
   "requests": 1}); a provider must cover EVERY needed unit.
@@ -159,6 +164,7 @@ class Allocation:
     resets_in: timedelta
     status: str
     production_allowed: bool
+    model: str | None = None
 
     @property
     def remaining(self) -> float | None:
@@ -228,7 +234,8 @@ def list_allocations(store: Store, owner: str,
             provider=row["provider"], unit=row["unit"],
             allowance=row["allowance"], used=used, period=row["period"],
             resets_in=_parse_ts(end) - now, status=row["status"],
-            production_allowed=bool(row["production_allowed"])))
+            production_allowed=bool(row["production_allowed"]),
+            model=row["model"]))
     return out
 
 
@@ -279,8 +286,15 @@ def record_usage(store: Store, owner: str, provider: str, unit: str,
 # Routing
 # ---------------------------------------------------------------------------
 def route_explain(store: Store, owner: str, needs: dict[str, float],
-                  now: datetime | None = None) -> list[tuple[str, str, bool, str]]:
-    """Per-provider routing verdict: (provider, unit, eligible, reason)."""
+                  now: datetime | None = None,
+                  require_model: bool = False
+                  ) -> list[tuple[str, str, bool, str]]:
+    """Per-provider routing verdict: (provider, unit, eligible, reason).
+
+    require_model=True marks a route that will place a model call (live
+    dispatch): a provider with no dispatch model configured on any of its
+    records is then ineligible, however well its allocations fit.
+    """
     now = now or _now()
     verdicts = []
     by_provider: dict[str, list[Allocation]] = {}
@@ -307,6 +321,10 @@ def route_explain(store: Store, owner: str, needs: dict[str, float],
             elif a.remaining < amount:
                 problems.append(
                     f"{unit} exhausted ({a.remaining:g} of {a.allowance:g} left)")
+        if require_model and not any(a.model for a in allocs):
+            problems.append(
+                "no dispatch model configured on its record — "
+                "cannot serve a model call")
         if problems:
             verdicts.append((provider, first.unit, False, "; ".join(problems)))
         else:
@@ -315,17 +333,21 @@ def route_explain(store: Store, owner: str, needs: dict[str, float],
 
 
 def route(store: Store, owner: str, needs: dict[str, float],
-          now: datetime | None = None) -> RouteChoice:
+          now: datetime | None = None,
+          require_model: bool = False) -> RouteChoice:
     """Pick the best eligible provider for a job's resource needs.
 
     needs maps resource unit -> amount, e.g. {"tokens": 8000, "requests": 1}.
     A provider must cover EVERY needed unit. Among eligible providers the
     allocation expiring soonest wins, then the tightest fit.
+    require_model=True (live dispatch) also requires a dispatch model
+    configured on the provider's record — see route_explain.
     """
     if not needs or any(v <= 0 for v in needs.values()):
         raise BrokerError("needs must map each unit to a positive amount")
     now = now or _now()
-    verdicts = route_explain(store, owner, needs, now)
+    verdicts = route_explain(store, owner, needs, now,
+                             require_model=require_model)
     eligible = [v for v in verdicts if v[2]]
     if not eligible:
         reasons = "; ".join(f"{p}: {r}" for p, _, _, r in verdicts) or "no providers"

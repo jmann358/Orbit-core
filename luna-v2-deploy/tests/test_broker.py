@@ -33,6 +33,23 @@ def test_seed_inventory(store):
     assert len(store.list_providers(OWNER)) == len(rows)
 
 
+def test_route_require_model_skips_model_less_providers(store):
+    # openrouter covers a requests-only need and is the tightest fit,
+    # but its record carries no dispatch model: with require_model it is
+    # ineligible for the route, with the reason stated plainly; without
+    # the requirement (pure bookkeeping) it stays eligible.
+    verdicts = {p: (ok, why) for p, _, ok, why in
+                B.route_explain(store, OWNER, {"requests": 1},
+                                require_model=True)}
+    assert verdicts["openrouter"][0] is False
+    assert "no dispatch model" in verdicts["openrouter"][1]
+    assert verdicts["groq"][0] is True
+    choice = B.route(store, OWNER, {"requests": 1}, require_model=True)
+    assert choice.provider == "groq"
+    # default routing is unchanged: no model requirement, tightest fit wins
+    assert B.route(store, OWNER, {"requests": 1}).provider == "openrouter"
+
+
 def test_retired_and_eval_only_never_route(store):
     # cohere is the only "calls" provider, but it is evaluation-only
     with pytest.raises(B.NoEligibleProvider):

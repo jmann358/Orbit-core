@@ -123,17 +123,51 @@ def test_unknown_quota_providers_are_never_dispatched(store):
     assert calls == []
 
 
-def test_dispatch_without_configured_model_refuses(store):
-    # a routable provider with no model on its record cannot dispatch:
-    # openrouter (tightest fit here) has no model, so routing succeeds but
-    # the call is refused before any transport is invoked
+def test_model_less_provider_skipped_for_model_dispatch(store):
+    # REPRODUCTION of the broker wart: a requests-only need makes
+    # openrouter the tightest fit, but openrouter has NO dispatch model
+    # on its record — dispatch routing must skip it (like unknown-quota
+    # providers) and land on groq, which is fully configured. Before the
+    # fix this died with "openrouter: no dispatch model configured on
+    # its record" even though groq was available.
     calls = []
-    with pytest.raises(D.DispatchError, match="no dispatch model"):
+    result = D.dispatch(store, "hi", owner=OWNER, needs={"requests": 1},
+                        transport=fake_transport_factory(calls))
+    assert result.provider == "groq"
+    assert result.model == "openai/gpt-oss-120b"
+    assert calls == [("groq", "hi")]
+    rows = {(r["provider"], r["unit"]) for r in usage_rows(store)}
+    assert rows == {("groq", "requests"), ("groq", "tokens")}
+    assert all(e["provider"] == "groq" for e in ledger_rows(store))
+
+
+def test_dispatch_without_configured_model_refuses(store):
+    # when NO routable provider has a dispatch model configured, a model
+    # call fails closed at routing: plain NoEligibleProvider naming the
+    # missing model, transport never invoked, zero usage recorded
+    store._db.execute(
+        "UPDATE broker_providers SET model = NULL WHERE owner = ?",
+        (OWNER,))
+    store._db.commit()
+    calls = []
+    with pytest.raises(B.NoEligibleProvider, match="no dispatch model"):
         D.dispatch(store, "hi", owner=OWNER, needs={"requests": 1},
                    transport=fake_transport_factory(calls))
     assert calls == []
     assert usage_rows(store) == []
     assert ledger_rows(store) == []
+
+
+def test_requests_only_broker_route_needs_no_model(store):
+    # the broker layer itself is model-agnostic bookkeeping: a plain
+    # route (no model requirement) still picks the tightest fit —
+    # openrouter — and requests-only accounting against it still works.
+    # Only dispatch (an actual model call) requires a configured model.
+    choice = B.route(store, OWNER, {"requests": 1})
+    assert choice.provider == "openrouter"
+    B.record_usage(store, OWNER, "openrouter", "requests", 1)
+    allocs = {(a.provider, a.unit): a for a in B.list_allocations(store, OWNER)}
+    assert allocs[("openrouter", "requests")].remaining == 49
 
 
 class FakeResponse:
