@@ -69,12 +69,14 @@ CREATE TABLE IF NOT EXISTS assignments (
 # Built-in kinds: executed as deterministic module calls, immediately.
 BUILTIN_KINDS = ("health_check", "guardian_scan", "qm_report",
                  "sentinel_audit", "verify_recent", "mentor_grades",
-                 "project_tick", "canon_sweep")
+                 "project_tick", "canon_sweep", "arbiter_audit",
+                 "outrider_report")
 # Mission kinds: become real routine-step missions for the assignee.
 MISSION_KINDS = ("training", "research", "tidy", "design", "scan",
                  "talent_hunt", "threat_sweep", "experiment",
                  "web_mission", "swarm", "memory_mining",
-                 "research_campaign", "red_team")
+                 "research_campaign", "red_team", "training_plan",
+                 "triage_sweep")
 VALID_KINDS = BUILTIN_KINDS + MISSION_KINDS
 VALID_STATUSES = ("open", "assigned", "done", "dropped")
 
@@ -88,6 +90,8 @@ BUILTIN_OWNER = {
     "mentor_grades": "mentor",
     "project_tick": "steward",
     "canon_sweep": "canonist",
+    "arbiter_audit": "arbiter",
+    "outrider_report": "outrider",
 }
 
 # Natural owner for mission kinds with a standing specialist of record.
@@ -421,6 +425,25 @@ def _run_canon_sweep(store, owner) -> str:
             f"{res['guardian_suggestions_filed']} suggestion(s) filed")
 
 
+def _run_arbiter_audit(store, owner) -> str:
+    from luna_v2 import arbiter as AB
+    res = AB.audit_windows(store, owner)
+    return (f"arbiter audit: {res['checked']} window(s) checked, "
+            f"{res['too_short']} too short, {res['new_findings']} new "
+            f"finding(s), {res['guardian_suggestions_filed']} "
+            f"suggestion(s) filed")
+
+
+def _run_outrider_report(store, owner) -> str:
+    from luna_v2 import outrider as OU
+    watch = OU.list_watchlist(store, owner)
+    obs = OU.list_observations(store, owner)
+    due = OU.refresh_due(store, owner)
+    return (f"outrider report: watching {len(watch)} rival(s), "
+            f"{len(obs)} observation(s) on the books, "
+            f"{len(due)} refresh(es) due")
+
+
 BUILTIN_RUNNERS = {
     "health_check": (_run_health_check, "watchman"),
     "guardian_scan": (_run_guardian_scan, "guardian"),
@@ -430,6 +453,8 @@ BUILTIN_RUNNERS = {
     "mentor_grades": (_run_mentor_grades, "mentor"),
     "project_tick": (_run_project_tick, "steward"),
     "canon_sweep": (_run_canon_sweep, "canonist"),
+    "arbiter_audit": (_run_arbiter_audit, "arbiter"),
+    "outrider_report": (_run_outrider_report, "outrider"),
 }
 
 
@@ -495,6 +520,24 @@ def _create_work_mission(store, owner, item, specialist) -> int:
     return mission.id
 
 
+def _pulse_tick(store: Store, owner: str, report: dict) -> None:
+    """Bundle B: every tick lands one pulse event in the ops feed —
+    deterministic text: what the tick assigned (specialist, title,
+    outcome) and what it skipped, plus the note when nothing moved."""
+    from luna_v2 import ops as OPS
+    assigned = report["assigned"]
+    summary = (f"conductor tick: {len(assigned)} assigned, "
+               f"{len(report['skipped'])} skipped")
+    if assigned:
+        summary += " — " + "; ".join(
+            f"{a['specialist']}: {a['title']} ({a['outcome']})"
+            for a in assigned)
+    if report["note"]:
+        summary += f" — {report['note']}"
+    OPS.emit_pulse(store, owner, "done", "conductor", summary,
+                   ref="conductor-tick")
+
+
 def tick(store: Store, owner: str, *,
          max_assignments: int = 3) -> dict:
     """Assign open backlog work to the most idle eligible specialists.
@@ -509,6 +552,7 @@ def tick(store: Store, owner: str, *,
     if remaining <= 0:
         report["note"] = (
             f"daily cap reached ({DAILY_CAP}/day); nothing assigned")
+        _pulse_tick(store, owner, report)
         return report
 
     invented_assigned = 0
@@ -576,6 +620,7 @@ def tick(store: Store, owner: str, *,
     elif not report["assigned"]:
         report["note"] = ("no eligible specialist for any open item — "
                           "nothing assigned")
+    _pulse_tick(store, owner, report)
     return report
 
 

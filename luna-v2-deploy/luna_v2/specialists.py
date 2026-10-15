@@ -21,14 +21,14 @@ Framework rules, deliberate:
 - Planned teammates are registered but inert: asking one to run is a
   clean refusal, never a partial side effect.
 
-All thirty-two specialists are active: Scout, Guardian, Verifier,
+All thirty-nine specialists are active: Scout, Guardian, Verifier,
 Quartermaster, Watchman, Sentinel, Archivist, Scheduler, Armorer,
 Envoy, Designer, Builder, Mentor, Operator, Host, Registrar,
 Locksmith, Warden, Lumen, Herald, Artificer, Conductor,
 Headhunter, Taster, Alchemist, Pathfinder, Marshal, Weaver,
-Cartographer, Jester, Steward and Canonist — each behind the same
-framework rules, each activated with tests and a live proof on the
-real database.
+Cartographer, Jester, Steward, Canonist, Trainer, Medic,
+Stepwriter, Tallyman, Lantern, Arbiter and Outrider — each behind the same framework rules, each activated
+with tests and a live proof on the real database.
 
 Stdlib only.
 """
@@ -369,6 +369,122 @@ SPECIALISTS: dict[str, SpecialistProfile] = {
                 "check the story, never to decide anything.",
         tools=["continuity_audit"],
         max_provider_calls_per_run=0, max_fetches_per_run=0,
+        status="active"),
+    "trainer": SpecialistProfile(
+        name="trainer", title="Capability Trainer",
+        purpose="Luna's strength coach: studies what top-tier systems "
+                "can do, names the gap between that and Luna's proven "
+                "level (evidence only — grades, gauntlets, receipts), "
+                "and designs training plans to close it. A coach, "
+                "never a judge: grades nobody, rewards nobody, retires "
+                "nobody, assigns nothing, spends no provider "
+                "allocation. Plans are proposals; Jason or Rowan "
+                "approves, Conductor carries the approved ones.",
+        tools=["capability_coaching"],
+        max_provider_calls_per_run=0, max_fetches_per_run=0,
+        status="active"),
+    "medic": SpecialistProfile(
+        name="medic", title="Failure Triage",
+        purpose="Luna's first responder: reproduces each failure signal "
+                "with read-only diagnostics, classifies it CONFIRMED, "
+                "NOISE, or KNOWN, and attaches a diagnosis with a "
+                "proposed fix — propose-only, never applies anything. "
+                "Zero provider calls by Jason's credit law; per-tick and "
+                "per-day pursuit caps. Luna-internal signals only.",
+        tools=["failure_triage"],
+        max_provider_calls_per_run=0, max_fetches_per_run=0,
+        status="active"),
+    "stepwriter": SpecialistProfile(
+        name="stepwriter", title="Mission Planner",
+        purpose="Turns one plain sentence from Jason into a draft "
+                "mission — a clear title, an outcome line, and an "
+                "ordered step list with honest kinds, flagged "
+                "conservatively (unsure means consequential). "
+                "Decomposition via ONE broker-routed dispatch max, "
+                "fail-closed, with a deterministic offline template set. "
+                "Drafts never self-file: Jason approves before a "
+                "mission exists.",
+        tools=["mission_planning"],
+        max_provider_calls_per_run=1, max_fetches_per_run=0,
+        status="active"),
+    "tallyman": SpecialistProfile(
+        name="tallyman", title="Efficiency Officer",
+        purpose="The court's abacus — tracks the whole operation's burn "
+                "(Rowan's Muse usage, Luna's ledger, Codex task patterns) "
+                "in usage snapshots and files efficiency proposals with "
+                "labeled projected savings. Propose-only, forever: never "
+                "routes a dispatch, never changes a process, never grades "
+                "quality. Zero provider calls.",
+        tools=["efficiency_audit"],
+        max_provider_calls_per_run=0, max_fetches_per_run=0,
+        status="active"),
+    "lantern": SpecialistProfile(
+        name="lantern", title="The Guiding Light",
+        purpose="The prime: a mercenary handed a ring — one standing "
+                "war, make Luna/ORBIT competitive with best-in-class "
+                "companion apps (benchmark: Tolan). Lays out the "
+                "campaign in stages with written definitions of done, "
+                "records the gaps the benchmark proves, delegates the "
+                "work through the court, and reports the honest "
+                "standing. Plans and commands only: approves nothing "
+                "consequential, and never certifies his own stages "
+                "— Verifier grades them. Since Jason's "
+                "independent-minds ruling (2026-10-14) he also "
+                "THINKS in his own voice: one broker-accounted "
+                "dispatch per consult under his written charter "
+                "(luna_v2/minds.py), his words recorded verbatim in "
+                "mind_outputs — and he files none of them himself; "
+                "his proposals wait on Rowan or Jason like "
+                "everyone's.",
+        tools=["campaign_ledger", "provider_dispatch"],
+        max_provider_calls_per_run=1, max_fetches_per_run=0,
+        status="active"),
+    "arbiter": SpecialistProfile(
+        name="arbiter", title="The Reality Check",
+        purpose="Reality-check counsel: audits the court's yardsticks "
+                "before verdicts land — every probation window "
+                "measured against the role's natural result-cycle "
+                "(fair / too short / wrong yardstick) — and files "
+                "plain-words reality checks when a process outcome "
+                "would stop something demonstrably working or pass "
+                "something demonstrably hollow, optionally marked "
+                "override-recommended. Propose-only, forever: flags "
+                "with cited evidence, never decides a verdict, never "
+                "grades a specialist's output (Mentor's job), never "
+                "edits a record, never blocks a process. Born with "
+                "a mind: his judgment calls are his own "
+                "broker-accounted dispatch under charter "
+                "(luna_v2/minds.py), one call per consult; the "
+                "window arithmetic stays deterministic code.",
+        tools=["reality_audit", "provider_dispatch"],
+        max_provider_calls_per_run=1, max_fetches_per_run=0,
+        status="active"),
+    "outrider": SpecialistProfile(
+        name="outrider", title="The Far Rider",
+        purpose="The competition watch, a dedicated seat (Jason, "
+                "vision quiz Q17, 2026-10-14: 'hire a brand-new "
+                "specialist for exactly this'). Tracks rival "
+                "assistants and companions — features, pricing, "
+                "memory models, user loves/hates, launches and "
+                "shutdowns — on a monthly full-field refresh plus "
+                "tripwire observations on major launches, taking "
+                "over the standing watch Cartographer held under "
+                "Lantern's campaign delegation 8. Evidence law is "
+                "absolute: every observation dated and source-graded "
+                "(A official / B press / C aggregator-user / X "
+                "unverifiable), official claims and user reports "
+                "never blended, every observation carrying its "
+                "so-what for Luna or refused at filing. Propose-only: "
+                "watch reports and sourced gap proposals are FED TO "
+                "LANTERN — he files nothing into the campaign "
+                "himself, decides nothing, grades nobody. No network "
+                "of his own inside Luna: observations enter via "
+                "Rowan-fed sources or day passes under Outreach law. "
+                "Born with a mind: his field assessments are his own "
+                "broker-accounted dispatch under charter "
+                "(luna_v2/minds.py), one call per consult.",
+        tools=["competition_watch", "provider_dispatch"],
+        max_provider_calls_per_run=1, max_fetches_per_run=0,
         status="active"),
 }
 
