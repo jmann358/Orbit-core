@@ -79,7 +79,9 @@ GUARDIAN_CHECK = "canon_finding"
 # in the alternation (built below). Kept to the range the court has
 # ever plausibly lived in.
 _NUM_WORDS = {
-    "thirty-five": 35, "thirty-four": 34, "thirty-three": 33,
+    "thirty-nine": 39, "thirty-eight": 38,
+    "thirty-seven": 37, "thirty-six": 36, "thirty-five": 35, "thirty-four": 34,
+    "thirty-three": 33,
     "thirty-two": 32, "thirty-one": 31, "thirty": 30,
     "twenty-nine": 29, "twenty-eight": 28, "twenty-seven": 27,
     "twenty-six": 26, "twenty-five": 25, "twenty-four": 24,

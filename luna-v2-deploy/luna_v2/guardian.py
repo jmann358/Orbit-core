@@ -321,13 +321,35 @@ def file_suggestion(store: Store, owner: str, check_name: str, subject: str,
     return row
 
 
+def _ops_hook(store: Store, owner: str, suggestion) -> None:
+    """Bundle B: a warning/critical suggestion also files a
+    problem report in the ops pipeline — the suggestion's proposed
+    action becomes the proposed solution and its evidence is
+    copied verbatim, so the problem arrives WITH its fix, per the
+    report law. Deduped twice over: scan only calls this for
+    newly filed suggestions, and the ops filer dedupes open
+    reports on specialist+problem. Info suggestions stay plain
+    suggestions; only warning/critical rise to problem reports."""
+    if suggestion["severity"] not in ("warning", "critical"):
+        return
+    from luna_v2 import ops as OPS
+    OPS.file_report(
+        store, owner, "guardian",
+        problem=(f"guardian {suggestion['check_name']} on "
+                 f"{suggestion['subject']}: "
+                 f"{suggestion['observation']}"),
+        evidence=suggestion["evidence"],
+        proposed_solution=suggestion["proposed_action"])
+
+
 def scan(store: Store, owner: str = "jason") -> list[sqlite3.Row]:
     """Run every check and file new suggestions.
 
     Returns only the newly filed suggestion rows. Deterministic:
     scanning twice files nothing the second time unless a condition
     changed state. Makes zero provider calls and writes only to
-    guardian_suggestions.
+    guardian_suggestions (plus, via the Bundle B hook, one ops
+    problem report per new warning/critical suggestion).
     """
     new = []
     for check in _CHECKS:
@@ -335,6 +357,7 @@ def scan(store: Store, owner: str = "jason") -> list[sqlite3.Row]:
             row, created = _file_one(store, owner, **finding)
             if created:
                 new.append(row)
+                _ops_hook(store, owner, row)
     return new
 
 
