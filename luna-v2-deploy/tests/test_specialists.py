@@ -203,9 +203,9 @@ def test_scout_partial_fetch_failure_noted(store):
 # ---------------------------------------------------------------------------
 # (g) the approved team roster
 # ---------------------------------------------------------------------------
-def test_roster_has_thirty_two_profiles_all_active():
+def test_roster_has_thirty_nine_profiles_all_active():
     profiles = SP.list_specialists()
-    assert len(profiles) == 32
+    assert len(profiles) == 39
     by_name = {p.name: p for p in profiles}
     assert set(by_name) == {"scout", "verifier", "builder",
                             "quartermaster", "archivist", "watchman",
@@ -217,9 +217,22 @@ def test_roster_has_thirty_two_profiles_all_active():
                             "herald", "artificer", "conductor",
                             "headhunter", "taster", "alchemist",
                             "pathfinder", "marshal", "weaver", "cartographer", "jester",
-                            "steward"}
+                            "steward", "trainer", "medic", "stepwriter",
+                            "tallyman", "lantern", "arbiter", "outrider"}
     active = [p for p in profiles if p.status == "active"]
-    assert [p.name for p in active] == ["scout", "verifier", "builder", "quartermaster", "archivist", "watchman", "envoy", "designer", "guardian", "armorer", "scheduler", "operator", "mentor", "sentinel", "host", "registrar", "locksmith", "warden", "lumen", "herald", "artificer", "conductor", "headhunter", "taster", "alchemist", "pathfinder", "marshal", "weaver", "cartographer", "jester", "steward", "canonist"]
+    assert [p.name for p in active] == ["scout", "verifier", "builder", "quartermaster", "archivist", "watchman", "envoy", "designer", "guardian", "armorer", "scheduler", "operator", "mentor", "sentinel", "host", "registrar", "locksmith", "warden", "lumen", "herald", "artificer", "conductor", "headhunter", "taster", "alchemist", "pathfinder", "marshal", "weaver", "cartographer", "jester", "steward", "canonist", "trainer", "medic", "stepwriter", "tallyman", "lantern", "arbiter", "outrider"]
+    trainer = by_name["trainer"]
+    assert trainer.tools == ["capability_coaching"]
+    assert (trainer.max_provider_calls_per_run,
+            trainer.max_fetches_per_run) == (0, 0)
+    medic = by_name["medic"]
+    assert medic.tools == ["failure_triage"]
+    assert (medic.max_provider_calls_per_run,
+            medic.max_fetches_per_run) == (0, 0)
+    stepwriter = by_name["stepwriter"]
+    assert stepwriter.tools == ["mission_planning"]
+    assert (stepwriter.max_provider_calls_per_run,
+            stepwriter.max_fetches_per_run) == (1, 0)
     pathfinder = by_name["pathfinder"]
     assert pathfinder.tools == ["browser_act"]
     assert (pathfinder.max_provider_calls_per_run,
