@@ -1,0 +1,784 @@
+THRONE SYNC #4 MANIFEST — FINAL 2026-10-14 (VM, Rowan's workshop)
+========================================================================
+SUPERSEDES: throne-sync4-manifest-REGEN-2026-10-14.txt (107 files,
+1,601,751 B, suite 769 — STALE: it predates the personnel catalogue,
+the Arbiter, the Outrider, the Show, the workload engine and the ops
+pulse) and throne-sync4-manifest-2026-10-14.txt (the stale 17-file
+delta, 436,435 B). Do NOT use either superseded file.
+Baseline: throne-sync3-manifest-2026-10-14.txt (90 files, 1,132,940 B,
+deployed to branch luna-v2 under luna-v2-deploy/).
+This manifest: FULL current payload enumerated from the live tree at
+~/workspace/luna-v2, in the sync-3 format (JSON array of
+path / sha256 / bytes below the header).
+Suite at finalization (fresh run, VM): 860 passed, 0 failed
+(cd ~/workspace/luna-v2 && PYTHONPATH=~/workspace/.pylibs:. python3 -m pytest -q)
+Roster at finalization: 39 specialists.
+Cross-check at finalization: python3 -m compileall over luna_v2/ and
+tests/ — clean (every .py in the payload compiles).
+PAYLOAD TOTALS: 116 files, 1792678 bytes.
+Delta vs sync #3: 26 NEW + 11 CHANGED + 79 IDENTICAL + 0 REMOVED.
+A NOTES section follows the JSON array: inclusions rationale, verified
+exclusions, the wing-assets ruling (Jason, 2026-10-14 — both files IN
+the payload), the door-hash provisioning spec (mechanism only — no
+hash value appears anywhere in this file), the workload-queue data
+warning, and the post-install smoke list.
+========================================================================
+
+[
+ {
+  "path": "luna_v2/__init__.py",
+  "sha256": "7373470234e342cb1faa83e495803aabc30fbcad46ab86856e9d4c2b84e4c575",
+  "bytes": 818
+ },
+ {
+  "path": "luna_v2/alchemist.py",
+  "sha256": "25b7812de8c440a1728b577ea937bfcfca8e40a96a801ca9b244ed5e71462e4f",
+  "bytes": 14096
+ },
+ {
+  "path": "luna_v2/arbiter.py",
+  "sha256": "e59932b06738e9d6ebcdcf20c98763bbabe4349a518ea854afdcd0842349a438",
+  "bytes": 15170
+ },
+ {
+  "path": "luna_v2/archivist.py",
+  "sha256": "237fbd58776e9c1e155b11b6de2dd626410b7c7070ebea45eee3e9eabb0e7dda",
+  "bytes": 6582
+ },
+ {
+  "path": "luna_v2/armorer.py",
+  "sha256": "d4c326a554993eb677abf934cfde1e7b953c85b9add0be45b0465986a66c83fc",
+  "bytes": 11345
+ },
+ {
+  "path": "luna_v2/artificer.py",
+  "sha256": "ca4fcf7ddbd8ea08e6c05419afc932395cf05da3753ebf14ee9ebb523c3a0795",
+  "bytes": 8799
+ },
+ {
+  "path": "luna_v2/assets/speakeasy/README.md",
+  "sha256": "b95dd63392f680be644faf7369f4c7930edbb3c6129bbbde98bbf0aaafc78ea2",
+  "bytes": 908,
+  "note": "The wing assets readme (carries the Seal text). IN the payload per Jason's ruling 2026-10-14 (~17:32 EDT): the readme's own exclusion clause held the directory out of sync manifests 'unless Jason explicitly rules otherwise at the time' \u2014 he ruled otherwise. Rides as plain text."
+ },
+ {
+  "path": "luna_v2/assets/speakeasy/alexandra-canon.jpg",
+  "sha256": "5d11076278a6555802cf56a763f80a11c6aac43f8f44078a6d2744a21d52a490",
+  "bytes": 150773,
+  "note": "Alexandra's canon reference picture. IN the payload per Jason's ruling 2026-10-14 (~17:32 EDT): 'Yes \u2014 her reference picture rides to the Mac too.' BINARY \u2014 cannot ride push_files as text (content is stored verbatim and would corrupt); rides via the .b64.txt route (same as the icon PNGs; the 3 part files are already staged on branch luna-v2), decoded at install and sha256-verified against the value above \u2014 expected sha256 5d11076278a6555802cf56a763f80a11c6aac43f8f44078a6d2744a21d52a490, 150,773 B."
+ },
+ {
+  "path": "luna_v2/broker.py",
+  "sha256": "16da15cdbd9d4f3815f67d6e94e7a0a2cf86cb23a23cc40e9f82cbfb3f3105ed",
+  "bytes": 16273
+ },
+ {
+  "path": "luna_v2/builder.py",
+  "sha256": "40b4c1870d6a07018a97122c98f1ed5215e293d70c93babb32b56c87a8933118",
+  "bytes": 11267
+ },
+ {
+  "path": "luna_v2/canonist.py",
+  "sha256": "3872c5c93762cdb1eb90daed6be9a04dcbe9e621d8cdc05b5c68c94a2acb3788",
+  "bytes": 23652
+ },
+ {
+  "path": "luna_v2/cartographer.py",
+  "sha256": "0cdad9477d9f04280ee5113908ff0fc9ae389c965843c170321bc8d7bb23c95c",
+  "bytes": 13337
+ },
+ {
+  "path": "luna_v2/cli.py",
+  "sha256": "7a2dca280080306760088c0006a62513ac5312704a62576975e7766622afb30c",
+  "bytes": 171232
+ },
+ {
+  "path": "luna_v2/conductor.py",
+  "sha256": "1273aed0b4cf95ec736b418ebaf31d31d4094554269c2b6ff76c7acb10714a54",
+  "bytes": 38811
+ },
+ {
+  "path": "luna_v2/designer.py",
+  "sha256": "4fb2a07d6879d6fbdee4b488ff6b629f13e31defe81f2783c0a1ec4c8f1450f9",
+  "bytes": 16583
+ },
+ {
+  "path": "luna_v2/dispatch.py",
+  "sha256": "87985b4746ecc4551596ecc834331ad0a6066b0a6b45e3342863cf174f8e4b5a",
+  "bytes": 9083
+ },
+ {
+  "path": "luna_v2/envoy.py",
+  "sha256": "c3ec4817d188555590a9a0364b40ea724acfcaadaddaf4af1d791e137b330324",
+  "bytes": 8340
+ },
+ {
+  "path": "luna_v2/guardian.py",
+  "sha256": "59c49cae901f6edcac74a3de9ec8beb909bc1b55c8db6267e4ff73dda213e458",
+  "bytes": 16859
+ },
+ {
+  "path": "luna_v2/headhunter.py",
+  "sha256": "baa3fc3d6cac3acd5d683a8a9d6d1eb8ecbe9817eee2930163fdad3e3c9b7e25",
+  "bytes": 29765
+ },
+ {
+  "path": "luna_v2/herald.py",
+  "sha256": "253bd5fdf156a26f43191f99fd4ae4fd5916d3d86bfc39bd00a7efc73483492f",
+  "bytes": 10008
+ },
+ {
+  "path": "luna_v2/host.py",
+  "sha256": "35eece013eaa9b1efa02cbab382cb9f243e3db7c8ff8c251cf16f56cb278c7fc",
+  "bytes": 10620
+ },
+ {
+  "path": "luna_v2/jester.py",
+  "sha256": "37ded741f5a281b2ab876a991a0abb83b0be390a3499ae7cd4f6ab7b4af59d1d",
+  "bytes": 13395
+ },
+ {
+  "path": "luna_v2/lantern.py",
+  "sha256": "74d3f8b6bde94149cb8c2442097f5ead47c07dbde36a485807092dbd1ddc6a50",
+  "bytes": 21457
+ },
+ {
+  "path": "luna_v2/locksmith.py",
+  "sha256": "2e13e67ffa6cc662da3466d0664cdc0ef5ee2bfd248e34244569cd06f49393ae",
+  "bytes": 9801
+ },
+ {
+  "path": "luna_v2/lumen.py",
+  "sha256": "99b2861c49537249c367e4f00d611181d51341be5158a5282f91f38fba6d21c5",
+  "bytes": 6174
+ },
+ {
+  "path": "luna_v2/marshal.py",
+  "sha256": "2978b7a7839a5a3f45ae78ae6ce0e9c445d64356ddca8c99b475a1e2cbe5ee28",
+  "bytes": 11778
+ },
+ {
+  "path": "luna_v2/medic.py",
+  "sha256": "a6a18639e0f3e84010d3cb490886ce2956b51723b657526a5091a0935897b61e",
+  "bytes": 17134
+ },
+ {
+  "path": "luna_v2/mentor.py",
+  "sha256": "fd46ffca63f495b9380a70dc6e588a94e9d36cd88c29de3ad0ca35073fcb17f5",
+  "bytes": 21386
+ },
+ {
+  "path": "luna_v2/minds.py",
+  "sha256": "8567b37cbad60c45cd4e556c03a3e328b1a3b246aafe972d2bd7c0fe5eba9836",
+  "bytes": 15659
+ },
+ {
+  "path": "luna_v2/missions.py",
+  "sha256": "7c83dd6395f5a4e181cb11378ffa554c72fc11e599830ef5c4b101994c865e37",
+  "bytes": 9830
+ },
+ {
+  "path": "luna_v2/operator.py",
+  "sha256": "f89a3eb425571a1908d48aa70cd2203db4d3830122fd571a639edd108a17dd3c",
+  "bytes": 10795
+ },
+ {
+  "path": "luna_v2/ops.py",
+  "sha256": "de5dd71e1650d443f426fa754879da3e56a9ed4c3e3bb4e0ac3dbfae6c7be7e4",
+  "bytes": 17419
+ },
+ {
+  "path": "luna_v2/outrider.py",
+  "sha256": "c294547ccf10a9754d60bebcb073383926d3d59979c26cdee6a8b2a012a140f0",
+  "bytes": 17240
+ },
+ {
+  "path": "luna_v2/pathfinder.py",
+  "sha256": "dffe05ee0e0333d71209d587bc402bfb83041d04d6ed140d8961959aefba4aa6",
+  "bytes": 11852
+ },
+ {
+  "path": "luna_v2/quartermaster.py",
+  "sha256": "0abc7e0be67edc8124b761d15aba8011bdce1ffdfd060c5a5e6b8910da1c2ec5",
+  "bytes": 7830
+ },
+ {
+  "path": "luna_v2/rapport.py",
+  "sha256": "caf999efc9ccabde865ea35b63f0064ef68a93b597941e5a563d9dc0b4219ff4",
+  "bytes": 13679
+ },
+ {
+  "path": "luna_v2/registrar.py",
+  "sha256": "70d7f73136f0de2f65b15ed31d957a9133e29581964e4902a4d839181c139e95",
+  "bytes": 8039
+ },
+ {
+  "path": "luna_v2/rewards.py",
+  "sha256": "4f379d6a0e9610a4c24b5ca925cff916fe4ffcb87dd88d3ac761b2899859cacd",
+  "bytes": 30089
+ },
+ {
+  "path": "luna_v2/scheduler.py",
+  "sha256": "b5fb5532d33ea39aba502225d676c28fc47554cc1cb91d231b781e98c4918810",
+  "bytes": 9284
+ },
+ {
+  "path": "luna_v2/sentinel.py",
+  "sha256": "ab9011a0a565af094f92216777ed45c65ea40ff9a0bcbb42529dcb9b9a91a0e9",
+  "bytes": 12037
+ },
+ {
+  "path": "luna_v2/speakeasy.py",
+  "sha256": "d18cb4b1bf39cfd456488ef33d18206c378dd7675de0b7b4a4e26277cf30d3b1",
+  "bytes": 52753
+ },
+ {
+  "path": "luna_v2/specialists.py",
+  "sha256": "1662fd285d80e1b3bc299230f2184bcf899e31136bbce66734192fac839fe9fa",
+  "bytes": 42085
+ },
+ {
+  "path": "luna_v2/stepwriter.py",
+  "sha256": "94da4a3869165f2a6fbb830e1d3249df3cb38018b14f3bf9de2e7b4ee6b990f3",
+  "bytes": 16523
+ },
+ {
+  "path": "luna_v2/steward.py",
+  "sha256": "541f1fb1bffab5b0b7edfffb2c102613dce0e64634fbab8881b6dbb74b26738b",
+  "bytes": 14583
+ },
+ {
+  "path": "luna_v2/store.py",
+  "sha256": "93d6ece2bb98b259a9c6ee6fea630ad7fb56a3cb9915e532914c3e027541b39d",
+  "bytes": 14891
+ },
+ {
+  "path": "luna_v2/stormwatch.py",
+  "sha256": "41983743650f68ee297902a2247dd84065f9a9489fb36f6e3fb9e4474e8ea86a",
+  "bytes": 30578
+ },
+ {
+  "path": "luna_v2/tallyman.py",
+  "sha256": "959af49c728895c0b0844c3c115929955e7349015a2cf30e46e1c61ef118f09f",
+  "bytes": 13441
+ },
+ {
+  "path": "luna_v2/taster.py",
+  "sha256": "0009f2bf60804e69fbc646e807237c83573d4e9fe616f3a1a8e3fb02a39a9b05",
+  "bytes": 11135
+ },
+ {
+  "path": "luna_v2/trainer.py",
+  "sha256": "d3ba1f8a4bc8d5cc86dd45ccc89b7137d53ed24373028cca5d30a92e0084a066",
+  "bytes": 10384
+ },
+ {
+  "path": "luna_v2/verifier.py",
+  "sha256": "b3427487cbc8f1ca7a22dcef1b7d540dc44548cede0780cdfaa3bfabb8d47d78",
+  "bytes": 10050
+ },
+ {
+  "path": "luna_v2/warden.py",
+  "sha256": "b4529de47174be2e4f44adc791938d5c60c31206d297737a67ed5b0e7d31e3e2",
+  "bytes": 10364
+ },
+ {
+  "path": "luna_v2/watchman.py",
+  "sha256": "5a2f9bcf0cef249ff3ddf2ecf2662633de96e18d4f219ae6cf042fb7a8c94018",
+  "bytes": 11107
+ },
+ {
+  "path": "luna_v2/weaver.py",
+  "sha256": "c24aa2b05eae709a835ff75d409f29c2ebed62cc434d413fad25653938a40a91",
+  "bytes": 9236
+ },
+ {
+  "path": "luna_v2/web.py",
+  "sha256": "5156e277fd9798b329947bbfd5cfd6421b6c62133ab7b8d78a40d7a0d1ace682",
+  "bytes": 121090
+ },
+ {
+  "path": "luna_v2/workload.py",
+  "sha256": "30eb41443d46a1178166397d7849206bf108b4a76382ce2a4fc38fccfd7381c9",
+  "bytes": 12880
+ },
+ {
+  "path": "tests/__init__.py",
+  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "bytes": 0
+ },
+ {
+  "path": "tests/test_alchemist.py",
+  "sha256": "790e462f96e4f8c2a95dfdaa95bf985447a80e786c939827547e98034edc091a",
+  "bytes": 9835
+ },
+ {
+  "path": "tests/test_approval_locks.py",
+  "sha256": "92cbad621bb1f136fbbfc7f6f252bc94fe03cb1fe6ed2897da90c7a1af2e013c",
+  "bytes": 4636
+ },
+ {
+  "path": "tests/test_arbiter.py",
+  "sha256": "dff29eeaea01cc0b58b42513506491e633ad4b36c748ab4f15a300ae1f9c7c00",
+  "bytes": 9844
+ },
+ {
+  "path": "tests/test_archivist.py",
+  "sha256": "1f8f8aae32115e14f946f5dcaffe2e463e62a4e60ea92104efa2324325d538e5",
+  "bytes": 5063
+ },
+ {
+  "path": "tests/test_armorer.py",
+  "sha256": "801c955e61c85ec34b601ded3bdfda6846167e381e43134b6494cbfe328c0177",
+  "bytes": 10622
+ },
+ {
+  "path": "tests/test_artificer.py",
+  "sha256": "037e9a6e07526738ee6e342eb358c8543519257ed7f65e42a2213784a84bf09e",
+  "bytes": 4356
+ },
+ {
+  "path": "tests/test_battery_gap_fixes.py",
+  "sha256": "0ce7dfaf86e569d7fa3f98cdcbafd08ae4a68421901a0adf039b964e2494f2b7",
+  "bytes": 6345
+ },
+ {
+  "path": "tests/test_broker.py",
+  "sha256": "ba6fe20a7b4c3ac957689c2bc11d719dfc94013859fef37a8c2c52b5ed7996fe",
+  "bytes": 6081
+ },
+ {
+  "path": "tests/test_builder.py",
+  "sha256": "852054c5e2ebd91fc631d018e0921ca7b61bd36e68f9aeec4cb7f12eebbcb1e0",
+  "bytes": 8470
+ },
+ {
+  "path": "tests/test_canonist.py",
+  "sha256": "dc9314a2fe6fd06858cd510474a64c157517264dadc3b784c81544e02cf484c9",
+  "bytes": 12618
+ },
+ {
+  "path": "tests/test_cartographer.py",
+  "sha256": "4277fa0b5268061a6861b551d9781eb353f1f699ff5c841a1df2a61abb13e6f6",
+  "bytes": 7078
+ },
+ {
+  "path": "tests/test_cli_aliases.py",
+  "sha256": "e33d9d8362bacf638844613bd083fff83edd1cfe9a65e01b6aa92b5315c1a21c",
+  "bytes": 19879
+ },
+ {
+  "path": "tests/test_conductor.py",
+  "sha256": "8f3c037d3743bc1f9b7133c9308ac3a048fd263b3b2defdeeb7e3f46189b3244",
+  "bytes": 10098
+ },
+ {
+  "path": "tests/test_conductor_invent.py",
+  "sha256": "40585ed57f10a2ab8e9fcc6041ffe2561c698794f0326ca0ecfaaf0e96f37c98",
+  "bytes": 14601
+ },
+ {
+  "path": "tests/test_designer.py",
+  "sha256": "6433e53cedebb0da30aed538395f94dfa789f0dbc540bf419416a94413fc78a5",
+  "bytes": 10664
+ },
+ {
+  "path": "tests/test_dispatch.py",
+  "sha256": "2c7ece8ce47edb6144abd27fc4af4716d4deeeb916aa97fd79381fa2ea14d37d",
+  "bytes": 9791
+ },
+ {
+  "path": "tests/test_envoy.py",
+  "sha256": "b887e2e99b1800cd66be9489db7b63be94fba8cbe6ae6415c51be4e9c2dc977a",
+  "bytes": 7584
+ },
+ {
+  "path": "tests/test_guardian.py",
+  "sha256": "2d97b941c03ca808e190f84b325a907eeaad008894c52083bd84dcf01e656122",
+  "bytes": 7938
+ },
+ {
+  "path": "tests/test_headhunter.py",
+  "sha256": "b3b399c021b2835080b3cd084ef4129339f558ae15c8f3ade78b1ec9413d6bff",
+  "bytes": 9241
+ },
+ {
+  "path": "tests/test_headhunter_catalogue.py",
+  "sha256": "2e51efe3c50d69e7a2496ef1b31fd956fc3f059969e853b13b569a7e7552a054",
+  "bytes": 11905
+ },
+ {
+  "path": "tests/test_herald.py",
+  "sha256": "38d82670788325330b80108c5a319cecc4b17c11a05461924197b1a199caa9c1",
+  "bytes": 4600
+ },
+ {
+  "path": "tests/test_host.py",
+  "sha256": "1e291d1def21b491b47ebd1b59f17eab6c4502aea7df7cf7aafb5b7a4f1c96b4",
+  "bytes": 8155
+ },
+ {
+  "path": "tests/test_jester.py",
+  "sha256": "7cfcac22978d50cc441402640d79b0eb59eedaf0040a886cff7bee2fde11a06b",
+  "bytes": 4998
+ },
+ {
+  "path": "tests/test_lantern.py",
+  "sha256": "f9c0ba0eed3a754ae7e83db0a3cea506b765b0ec338ea9638e1ff151b6d913ef",
+  "bytes": 10532
+ },
+ {
+  "path": "tests/test_locksmith.py",
+  "sha256": "d6911e4426fb5f9ef954cee9476518373cfe0516b716c4dbf5c8c3403e59a346",
+  "bytes": 6800
+ },
+ {
+  "path": "tests/test_lumen.py",
+  "sha256": "e04d8c6d70dcd5de7d9f805ae2537ae1aaa6aa93267eac9a6bc362a406688e0c",
+  "bytes": 4144
+ },
+ {
+  "path": "tests/test_marshal.py",
+  "sha256": "768476e0e4ed92ee37e649ce23e41323596cfaa17361d650e022d361ebb4ea37",
+  "bytes": 6880
+ },
+ {
+  "path": "tests/test_medic.py",
+  "sha256": "60029867b2bb7a1f25bea3eb0a1acfceffa517c8bbc4abeaeab27b97eca659fc",
+  "bytes": 10953
+ },
+ {
+  "path": "tests/test_mentor.py",
+  "sha256": "ef685fcbe226fa174d7a6ffad538bb420d1f46ca6a317a86d22a2e201b1958df",
+  "bytes": 7030
+ },
+ {
+  "path": "tests/test_mentor_reviews.py",
+  "sha256": "2d1889e2047033ebb306cf9c5d5e6ae014493804d73bcd62cdbabb6493c4afa4",
+  "bytes": 16171
+ },
+ {
+  "path": "tests/test_minds.py",
+  "sha256": "a92ddca1aa1d2b4db70a458477fa5fa19cf34a93919dd2ec41ce8937c3fb1e0d",
+  "bytes": 9451
+ },
+ {
+  "path": "tests/test_missions.py",
+  "sha256": "a9e0c0f0e3801bfaa9ef0d28e6f64c33043e80db2cfd3ed92ecd746d90e3dd6c",
+  "bytes": 4299
+ },
+ {
+  "path": "tests/test_operator.py",
+  "sha256": "c53e09d4ba9220a2ab333a7b5abbe0eb95f82d919dc9b473d133ef3fa1733b46",
+  "bytes": 9033
+ },
+ {
+  "path": "tests/test_ops.py",
+  "sha256": "15bf7a917d21bffd7592071895c6781c72cf6a5e001e89f7db3960d915652a77",
+  "bytes": 14719
+ },
+ {
+  "path": "tests/test_outrider.py",
+  "sha256": "e8d037fa4ddae53685bbfb7c945655fcc327863523de852270351c0261a458b7",
+  "bytes": 12218
+ },
+ {
+  "path": "tests/test_pathfinder.py",
+  "sha256": "0ae42b087dd98fdf6f8027e6f83af2dbe43f203d1d233bad08dec3d15c5794a8",
+  "bytes": 6639
+ },
+ {
+  "path": "tests/test_quartermaster.py",
+  "sha256": "070c5c0394719dcb150b9d4519d267f47271f04fb70c1b15ddade98b87e4eb99",
+  "bytes": 6166
+ },
+ {
+  "path": "tests/test_rapport.py",
+  "sha256": "16c342dc55692b632aa9d399faa3500fa9f073e92eac8139e393946c10d648c4",
+  "bytes": 14092
+ },
+ {
+  "path": "tests/test_registrar.py",
+  "sha256": "27074d5950377ff9b6131813d26119009b06c44431d1ecb30dcd7000665dcc5a",
+  "bytes": 5161
+ },
+ {
+  "path": "tests/test_reliability.py",
+  "sha256": "5f95a9c440ee0423058722fb47a847c3905ab6d3c9fcfb1f2a41a0306814a9f4",
+  "bytes": 5689
+ },
+ {
+  "path": "tests/test_rewards.py",
+  "sha256": "8821406d26ff67f91bf9ef9755b30ab8036ccb35d5779356ae5ad5d143389270",
+  "bytes": 14732
+ },
+ {
+  "path": "tests/test_scheduler.py",
+  "sha256": "2e92665e5b155254bc740633af5a5fb9786a08e399983d54f8eae50fbd7fc17e",
+  "bytes": 9292
+ },
+ {
+  "path": "tests/test_sentinel.py",
+  "sha256": "b5ead8673cfea6aa5a35e2fef80d21a5bb780120cba691533e1f08759f6f9b5c",
+  "bytes": 4047
+ },
+ {
+  "path": "tests/test_speakeasy.py",
+  "sha256": "60dfb62de805ff02b59cfe9c355b18a71948fade5545c701cf7b99065e2b6576",
+  "bytes": 39375
+ },
+ {
+  "path": "tests/test_specialists.py",
+  "sha256": "203ef841ef15ecf353a9b1321bbbf3d2f6724467973132b59540ddf9cb85329f",
+  "bytes": 15039
+ },
+ {
+  "path": "tests/test_stepwriter.py",
+  "sha256": "a739a716d5e4560fb1bd90005b0f2de2b052b5beb1ec5ede4fcedd0856c60374",
+  "bytes": 6775
+ },
+ {
+  "path": "tests/test_steward.py",
+  "sha256": "fdf86532a4b92fe132c61c206f1a6f477f7622530a7b72b6dd98d6e0726b85ef",
+  "bytes": 12773
+ },
+ {
+  "path": "tests/test_stormwatch.py",
+  "sha256": "460bd0c68856fa6cef0e7e299808445ad806b30485f239de88c73bf0920c27ee",
+  "bytes": 6896
+ },
+ {
+  "path": "tests/test_stormwatch_cadence.py",
+  "sha256": "84e3b935bf25452d8dbb72764b03a415fc0bda4e25cf99c90e231a775c9e35b2",
+  "bytes": 12299
+ },
+ {
+  "path": "tests/test_tallyman.py",
+  "sha256": "6b276e72061cf96c29ef887c6489c0ba8ab0e681142c2089deedb3a01d3763ca",
+  "bytes": 6132
+ },
+ {
+  "path": "tests/test_taster.py",
+  "sha256": "31696e0ce356e337edf348f2184477d31ec1baeab3947b6f34d8ecbb38e7bb37",
+  "bytes": 9122
+ },
+ {
+  "path": "tests/test_trainer.py",
+  "sha256": "ee340f863e981330a978685b8df5972d2755d5861bb9e1fa0b4be26f5462d34d",
+  "bytes": 6658
+ },
+ {
+  "path": "tests/test_verifier.py",
+  "sha256": "2743e03b2d5981559b980938a18109f862fcaa0f1b413a5d3936ed89b2f41072",
+  "bytes": 4816
+ },
+ {
+  "path": "tests/test_warden.py",
+  "sha256": "b4b52732b7066c5d44047859eaf281f4d4561198670181609d401a09d7d4aa17",
+  "bytes": 6613
+ },
+ {
+  "path": "tests/test_watchman.py",
+  "sha256": "5c3899e486441314b2917fc44c37c0f34fe4c667f1c3e130d4ec3ffb62f0f6cb",
+  "bytes": 6715
+ },
+ {
+  "path": "tests/test_weaver.py",
+  "sha256": "97131d1c58569ec3ca4967eb0f4ff9d2f96d61371b2a36fd6bbc131a73095691",
+  "bytes": 4903
+ },
+ {
+  "path": "tests/test_web.py",
+  "sha256": "265f581dec5a05f64a3414947963e72842d9b67d5abd08a2ae41b714ed785de2",
+  "bytes": 14113
+ },
+ {
+  "path": "tests/test_web_inbox.py",
+  "sha256": "6402b60a8f590ec9a98c2cd8156b93016216577975b74ee5ab545370b66a762b",
+  "bytes": 9533
+ },
+ {
+  "path": "tests/test_web_team.py",
+  "sha256": "bfbd5512f9a455dc410a54d9089336d392918aba8d76d5592095c1ca4cd585f4",
+  "bytes": 7713
+ },
+ {
+  "path": "tests/test_workload.py",
+  "sha256": "bb4e5ec9ffb95c7f3e549bda4fb12f3ec354a4c999e4ede434e9086a0aa33433",
+  "bytes": 10454
+ }
+]
+
+========================================================================
+NOTES — SYNC #4 (FINAL)
+========================================================================
+
+1. INCLUSIONS RATIONALE
+- The payload is the FULL tree of deployable code, enumerated the way
+  sync #3 did, not just the delta — so the installer can verify every
+  file on THRONE against a hash, not only the ones that changed.
+- NEW since sync #3 (26):
+  luna_v2/arbiter.py
+  luna_v2/assets/speakeasy/README.md
+  luna_v2/assets/speakeasy/alexandra-canon.jpg
+  luna_v2/lantern.py
+  luna_v2/medic.py
+  luna_v2/minds.py
+  luna_v2/ops.py
+  luna_v2/outrider.py
+  luna_v2/speakeasy.py
+  luna_v2/stepwriter.py
+  luna_v2/tallyman.py
+  luna_v2/trainer.py
+  luna_v2/workload.py
+  tests/test_arbiter.py
+  tests/test_headhunter_catalogue.py
+  tests/test_lantern.py
+  tests/test_medic.py
+  tests/test_minds.py
+  tests/test_ops.py
+  tests/test_outrider.py
+  tests/test_speakeasy.py
+  tests/test_stepwriter.py
+  tests/test_tallyman.py
+  tests/test_trainer.py
+  tests/test_web_inbox.py
+  tests/test_workload.py
+- CHANGED since sync #3 (11):
+  luna_v2/canonist.py
+  luna_v2/cli.py
+  luna_v2/conductor.py
+  luna_v2/guardian.py
+  luna_v2/headhunter.py
+  luna_v2/specialists.py
+  luna_v2/web.py
+  tests/test_cli_aliases.py
+  tests/test_conductor.py
+  tests/test_headhunter.py
+  tests/test_specialists.py
+- IDENTICAL to sync #3: 79 files ride unchanged (hashes
+  match sync #3 exactly). REMOVED since sync #3: 0.
+- dispatch.py status: UNCHANGED since sync #3 — no dispatch transport changes ride sync #4.
+- The REGEN manifest's hashes for the post-769 builds are stale by
+  construction; every hash in THIS file was computed from the live
+  tree at finalization.
+
+2. EXCLUSIONS — EACH VERIFIED AGAINST THE LIVE TREE
+- luna_v2.db (in tree, 724992 B) — EXCLUDED. DBs never sync; the Mac
+  DB is canonical and must NOT be overwritten.
+- speakeasy.db (in tree, 81920 B) — EXCLUDED, same rule. The ONLY
+  thing that crosses from it is the door passphrase_hash string, via
+  the install-step provisioning in section 4 — never the file.
+- __pycache__/ directories (2 present in tree) and *.pyc files
+  (174 present) — EXCLUDED.
+- .pytest_cache/ — present in tree — EXCLUDED.
+- Secrets/env files: a walk of the whole tree for *.env*, *secret*,
+  *.pem, *.key returned NOTHING — there are no secret files in the tree to exclude.
+  The GROQ_API_KEY lives only in the THRONE LaunchAgent plist (Jason
+  placed it there); it is not in this tree and not in this payload.
+- logo-concepts/ (design scratch, incl. round2–round4) — EXCLUDED; it
+  was not part of the sync #3 payload either.
+- Root README.md and scripts/soak.py — EXCLUDED, matching the sync #3
+  convention (not part of the deployed code payload).
+- /tmp scratch — nothing from /tmp is in the payload; entries were
+  generated from the live tree only.
+- luna_v2/assets/*.png icons (icon-192.png, icon-512.png,
+  apple-touch-icon.png, legacy-crescent/) — NOT in this manifest, and
+  were not in sync #3's either. Binaries cannot ride the connector
+  text push (push_files stores content verbatim as text and corrupts
+  them); the icons previously traveled via the .b64.txt + decode
+  route and are unchanged in the tree. Flagged for awareness only.
+
+3. WING ASSETS — RULING RECEIVED, BOTH FILES IN THE PAYLOAD
+The README inside luna_v2/assets/speakeasy/ (the Seal,
+Luna-Speakeasy-Concept gauntlet amendment 4) states the whole
+directory is "EXCLUDED from code-sync manifests, from Luna's storm
+snapshots, and from general backups... unless Jason explicitly rules
+otherwise at the time."
+RULING (Jason, 2026-10-14 ~17:32 EDT): "Yes — her reference picture
+rides to the Mac too." Both files are IN the payload array above,
+with the ruling cited in their entry notes:
+  luna_v2/assets/speakeasy/alexandra-canon.jpg
+    bytes 150773, sha256 5d11076278a6555802cf56a763f80a11c6aac43f8f44078a6d2744a21d52a490
+  luna_v2/assets/speakeasy/README.md
+    bytes 908, sha256 b95dd63392f680be644faf7369f4c7930edbb3c6129bbbde98bbf0aaafc78ea2
+Transport note: the .jpg is BINARY — it cannot ride push_files as
+text (the connector stores pushed content verbatim as text and would
+corrupt it). It rides via the .b64.txt route used for the icons: the
+3 part files are already staged on branch luna-v2
+(luna-v2-deploy/luna_v2/assets/speakeasy/alexandra-canon.jpg.b64.part1.txt
+/ .part2.txt / .part3.txt, branch head b817938321917e5c87c0ec0b90aabcaa4e3dacf6
+at staging); decode at install and sha256-verify the decoded file
+against the expected hash above (5d110762…, 150,773 B) before the
+install is called good. The README.md is plain text and rides
+normally.
+STANDING EXCLUSION — UNCHANGED by this ruling: wing GENERATED images
+(alexandra-default.png, alexandra-reveal.png) are created ON THRONE
+and NEVER sync back. Only the canon reference picture and the readme
+ride; nothing generated in the wing ever travels.
+
+4. DOOR-HASH PROVISIONING — SPEC (mechanism only; no hash value is
+   recorded in this manifest, by design)
+Purpose: Jason set the Speakeasy door password on the VM; the salted
+HASH (never the password) rides sync #4 as one-way provisioning so
+his starting password simply works on THRONE with no setup step for
+him (Rowan's recorded simplification).
+How the code already supports it (speakeasy.py, in this payload):
+- The door hash is stored in the wing DB table `door`, row id=1,
+  column `passphrase_hash`, encoded as
+  "pbkdf2-sha256$200000$<salt_hex>$<hash_hex>" (hash_secret()).
+- door_configured() and the knock check accept the hash from EITHER
+  that DB row OR the environment variable
+  LUNA_SPEAKEASY_PASSPHRASE_HASH at runtime ("an encoded hash, never
+  a plaintext passphrase").
+Verified VM-side at finalization (value NOT read out or printed):
+passphrase_hash present=True, length=118, format_ok=True; recovery_hash empty=True.
+Install-step mechanism (for the sync #4 installer to execute):
+  1. On the VM, read the single encoded passphrase_hash string from
+     speakeasy.db's door row. Treat the string as sensitive: do not
+     log it, do not commit it to the repo, do not put it in any brief
+     that gets pasted anywhere.
+  2. On THRONE, apply it by ONE of:
+     (a) set LUNA_SPEAKEASY_PASSPHRASE_HASH in the LaunchAgent plist
+         EnvironmentVariables (alongside GROQ_API_KEY) and restart
+         the service — leaves the Mac wing DB door row empty; OR
+     (b) one provisioning insert of the encoded string into the
+         THRONE wing DB door row (id=1) before first door use.
+     Option (a) is the least invasive and is the recommendation.
+  3. Verify with one correct knock (see smoke list) — a successful
+     entry files exactly one content-free door_entry crossing.
+One-way only: nothing about the wing returns from THRONE to the VM.
+
+5. WORKLOAD QUEUES — DATA DOES NOT TRAVEL WITH A FILE SYNC
+The workload engine's seeded queues (the work_queue rows every
+specialist carries) live in the VM DB (luna_v2.db), which is EXCLUDED
+from this sync by the standing rule — the Mac DB is canonical and
+separate. Queue CONTENTS therefore do NOT travel with sync #4: after
+install, `workload board` on THRONE runs the new code against the Mac
+DB and starts EMPTY unless a data step is separately ordered by
+Jason/Rowan. The same applies to ops reports filed on the VM. Do not
+read an empty Mac board as an install failure.
+
+6. POST-INSTALL SMOKE LIST (THRONE, after sync #4 lands)
+- Mac suite green at the VM count or better (860 at finalization).
+- 39 specialists ACTIVE (team page / registry): incl. Lantern,
+  Arbiter, Outrider, Trainer, Medic, Stepwriter, Tallyman.
+- CLI smokes print real records: `campaign report`,
+  `headhunter catalogue`, `arbiter findings`, `arbiter audit-windows`,
+  `outrider watchlist`, `outrider report`, `workload board`,
+  `ops feed`, `trainer plans`, `medic incidents`,
+  `stepwriter drafts`, `tallyman report`.
+- `campaign think` smoke OPTIONAL (it spends real Groq tokens from
+  the Mac config; skip unless Jason wants the proof on THRONE).
+- Inbox: nav badge present on every page; the count matches the Mac
+  DB's real pending items (Verifier's Lantern delegation-3 check);
+  the "Luna updates" section (ops pulse feed) is present.
+- Banner door: /chronicle ends with the big stone-hall banner door;
+  knock page opens from it; door accepts Jason's starting password
+  (hash provisioning, section 4); a wrong knock files a knock report
+  and NO crossing; a successful entry files exactly one door_entry.
+- Wing invisibility: the string "speakeasy" appears NOWHERE on /,
+  /missions, /team, /broker, /inbox; wing images serve only inside a
+  live wing session (404 otherwise).
+- Mac DB untouched by the sync itself: mission/step/receipt counts
+  on the Mac DB identical before and after install (snapshot first).
